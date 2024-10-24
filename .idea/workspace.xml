@@ -5,17 +5,28 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Data/matrice.xlsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Data/~$matrice.xlsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gendarmes_app/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gendarmes_app/data_manager.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gendarmes_app/gui.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gendarmes_app/main.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/material_theme_project_new.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/material_theme_project_new.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/database/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/database/db_manager.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/database/models.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ui/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ui/import_window.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ui/styles/styles.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/utils/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/utils/date_utils.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_db.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/Matrice_Disciplinaire.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Matrice_Disciplinaire.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Data/matrice.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Data/~$matrice.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gendarmes_app/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gendarmes_app/data_manager.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gendarmes_app/gui.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gendarmes_app/main.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,6 +55,9 @@
     &quot;accountId&quot;: &quot;64d15a15-a1cb-470c-ada0-f04b4c897d5d&quot;
   }
 }</component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 8
 }</component>
@@ -58,10 +72,14 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Python.gendarme-app-import-2.executor": "Run",
+    "Python.gendarme-app-import-5.executor": "Run",
+    "Python.gendarme-app-import.executor": "Run",
     "Python.main.executor": "Run",
     "Python.test.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main"
+    "git-widget-placeholder": "main",
+    "run.code.analysis.last.selected.profile": "pProject Default"
   }
 }]]></component>
   <component name="SharedIndexes">
@@ -81,5 +99,16 @@
       <updated>1727455479936</updated>
     </task>
     <servers />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Cerebro/gendarme-app-import-5.py</url>
+          <line>205</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
