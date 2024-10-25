@@ -9,6 +9,7 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtGui import QFont, QIcon  # Ajoutez QIcon
 from src.database.db_manager import DatabaseManager
 from src.ui.import_window import ImportWindow
+from src.ui.stats_window import StatsWindow
 from src.ui.styles.styles import Styles
 from src.database.models import GendarmeRepository, SanctionRepository
 
@@ -134,8 +135,19 @@ class MainGendarmeApp(QMainWindow):
         import_button.clicked.connect(self.show_import_window)
         toolbar.addWidget(import_button)
 
+        stats_button = QPushButton("📊 Statistiques")
+        stats_button.setStyleSheet(Styles.get_styles(self.is_dark_mode)['BUTTON'])
+        stats_button.clicked.connect(self.show_stats_window)
+        toolbar.addWidget(stats_button)
+
         # Barre de statut
         self.statusBar().showMessage("Prêt")
+
+    def show_stats_window(self):
+        """Ouvre la fenêtre des statistiques"""
+        self.stats_window = StatsWindow(self.db_manager)
+        self.stats_window.show()
+
 
     def search_gendarme(self):
         """Recherche un gendarme selon le critère sélectionné"""
