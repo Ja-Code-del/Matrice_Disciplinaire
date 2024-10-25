@@ -1,10 +1,19 @@
+import os
 import sqlite3
 from contextlib import contextmanager
 
 
 class DatabaseManager:
     def __init__(self, db_name="gendarmes.db"):
-        self.db_name = db_name
+        # Trouver le répertoire racine du projet
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        # Construire le chemin vers la DB
+        self.db_name = os.path.join(project_root, db_name)
+        print(f"Chemin complet de la DB: {self.db_name}")  # Debug
+
+    # class DatabaseManager:
+    #     def __init__(self, db_name="gendarmes.db"):
+    #         self.db_name = db_name
 
     @contextmanager
     def get_connection(self):
