@@ -2,9 +2,10 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLineEdit, QPushButton, QLabel,
                              QTableWidget, QTableWidgetItem, QTabWidget,
                              QComboBox, QGroupBox, QGridLayout, QMessageBox,
-                             QHeaderView)
+                             QHeaderView, QToolBar)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QIcon  # Ajoutez QIcon
 from src.database.db_manager import DatabaseManager
 from src.ui.styles.styles import Styles
 from src.database.models import GendarmeRepository, SanctionRepository
@@ -13,11 +14,34 @@ from src.database.models import GendarmeRepository, SanctionRepository
 class MainGendarmeApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Gestion des Gendarmes")
-        self.setMinimumSize(1200, 800)
+        self.theme_button = None
+        self.is_dark_mode = False
         self.db_manager = DatabaseManager()
         self.gendarme_repository = GendarmeRepository(self.db_manager)
         self.sanction_repository = SanctionRepository(self.db_manager)
+        self.init_ui()
+        self.apply_theme()
+    # def __init__(self):
+    #     super().__init__()
+    #     self.setWindowTitle("Gestion des Gendarmes")
+    #     self.setMinimumSize(1200, 800)
+    #     self.db_manager = DatabaseManager()
+    #     self.gendarme_repository = GendarmeRepository(self.db_manager)
+    #     self.sanction_repository = SanctionRepository(self.db_manager)
+
+    def init_ui(self):
+        """Initialise l'interface utilisateur"""
+        self.setWindowTitle("Gend-Track Punition")
+        self.setMinimumSize(1200, 800)
+
+        # Ajout du bouton de thème dans la barre d'outils
+        toolbar = QToolBar()
+        self.addToolBar(toolbar)
+        self.theme_button = QPushButton()
+        self.theme_button.setIcon(QIcon("resources/icons/light_mode.png"))  # Utilisation de l'icône
+        self.theme_button.setToolTip("Changer le thème")
+        self.theme_button.clicked.connect(self.toggle_theme)
+        toolbar.addWidget(self.theme_button)
 
         # Widget principal
         main_widget = QWidget()
@@ -30,14 +54,14 @@ class MainGendarmeApp(QMainWindow):
 
         self.search_type = QComboBox()
         self.search_type.addItems(["Matricule (MLE)", "Nom"])
-        self.search_type.setStyleSheet(Styles.COMBO_BOX)
+        #self.search_type.setStyleSheet(Styles.COMBO_BOX)
 
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Entrez votre recherche...")
-        self.search_input.setStyleSheet(Styles.SEARCH_INPUT)
+        #self.search_input.setStyleSheet(Styles.SEARCH_INPUT)
 
         search_button = QPushButton("Rechercher")
-        search_button.setStyleSheet(Styles.SEARCH_BUTTON)
+        #search_button.setStyleSheet(Styles.SEARCH_BUTTON)
         search_button.clicked.connect(self.search_gendarme)
 
         search_layout.addWidget(self.search_type)
@@ -78,12 +102,12 @@ class MainGendarmeApp(QMainWindow):
             label = QLabel(f"{field_name}:")
             label.setFont(QFont('Arial', 10, QFont.Weight.Bold))
             value_label = QLabel()
-            value_label.setStyleSheet("""
-                padding: 5px;
-                background: #f8f9fa;
-                border-radius: 3px;
-                min-width: 200px;
-            """)
+            # value_label.setStyleSheet("""
+            #     padding: 5px;
+            #     background: #f8f9fa;
+            #     border-radius: 3px;
+            #     min-width: 200px;
+            # """)
             self.info_labels[field_id] = value_label
             row = i // 3
             col = (i % 3) * 2
@@ -103,7 +127,7 @@ class MainGendarmeApp(QMainWindow):
                    "Taux (JAR)", "Comité", "Année", "N° Dossier"]
         self.sanctions_table.setHorizontalHeaderLabels(headers)
         self.sanctions_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.sanctions_table.setStyleSheet(Styles.TABLE)
+        #self.sanctions_table.setStyleSheet(Styles.TABLE)
 
         sanctions_layout.addWidget(self.sanctions_table)
         sanctions_group.setLayout(sanctions_layout)
@@ -181,56 +205,74 @@ class MainGendarmeApp(QMainWindow):
             print(f"Erreur détaillée lors de la recherche : {str(e)}")  # Débogage
             QMessageBox.critical(self, "Erreur", f"Erreur lors de la recherche : {str(e)}")
 
-    # def search_gendarme(self):
-    #     """Recherche un gendarme selon le critère sélectionné"""
-    #     search_text = self.search_input.text().strip()
-    #     if not search_text:
-    #         QMessageBox.warning(self, "Erreur", "Veuillez entrer un critère de recherche")
-    #         return
-    #
-    #     try:
-    #         # Utilisation des repositories pour la recherche
-    #         if self.search_type.currentText() == "Matricule (MLE)":
-    #             gendarme = self.gendarme_repository.get_by_mle(search_text)
-    #             gendarmes = [gendarme] if gendarme else []
-    #         else:
-    #             gendarmes = self.gendarme_repository.get_by_name(search_text)
-    #
-    #         if gendarmes:
-    #             gendarme = gendarmes[0]  # On prend le premier si plusieurs résultats
-    #             # Mise à jour des informations
-    #             for field_name, label in self.info_labels.items():
-    #                 value = getattr(gendarme, field_name, "")
-    #                 label.setText(str(value if value is not None else ""))
-    #
-    #             # Recherche des sanctions
-    #             sanctions = self.sanction_repository.get_by_gendarme(gendarme.id)
-    #             self.sanctions_table.setRowCount(len(sanctions))
-    #
-    #             for i, sanction in enumerate(sanctions):
-    #                 self.sanctions_table.setItem(i, 0, QTableWidgetItem(str(sanction.date_faits)))
-    #                 self.sanctions_table.setItem(i, 1, QTableWidgetItem(sanction.faute_commise))
-    #                 self.sanctions_table.setItem(i, 2, QTableWidgetItem(sanction.statut))
-    #                 self.sanctions_table.setItem(i, 3, QTableWidgetItem(sanction.reference_statut))
-    #                 self.sanctions_table.setItem(i, 4, QTableWidgetItem(str(sanction.taux_jar)))
-    #                 self.sanctions_table.setItem(i, 5, QTableWidgetItem(sanction.comite))
-    #                 self.sanctions_table.setItem(i, 6, QTableWidgetItem(str(sanction.annee_faits)))
-    #                 self.sanctions_table.setItem(i, 7, QTableWidgetItem(sanction.numero))
-    #
-    #                 # Rendre les cellules non éditables
-    #                 for j in range(8):
-    #                     item = self.sanctions_table.item(i, j)
-    #                     if item:
-    #                         item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-    #
-    #             self.statusBar().showMessage(f"Gendarme trouvé : {gendarme.nom_prenoms}")
-    #         else:
-    #             # Effacer les informations précédentes
-    #             for label in self.info_labels.values():
-    #                 label.clear()
-    #             self.sanctions_table.setRowCount(0)
-    #             self.statusBar().showMessage("Aucun gendarme trouvé")
-    #             QMessageBox.information(self, "Résultat", "Aucun gendarme trouvé")
-    #
-    #     except Exception as e:
-    #         QMessageBox.critical(self, "Erreur", f"Erreur lors de la recherche : {str(e)}")
+    def toggle_theme(self):
+        """Bascule entre les thèmes clair et sombre"""
+        self.is_dark_mode = not self.is_dark_mode
+        self.apply_theme()
+        # Change l'icône selon le thème
+        icon_name = "dark_mode.png" if self.is_dark_mode else "light_mode.png"
+        self.theme_button.setIcon(QIcon(f"resources/icons/{icon_name}"))
+
+    def apply_theme(self):
+        """Applique le thème actuel à tous les widgets"""
+        styles = Styles.get_styles(self.is_dark_mode)
+
+        # Application des styles
+        self.setStyleSheet(styles['MAIN_WINDOW'])
+
+        # Pour la zone de recherche
+        self.search_input.setStyleSheet(styles['INPUT'])
+        self.search_type.setStyleSheet(styles['COMBO_BOX'])
+
+        # Pour le tableau des sanctions
+        self.sanctions_table.setStyleSheet(styles['TABLE'])
+
+        # Pour tous les GroupBox
+        for group_box in self.findChildren(QGroupBox):
+            group_box.setStyleSheet(styles['GROUP_BOX'])
+
+        # Pour les labels d'information
+        for label in self.info_labels.values():
+            label.setStyleSheet(styles['INFO_LABEL'])
+
+        # Pour les boutons standard
+        for button in self.findChildren(QPushButton):
+            if button == self.theme_button:
+                button.setStyleSheet(styles['THEME_BUTTON'])
+            else:
+                button.setStyleSheet(styles['BUTTON'])
+
+        # Pour la barre de statut
+        self.statusBar().setStyleSheet(styles['STATUS_BAR'])
+
+    def apply_theme(self):
+        """Applique le thème actuel à tous les widgets"""
+        styles = Styles.get_styles(self.is_dark_mode)
+
+        # Application des styles
+        self.setStyleSheet(styles['MAIN_WINDOW'])
+
+        # Pour la zone de recherche
+        self.search_input.setStyleSheet(styles['INPUT'])
+        self.search_type.setStyleSheet(styles['COMBO_BOX'])
+
+        # Pour le tableau des sanctions
+        self.sanctions_table.setStyleSheet(styles['TABLE'])
+
+        # Pour tous les GroupBox
+        for group_box in self.findChildren(QGroupBox):
+            group_box.setStyleSheet(styles['GROUP_BOX'])
+
+        # Pour les labels d'information
+        for label in self.info_labels.values():
+            label.setStyleSheet(styles['INFO_LABEL'])
+
+        # Pour les boutons standard
+        for button in self.findChildren(QPushButton):
+            if button == self.theme_button:
+                button.setStyleSheet(styles['THEME_BUTTON'])
+            else:
+                button.setStyleSheet(styles['BUTTON'])
+
+        # Pour la barre de statut
+        self.statusBar().setStyleSheet(styles['STATUS_BAR'])

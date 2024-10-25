@@ -4,29 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/database/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/database/db_manager.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/database/models.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/ui/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/ui/import_window.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/ui/styles/styles.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/utils/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/utils/date_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_db.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/Matrice_Disciplinaire.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Matrice_Disciplinaire.iml" afterDir="false" />
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="Everything is working wit the test but the app is not displaying sancions info">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Data/matrice.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Data/~$matrice.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/gendarmes_app/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gendarmes_app/data_manager.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/gendarmes_app/gui.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/gendarmes_app/main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/import_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/import_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/styles/styles.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/styles/styles.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -75,7 +57,9 @@
     "Python.gendarme-app-import-2.executor": "Run",
     "Python.gendarme-app-import-5.executor": "Run",
     "Python.gendarme-app-import.executor": "Run",
+    "Python.import_window.executor": "Run",
     "Python.main.executor": "Run",
+    "Python.styles.executor": "Run",
     "Python.test.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
@@ -98,7 +82,20 @@
       <option name="presentableId" value="Default" />
       <updated>1727455479936</updated>
     </task>
+    <task id="LOCAL-00001" summary="Everything is working wit the test but the app is not displaying sancions info">
+      <option name="closed" value="true" />
+      <created>1729798692089</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1729798692089</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Everything is working wit the test but the app is not displaying sancions info" />
+    <option name="LAST_COMMIT_MESSAGE" value="Everything is working wit the test but the app is not displaying sancions info" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

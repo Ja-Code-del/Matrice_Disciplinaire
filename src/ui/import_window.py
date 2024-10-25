@@ -151,7 +151,7 @@ class ImportWindow(QMainWindow):
                                         str(row['N° CAT']),
                                         str(row['STATUT']),
                                         str(row['REFERENCE DU STATUT']),
-                                        int(row['TAUX (JAR)']) if pd.notna(row['TAUX (JAR)']) else None,
+                                        str(row['TAUX (JAR)']) if pd.notna(row['TAUX (JAR)']) else None,
                                         str(row['COMITE']),
                                         int(row['ANNEE DES FAITS']) if pd.notna(row['ANNEE DES FAITS']) else None
                                     ))
