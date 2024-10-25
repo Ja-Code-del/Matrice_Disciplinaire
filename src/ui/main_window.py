@@ -1,12 +1,14 @@
+import os
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLineEdit, QPushButton, QLabel,
                              QTableWidget, QTableWidgetItem, QTabWidget,
                              QComboBox, QGroupBox, QGridLayout, QMessageBox,
                              QHeaderView, QToolBar)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont
 from PyQt6.QtGui import QFont, QIcon  # Ajoutez QIcon
 from src.database.db_manager import DatabaseManager
+from src.ui.import_window import ImportWindow
 from src.ui.styles.styles import Styles
 from src.database.models import GendarmeRepository, SanctionRepository
 
@@ -14,6 +16,7 @@ from src.database.models import GendarmeRepository, SanctionRepository
 class MainGendarmeApp(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.import_window = None
         self.theme_button = None
         self.is_dark_mode = False
         self.db_manager = DatabaseManager()
@@ -21,13 +24,6 @@ class MainGendarmeApp(QMainWindow):
         self.sanction_repository = SanctionRepository(self.db_manager)
         self.init_ui()
         self.apply_theme()
-    # def __init__(self):
-    #     super().__init__()
-    #     self.setWindowTitle("Gestion des Gendarmes")
-    #     self.setMinimumSize(1200, 800)
-    #     self.db_manager = DatabaseManager()
-    #     self.gendarme_repository = GendarmeRepository(self.db_manager)
-    #     self.sanction_repository = SanctionRepository(self.db_manager)
 
     def init_ui(self):
         """Initialise l'interface utilisateur"""
@@ -38,10 +34,14 @@ class MainGendarmeApp(QMainWindow):
         toolbar = QToolBar()
         self.addToolBar(toolbar)
         self.theme_button = QPushButton()
-        self.theme_button.setIcon(QIcon("resources/icons/light_mode.png"))  # Utilisation de l'icône
+        self.theme_button.setIcon(QIcon("../resources/icons/light_mode.png"))  # Utilisation de l'icône
         self.theme_button.setToolTip("Changer le thème")
         self.theme_button.clicked.connect(self.toggle_theme)
         toolbar.addWidget(self.theme_button)
+
+        icon_file = os.path.join("../resources/icons/light_mode.png", "light_mode.png")
+        print(f"Loading icon from: {icon_file}")
+        print(f"File exists: {os.path.exists(icon_file)}")
 
         # Widget principal
         main_widget = QWidget()
@@ -102,12 +102,7 @@ class MainGendarmeApp(QMainWindow):
             label = QLabel(f"{field_name}:")
             label.setFont(QFont('Arial', 10, QFont.Weight.Bold))
             value_label = QLabel()
-            # value_label.setStyleSheet("""
-            #     padding: 5px;
-            #     background: #f8f9fa;
-            #     border-radius: 3px;
-            #     min-width: 200px;
-            # """)
+
             self.info_labels[field_id] = value_label
             row = i // 3
             col = (i % 3) * 2
@@ -133,6 +128,12 @@ class MainGendarmeApp(QMainWindow):
         sanctions_group.setLayout(sanctions_layout)
         layout.addWidget(sanctions_group)
 
+        # Ajoute un bouton d'import dans la toolbar
+        import_button = QPushButton("Importer Excel")
+        import_button.setStyleSheet(Styles.get_styles(self.is_dark_mode)['BUTTON'])
+        import_button.clicked.connect(self.show_import_window)
+        toolbar.addWidget(import_button)
+
         # Barre de statut
         self.statusBar().showMessage("Prêt")
 
@@ -146,7 +147,6 @@ class MainGendarmeApp(QMainWindow):
         try:
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
-
                 # Construction de la requête selon le type de recherche
                 if self.search_type.currentText() == "Matricule (MLE)":
                     where_clause = "WHERE mle = ?"
@@ -205,45 +205,18 @@ class MainGendarmeApp(QMainWindow):
             print(f"Erreur détaillée lors de la recherche : {str(e)}")  # Débogage
             QMessageBox.critical(self, "Erreur", f"Erreur lors de la recherche : {str(e)}")
 
+    def show_import_window(self):
+        """Ouvre la fenêtre d'import"""
+        self.import_window = ImportWindow()
+        self.import_window.show()
+
     def toggle_theme(self):
         """Bascule entre les thèmes clair et sombre"""
         self.is_dark_mode = not self.is_dark_mode
         self.apply_theme()
         # Change l'icône selon le thème
         icon_name = "dark_mode.png" if self.is_dark_mode else "light_mode.png"
-        self.theme_button.setIcon(QIcon(f"resources/icons/{icon_name}"))
-
-    def apply_theme(self):
-        """Applique le thème actuel à tous les widgets"""
-        styles = Styles.get_styles(self.is_dark_mode)
-
-        # Application des styles
-        self.setStyleSheet(styles['MAIN_WINDOW'])
-
-        # Pour la zone de recherche
-        self.search_input.setStyleSheet(styles['INPUT'])
-        self.search_type.setStyleSheet(styles['COMBO_BOX'])
-
-        # Pour le tableau des sanctions
-        self.sanctions_table.setStyleSheet(styles['TABLE'])
-
-        # Pour tous les GroupBox
-        for group_box in self.findChildren(QGroupBox):
-            group_box.setStyleSheet(styles['GROUP_BOX'])
-
-        # Pour les labels d'information
-        for label in self.info_labels.values():
-            label.setStyleSheet(styles['INFO_LABEL'])
-
-        # Pour les boutons standard
-        for button in self.findChildren(QPushButton):
-            if button == self.theme_button:
-                button.setStyleSheet(styles['THEME_BUTTON'])
-            else:
-                button.setStyleSheet(styles['BUTTON'])
-
-        # Pour la barre de statut
-        self.statusBar().setStyleSheet(styles['STATUS_BAR'])
+        self.theme_button.setIcon(QIcon(f"../resources/icons/{icon_name}"))
 
     def apply_theme(self):
         """Applique le thème actuel à tous les widgets"""
