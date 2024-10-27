@@ -1,25 +1,59 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QPushButton, QGraphicsDropShadowEffect)
-from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import Qt
+
+from src.ui.stats_views.global_stats import GlobalStatsWindow
 from src.ui.styles.styles import Styles
+from src.ui.stats_views.global_stats import GlobalStatsWindow
 
 
 class StatsWindow(QMainWindow):
     def __init__(self, db_manager):
         super().__init__()
+        self.global_stats = None
         self.db_manager = db_manager
         self.setWindowTitle("Menu des Statistiques")
         self.setMinimumSize(600, 800)  # Plus haut pour les boutons empilés
+        self.is_dark_mode = False
         self.init_ui()
 
     def init_ui(self):
-        # Widget principal centré
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.setSpacing(20)  # Espace entre les boutons
+        layout.setSpacing(20)
+
+        # Style de la fenêtre adapté au thème
+        if self.is_dark_mode:
+            # Style camouflage pour le mode sombre
+            self.setStyleSheet("""
+                  QMainWindow {
+                      background-color: #1e4785;
+                      background-image: qradialgradient(
+                          cx: 0.5, cy: 0.5, radius: 1.5,
+                          fx: 0.5, fy: 0.5,
+                          stop: 0 #1e4785,
+                          stop: 0.3 #2c5aa0,
+                          stop: 0.6 #7691c1,
+                          stop: 0.9 #b7c9e5,
+                          stop: 1 #1e4785
+                      );
+                  }
+                  QWidget {
+                      background: transparent;
+                  }
+              """)
+        else:
+            # Style Anthropic pour le mode clair
+            self.setStyleSheet("""
+                  QMainWindow {
+                      background-color: #ffffff;
+                  }
+                  QWidget {
+                      background: transparent;
+                  }
+              """)
 
         # Liste des options avec leurs icônes
         options = [
@@ -37,48 +71,83 @@ class StatsWindow(QMainWindow):
             layout.addWidget(btn)
 
     def create_menu_button(self, text, callback):
-        """Crée un bouton stylé avec effet hover"""
         btn = QPushButton(text)
-        btn.setFixedSize(400, 80)  # Taille fixe pour tous les boutons
-        btn.setCursor(Qt.CursorShape.PointingHandCursor)  # Curseur main au survol
+        btn.setFixedSize(400, 80)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        # Style de base
-        btn.setStyleSheet("""
-            QPushButton {
-                background-color: #ffffff;
-                border: 2px solid #e0e0e0;
-                border-radius: 10px;
-                padding: 15px;
-                font-size: 16px;
-                text-align: left;
-                padding-left: 20px;
-            }
-            QPushButton:hover {
-                background-color: #f0f0f0;
-                border: 2px solid #007bff;
-                transform: scale(1.05);
-            }
-        """)
+        # Style conditionnel selon le thème
+        if self.is_dark_mode:
+            # Notre style camouflage actuel pour le mode sombre
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #1e4785;
+                    border: none;
+                    border-radius: 10px;
+                    padding: 15px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    text-align: left;
+                    padding-left: 20px;
+                    color: white;
+                    background: qradialgradient(
+                        cx: 0.5, cy: 0.5, radius: 1,
+                        fx: 0.5, fy: 0.5,
+                        stop: 0 #1e4785,
+                        stop: 0.4 #2c5aa0,
+                        stop: 0.6 #7691c1,
+                        stop: 0.8 #b7c9e5,
+                        stop: 1 #1e4785
+                    );
+                }
+                QPushButton:hover {
+                    background: qradialgradient(
+                        cx: 0.5, cy: 0.5, radius: 1,
+                        fx: 0.5, fy: 0.5,
+                        stop: 0 #2c5aa0,
+                        stop: 0.4 #7691c1,
+                        stop: 0.6 #b7c9e5,
+                        stop: 0.8 #ffffff,
+                        stop: 1 #2c5aa0
+                    );
+                }
+            """)
+        else:
+            # Style Anthropic pour le mode clair
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #ffffff;
+                    border: 1px solid #e5e5e5;
+                    border-radius: 10px;
+                    padding: 15px;
+                    font-size: 16px;
+                    font-weight: 500;
+                    text-align: left;
+                    padding-left: 20px;
+                    color: #333333;
+                }
+                QPushButton:hover {
+                    background-color: #f5f5f5;
+                    border: 1px solid #d0d0d0;
+                    transform: translateY(-2px);
+                }
+            """)
 
-        # Effet d'ombre
+        # Effet d'ombre adapté au thème
         shadow = QGraphicsDropShadowEffect()
         shadow.setBlurRadius(15)
-        shadow.setOffset(0, 0)
-        shadow.setColor(Qt.GlobalColor.gray)
+        shadow.setOffset(0, 4)
+        shadow.setColor(Qt.GlobalColor.darkBlue if self.is_dark_mode else Qt.GlobalColor.gray)
         btn.setGraphicsEffect(shadow)
 
-        # Connection du callback
         btn.clicked.connect(callback)
-
         return btn
 
-    # Méthodes pour chaque type de stats
+    #Méthodes pour chaque type de stats
     def show_global_stats(self):
         """Affiche les stats globales"""
-        from src.ui.stats_views.global_stats import GlobalStatsWindow
         self.global_stats = GlobalStatsWindow(self.db_manager)
         self.global_stats.show()
-
+    #
     def show_subdiv_stats(self):
         """Affiche les stats par subdivision"""
         from src.ui.stats_views.subdiv_stats import SubdivStatsWindow
