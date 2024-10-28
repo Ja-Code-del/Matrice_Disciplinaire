@@ -10,6 +10,7 @@ from src.ui.stats_views.global_stats import GlobalStatsWindow
 class StatsWindow(QMainWindow):
     def __init__(self, db_manager):
         super().__init__()
+        self.punis_list = None
         self.global_stats = None
         self.db_manager = db_manager
         self.setWindowTitle("Menu des Statistiques")
@@ -63,6 +64,7 @@ class StatsWindow(QMainWindow):
             ("👥 Statistiques par Grade", "grade_stats", self.show_grade_stats),
             ("⚖️ Types de Fautes", "fault_stats", self.show_fault_stats),
             ("📅 Périodes des Sanctions", "period_stats", self.show_period_stats),
+            ("👥 Liste Complète des Punis", "punis_list", self.show_punis_list),
         ]
 
         # Création des boutons stylés
@@ -147,6 +149,7 @@ class StatsWindow(QMainWindow):
         """Affiche les stats globales"""
         self.global_stats = GlobalStatsWindow(self.db_manager)
         self.global_stats.show()
+
     #
     def show_subdiv_stats(self):
         """Affiche les stats par subdivision"""
@@ -177,3 +180,9 @@ class StatsWindow(QMainWindow):
         from src.ui.stats_views.period_stats import PeriodStatsWindow
         self.period_stats = PeriodStatsWindow(self.db_manager)
         self.period_stats.show()
+
+    def show_punis_list(self):
+        """Affiche la liste complète des punis"""
+        from src.ui.stats_views.punis_list import PunisListWindow
+        self.punis_list = PunisListWindow(self.db_manager)
+        self.punis_list.show()

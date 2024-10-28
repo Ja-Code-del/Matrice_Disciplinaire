@@ -129,7 +129,7 @@ class MainGendarmeApp(QMainWindow):
 
         self.sanctions_table = QTableWidget()
         self.sanctions_table.setColumnCount(8)
-        headers = ["Date", "Type de faute", "Sanction", "Référence",
+        headers = ["Date des faits", "Type de faute", "Sanction", "Référence",
                    "Taux (JAR)", "Comité", "Année", "N° Dossier"]
         self.sanctions_table.setHorizontalHeaderLabels(headers)
         self.sanctions_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
