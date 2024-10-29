@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QFrame, QPushButton, QScrollArea, QGraphicsOpacityEffect, QApplication, QLineEdit,
                              QFormLayout)
@@ -271,11 +273,11 @@ class NewCaseForm(QMainWindow):
                 border: 2px solid #e0e0e0;
                 border-radius: 8px;
                 background: white;
-                min-width: 300px;  # Largeur uniforme
-                min-height: 45px; #Hauteur du champ augmenté
-                font-size: 16px;  # Police plus grande pour les inputs
+                min-width: 300px;  
+                min-height: 20px; 
+                font-size: 16px;  
                 color: #333;
-                margin-left: 0px;  # Alignement avec le label
+                margin-left: 0px;  
             }
             QLineEdit:focus {
                 border-color: #2196f3;
@@ -286,20 +288,20 @@ class NewCaseForm(QMainWindow):
                 color: #888;
             }
             QLineEdit::placeholder {
-                color: #888;  # Couleur plus douce pour les placeholders
-                font-style: italic;  # Italique pour les placeholders
-                font-size: 15px;  # Taille légèrement plus petite
+                color: #888;  
+                font-style: italic;  
+                font-size: 15px;  
             }
         """
 
         # Style pour les labels
         label_style = """
             QLabel {
-                font-size: 15px;  # Taille de police légèrement augmentée
+                font-size: 15px;  
                 font-weight: 600;
-                color: #555;  # Couleur légèrement adoucie pour les labels
-                padding: 8px 0;  # Padding vertical pour aligner avec les inputs
-                min-width: 200px;  # Largeur fixe pour alignement
+                color: #555;  
+                padding: 8px 0;  
+                min-width: 200px;  
             }
         """
 
