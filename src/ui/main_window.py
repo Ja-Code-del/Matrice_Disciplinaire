@@ -86,7 +86,7 @@ class MainGendarmeApp(QMainWindow):
         self.addToolBar(toolbar)
 
         # Bouton Import État Complet
-        import_etat_button = QPushButton("📋 Importer État Complet")
+        import_etat_button = QPushButton("📋 Importer Matrice Gendarmes")
         import_etat_button.clicked.connect(self.import_etat_complet)
         toolbar.addWidget(import_etat_button)
 
@@ -96,7 +96,7 @@ class MainGendarmeApp(QMainWindow):
         toolbar.addWidget(new_case_button)
 
         # Bouton d'import
-        import_button = QPushButton("Importer Excel")
+        import_button = QPushButton("Importer Matrice Disciplinaire")
         import_button.clicked.connect(self.show_import_window)
         toolbar.addWidget(import_button)
 

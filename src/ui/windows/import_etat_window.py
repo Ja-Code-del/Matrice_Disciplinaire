@@ -7,7 +7,7 @@ class ImportEtatCompletWindow(QMainWindow):
     def __init__(self, db_manager):
         super().__init__()
         self.db_manager = db_manager
-        self.setWindowTitle("Import État Complet")
+        self.setWindowTitle("Importer Matrice Gendarmes")
         self.setMinimumSize(600, 300)
         self.init_ui()
 
