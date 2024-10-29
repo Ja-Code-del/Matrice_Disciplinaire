@@ -2,14 +2,23 @@ from datetime import datetime
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QFrame, QPushButton, QScrollArea, QGraphicsOpacityEffect, QApplication, QLineEdit,
-                             QFormLayout)
+                             QFormLayout, QComboBox, QSpinBox)
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QTimer
 from PyQt6.QtGui import QFont, QColor
+
+from src.data.gendarmerie import STRUCTURE_PRINCIPALE
 from src.ui.styles.styles import Styles  # On va créer des styles dédiés
 
 
 class NewCaseForm(QMainWindow):
+    """Formulaire de création d'un nouveau dossier de sanction"""
+
     def __init__(self, db_manager):
+        """
+                Initialise le formulaire
+                Args:
+                    db_manager: Instance du gestionnaire de base de données
+                """
         super().__init__()
         self.db_manager = db_manager
         self.setWindowTitle("Page enregistrement de dossier")
@@ -18,6 +27,7 @@ class NewCaseForm(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
+
         # Widget principal avec scroll
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -115,6 +125,14 @@ class NewCaseForm(QMainWindow):
         self.submit_button.clicked.connect(self.submit_form)
 
     def create_section(self, title, subtitle=""):
+        """
+                Crée une section du formulaire
+                Args:
+                    title: Titre de la section
+                    subtitle: Sous-titre de la section (optionnel)
+                Returns:
+                    QFrame: La section créée avec son contenu
+                """
         section = QFrame()
         section.setStyleSheet("""
             QFrame {
@@ -138,6 +156,9 @@ class NewCaseForm(QMainWindow):
         # Sous-titre
         if title.startswith("📝"):  # Section Info Dossier
             content = self.create_case_info_section()
+            layout.addWidget(content)
+        elif title.startswith("👤"):  # Section Info Mis en cause
+            content = self.create_suspect_info_section()
             layout.addWidget(content)
         else:
             # Garde le placeholder pour les autres sections pour l'instant
@@ -166,6 +187,11 @@ class NewCaseForm(QMainWindow):
         self.submit_button.setVisible(self.current_section == 2)
 
     def switch_section(self, index):
+        """
+                Gère la transition entre les sections
+                Args:
+                    index: Index de la section à afficher
+                """
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         # Animation des sections
         for i, section in enumerate([self.section1, self.section2, self.section3]):
@@ -306,6 +332,15 @@ class NewCaseForm(QMainWindow):
         """
 
         def create_row(label_text, widget, with_info=False):
+            """
+                    Crée une ligne de formulaire avec label et widget
+                    Args:
+                        label_text: Texte du label
+                        widget: Widget à afficher (QLineEdit, etc.)
+                        with_info: Booléen pour ajouter une icône d'info
+                    Returns:
+                        QWidget: La ligne complète du formulaire
+                    """
             row_widget = QWidget()
             row_layout = QHBoxLayout(row_widget)
             row_layout.setContentsMargins(0, 0, 0, 0)
@@ -369,186 +404,6 @@ class NewCaseForm(QMainWindow):
         container.setLayout(layout)
         return container
 
-    # def create_case_info_section(self):
-    #     """Crée le contenu de la section Informations du Dossier"""
-    #     container = QWidget()
-    #     layout = QFormLayout()
-    #     layout.setSpacing(20)
-    #     layout.setContentsMargins(20, 20, 20, 20)  # Marges uniformes
-    #     layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)  # Alignement gauche des labels
-    #
-    #     # Style commun pour les QLineEdit
-    #     line_edit_style = """
-    #         QLineEdit {
-    #             padding: 12px 20px;
-    #             border: 2px solid #e0e0e0;
-    #             border-radius: 5px;
-    #             background: white;
-    #             min-width: 300px;  # Largeur uniforme
-    #             font-size: 14px;
-    #             margin-left: 0px;  # Alignement avec le label
-    #         }
-    #         QLineEdit:focus {
-    #             border-color: #2196f3;
-    #             background: #f8f9fa;
-    #         }
-    #         QLineEdit:disabled {
-    #             background: #f5f5f5;
-    #             color: #666;
-    #         }
-    #         QLineEdit::placeholder {
-    #             color: #aaa;
-    #             padding: 5px;
-    #         }
-    #     """
-    #
-    #     # Style pour les labels
-    #     label_style = """
-    #         QLabel {
-    #             font-size: 14px;
-    #             font-weight: 700;
-    #             color: #333;
-    #             padding: 8px 0;  # Padding vertical pour aligner avec les inputs
-    #             min-width: 200px;  # Largeur fixe pour alignement
-    #         }
-    #     """
-    #
-    #     def create_row(label_text, widget, with_info=False):
-    #         row_widget = QWidget()
-    #         row_layout = QHBoxLayout(row_widget)
-    #         row_layout.setContentsMargins(0, 0, 0, 0)
-    #         row_layout.setSpacing(10)
-    #
-    #         label = QLabel(label_text)
-    #         label.setStyleSheet(label_style)
-    #         row_layout.addWidget(label)
-    #
-    #         widget.setStyleSheet(line_edit_style)
-    #         row_layout.addWidget(widget)
-    #
-    #         if with_info:
-    #             info_icon = QPushButton("ℹ️")
-    #             info_icon.setToolTip("Remplir uniquement en cas de radiation")
-    #             info_icon.setStyleSheet("""
-    #                 QPushButton {
-    #                     border: none;
-    #                     background: transparent;
-    #                     font-size: 16px;
-    #                     margin: 0 5px;
-    #                 }
-    #             """)
-    #             row_layout.addWidget(info_icon)
-    #
-    #         row_layout.addStretch()
-    #         return row_widget
-    #
-    #     # N° Dossier
-    #     self.num_dossier = QLineEdit()
-    #     self.num_dossier.setPlaceholderText("Entrez le N° de dossier")
-    #     layout.addRow(create_row("N° Dossier", self.num_dossier))
-    #
-    #     # N° Décision de radiation
-    #     self.num_radiation = QLineEdit()
-    #     self.num_radiation.setPlaceholderText("À remplir si radiation")
-    #     layout.addRow(create_row("N° Décision de radiation", self.num_radiation, True))
-    #
-    #     # Année
-    #     self.annee = QLineEdit()
-    #     self.annee.setText(str(datetime.now().year))
-    #     self.annee.setReadOnly(True)
-    #     layout.addRow(create_row("Année", self.annee))
-    #
-    #     # Date d'enregistrement
-    #     self.date_enr = QLineEdit()
-    #     self.date_enr.setText(datetime.now().strftime("%d/%m/%Y"))
-    #     self.date_enr.setReadOnly(True)
-    #     layout.addRow(create_row("Date d'enregistrement", self.date_enr))
-    #
-    #     # N° enregistrement
-    #     self.num_enr = QLineEdit()
-    #     self.num_enr.setReadOnly(True)
-    #     self.get_next_num_enr()
-    #     layout.addRow(create_row("N° enregistrement", self.num_enr))
-    #
-    #     container.setLayout(layout)
-    #     return container
-
-    # def create_case_info_section(self):
-    #     """Crée le contenu de la section Informations du Dossier"""
-    #     container = QWidget()
-    #     layout = QFormLayout()
-    #     layout.setSpacing(15)
-    #
-    #     # Style commun pour les QLineEdit
-    #     line_edit_style = """
-    #         QLineEdit {
-    #             padding: 8px;
-    #             border: 2px solid #e0e0e0;
-    #             border-radius: 5px;
-    #             background: white;
-    #             min-width: 200px;
-    #             font-size: 14px;
-    #         }
-    #         QLineEdit:focus {
-    #             border-color: #2196f3;
-    #             background: #f8f9fa;
-    #         }
-    #         QLineEdit:disabled {
-    #             background: #f5f5f5;
-    #             color: #666;
-    #         }
-    #     """
-    #
-    #     # N° Dossier
-    #     self.num_dossier = QLineEdit()
-    #     self.num_dossier.setPlaceholderText("Entrez le N° de dossier")
-    #     self.num_dossier.setStyleSheet(line_edit_style)
-    #     layout.addRow(self.create_label("N° Dossier"), self.num_dossier)
-    #
-    #     # N° Décision de radiation (optionnel)
-    #     self.num_radiation = QLineEdit()
-    #     self.num_radiation.setPlaceholderText("À remplir si radiation")
-    #     self.num_radiation.setStyleSheet(line_edit_style)
-    #     radiation_container = QWidget()
-    #     radiation_layout = QHBoxLayout(radiation_container)
-    #     radiation_layout.setContentsMargins(0, 0, 0, 0)
-    #     radiation_layout.addWidget(self.num_radiation)
-    #     info_icon = QPushButton("ℹ️")
-    #     info_icon.setToolTip("Remplir uniquement en cas de radiation")
-    #     info_icon.setStyleSheet("""
-    #         QPushButton {
-    #             border: none;
-    #             background: transparent;
-    #             font-size: 16px;
-    #         }
-    #     """)
-    #     radiation_layout.addWidget(info_icon)
-    #     layout.addRow(self.create_label("N° Décision de radiation"), radiation_container)
-    #
-    #     # Année (auto)
-    #     self.annee = QLineEdit()
-    #     self.annee.setText(str(datetime.now().year))
-    #     self.annee.setReadOnly(True)
-    #     self.annee.setStyleSheet(line_edit_style)
-    #     layout.addRow(self.create_label("Année"), self.annee)
-    #
-    #     # Date d'enregistrement (auto)
-    #     self.date_enr = QLineEdit()
-    #     self.date_enr.setText(datetime.now().strftime("%d/%m/%Y"))
-    #     self.date_enr.setReadOnly(True)
-    #     self.date_enr.setStyleSheet(line_edit_style)
-    #     layout.addRow(self.create_label("Date d'enregistrement"), self.date_enr)
-    #
-    #     # N° enregistrement (auto)
-    #     self.num_enr = QLineEdit()
-    #     self.num_enr.setReadOnly(True)
-    #     self.num_enr.setStyleSheet(line_edit_style)
-    #     self.get_next_num_enr()  # Méthode à créer pour récupérer le prochain numéro
-    #     layout.addRow(self.create_label("N° enregistrement"), self.num_enr)
-    #
-    #     container.setLayout(layout)
-    #     return container
-
     def create_label(self, text):
         """Crée un label stylé"""
         label = QLabel(text)
@@ -579,6 +434,268 @@ class NewCaseForm(QMainWindow):
         except Exception as e:
             print(f"Erreur lors de la récupération du numéro : {str(e)}")
             self.num_enr.setText("1")
+
+    ###### DEUXIEME SECTION #####
+
+    def create_suspect_info_section(self):
+        """
+        Crée la section des informations du mis en cause avec auto-complétion
+        Returns:
+            QWidget: Container contenant les informations du gendarme
+        """
+        container = QWidget()
+        layout = QFormLayout()
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        # Style commun pour les QLineEdit
+        line_edit_style = """
+            QLineEdit {
+                padding: 12px 20px;
+                border: 2px solid #e0e0e0;
+                border-radius: 5px;
+                background: white;
+                min-width: 300px;
+                font-size: 14px;
+                margin-left: 0px;
+            }
+            QLineEdit:focus {
+                border-color: #2196f3;
+                background: #f8f9fa;
+            }
+            QLineEdit:disabled {
+                background: #f5f5f5;
+                color: #666;
+            }
+            QLineEdit::placeholder {
+                color: #aaa;
+                padding-left: 5px;
+            }
+        """
+
+        # Style pour les ComboBox
+        combo_style = """
+            QComboBox {
+                padding: 11px 20px;
+                border: 2px solid #e0e0e0;
+                border-radius: 5px;
+                background: white;
+                min-width: 300px;
+                font-size: 14px;
+            }
+            QComboBox:focus {
+                border-color: #2196f3;
+            }
+            QComboBox::drop-down {
+                border: none;
+                padding-right: 20px;
+            }
+            QComboBox::down-arrow {
+                image: url(resources/icons/down-arrow.png);
+                width: 12px;
+                height: 12px;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid #e0e0e0;
+                border-radius: 5px;
+                background: white;
+                selection-background-color: #f0f0f0;
+            }
+        """
+
+        def create_row(label_text, widget):
+            """
+            Crée une ligne du formulaire avec label et widget
+            Args:
+                label_text: Texte du label
+                widget: Widget à afficher
+            Returns:
+                QWidget: Ligne complète du formulaire
+            """
+            row_widget = QWidget()
+            row_layout = QHBoxLayout(row_widget)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setSpacing(10)
+
+            label = QLabel(label_text)
+            label.setStyleSheet("""
+                QLabel {
+                    font-size: 14px;
+                    font-weight: 800;
+                    color: #333;
+                    padding: 8px 0;
+                    min-width: 200px;
+                }
+            """)
+            row_layout.addWidget(label)
+            row_layout.addWidget(widget)
+            row_layout.addStretch()
+            return row_widget
+
+        # Matricule avec auto-complétion
+        self.matricule = QLineEdit()
+        self.matricule.setPlaceholderText("Entrez le matricule")
+        self.matricule.setStyleSheet(line_edit_style)
+        self.matricule.textChanged.connect(self.on_matricule_change)
+        layout.addRow(create_row("Matricule", self.matricule))
+
+        # Champs auto-remplis
+        self.nom = QLineEdit()
+        self.nom.setReadOnly(True)
+        self.nom.setStyleSheet(line_edit_style)
+        layout.addRow(create_row("Nom", self.nom))
+
+        self.prenoms = QLineEdit()
+        self.prenoms.setReadOnly(True)
+        self.prenoms.setStyleSheet(line_edit_style)
+        layout.addRow(create_row("Prénoms", self.prenoms))
+
+        self.date_naissance = QLineEdit()
+        self.date_naissance.setReadOnly(True)
+        self.date_naissance.setStyleSheet(line_edit_style)
+        layout.addRow(create_row("Date de naissance", self.date_naissance))
+
+        # Région/CSG
+        self.type_affectation = QComboBox()
+        self.type_affectation.addItems(["REGIONS", "CSG"])
+        self.type_affectation.setStyleSheet(combo_style)
+        self.type_affectation.currentTextChanged.connect(self.on_affectation_change)
+        layout.addRow(create_row("Type d'affectation", self.type_affectation))
+
+        self.direction = QComboBox()
+        self.direction.setStyleSheet(combo_style)
+        self.direction.currentTextChanged.connect(self.on_direction_change)
+        layout.addRow(create_row("Région/Direction", self.direction))
+
+        self.service = QComboBox()
+        self.service.setStyleSheet(combo_style)
+        self.service.currentTextChanged.connect(self.on_service_change)
+        layout.addRow(create_row("Légion/Service", self.service))
+
+        self.unite = QComboBox()
+        self.unite.setStyleSheet(combo_style)
+        layout.addRow(create_row("Unité", self.unite))
+
+        # Nombre d'enfants
+        self.nb_enfants = QSpinBox()
+        self.nb_enfants.setStyleSheet("""
+            QSpinBox {
+                padding: 11px 20px;
+                border: 2px solid #e0e0e0;
+                border-radius: 5px;
+                background: white;
+                min-width: 300px;
+                font-size: 14px;
+            }
+            QSpinBox:focus {
+                border-color: #2196f3;
+            }
+            QSpinBox::up-button, QSpinBox::down-button {
+                width: 20px;
+                background: #f8f9fa;
+            }
+        """)
+        layout.addRow(create_row("Nombre d'enfants", self.nb_enfants))
+
+        container.setLayout(layout)
+        return container
+
+    def on_matricule_change(self, matricule):
+        """
+        Gère l'auto-complétion lors de la saisie du matricule
+        Args:
+            matricule: Matricule saisi
+        """
+        if len(matricule) >= 4:  # On commence la recherche après 4 caractères
+            try:
+                with self.db_manager.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT nom, prenoms, date_naissance
+                        FROM gendarmes_etat
+                        WHERE matricule = ?
+                    """, (matricule,))
+                    result = cursor.fetchone()
+                    if result:
+                        self.nom.setText(result[0])
+                        self.prenoms.setText(result[1])
+                        self.date_naissance.setText(result[2])
+            except Exception as e:
+                print(f"Erreur lors de la recherche du gendarme : {str(e)}")
+
+    def on_affectation_change(self, affectation_type):
+        """
+        Met à jour les choix de direction selon le type d'affectation
+        Args:
+            affectation_type: Type d'affectation choisi (REGIONS/CSG)
+        """
+        print(f"Changement d'affectation: {affectation_type}")  # Debug
+        self.direction.clear()
+        self.service.clear()
+        self.unite.clear()
+
+        if affectation_type == "REGIONS":
+            regions = STRUCTURE_PRINCIPALE["REGIONS"].keys()
+            print(f"Régions disponibles: {list(regions)}")  # Debug
+            self.direction.addItems(regions)
+        else:  # CSG
+            directions = STRUCTURE_PRINCIPALE["CSG"].keys()
+            print(f"Directions CSG disponibles: {list(directions)}")  # Debug
+            self.direction.addItems(directions)
+
+    def on_direction_change(self, direction):
+        """
+        Met à jour les choix de service selon la direction
+        Args:
+            direction: Direction choisie
+        """
+        print(f"Changement de direction: {direction}")  # Debug
+        self.service.clear()
+        self.unite.clear()
+
+        affectation_type = self.type_affectation.currentText()
+        if affectation_type == "REGIONS":
+            if direction in STRUCTURE_PRINCIPALE["REGIONS"]:
+                legions = STRUCTURE_PRINCIPALE["REGIONS"][direction].keys()
+                print(f"Légions disponibles: {list(legions)}")  # Debug
+                self.service.addItems(legions)
+        else:  # CSG
+            if direction in STRUCTURE_PRINCIPALE["CSG"]:
+                services = STRUCTURE_PRINCIPALE["CSG"][direction]
+                if services:  # Si la direction a des services
+                    print(f"Services disponibles: {services}")  # Debug
+                    self.service.addItems(services)
+
+    def on_service_change(self, service):
+        """
+        Met à jour les choix d'unité selon le service
+        Args:
+            service: Service choisi
+        """
+        print(f"Changement de service: {service}")  # Debug
+        self.unite.clear()
+
+        affectation_type = self.type_affectation.currentText()
+        direction = self.direction.currentText()
+
+        if affectation_type == "REGIONS":
+            if direction in STRUCTURE_PRINCIPALE["REGIONS"]:
+                legion_data = STRUCTURE_PRINCIPALE["REGIONS"][direction]
+                if service in legion_data:
+                    unites = []
+                    service_data = legion_data[service]
+
+                    # Si c'est une LGM, les unités sont directement dans une liste
+                    if isinstance(service_data, list):
+                        unites = service_data
+                    # Si c'est une LGT, on a des compagnies
+                    else:
+                        for cie, cie_unites in service_data.items():
+                            unites.extend(cie_unites)
+
+                    print(f"Unités disponibles: {unites}")  # Debug
+                    self.unite.addItems(unites)
 
     def submit_form(self):
         # À implémenter
