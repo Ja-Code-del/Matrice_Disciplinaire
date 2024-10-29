@@ -3,13 +3,14 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLineEdit, QPushButton, QLabel,
                              QTableWidget, QTableWidgetItem, QTabWidget,
                              QComboBox, QGroupBox, QGridLayout, QMessageBox,
-                             QHeaderView, QToolBar)
+                             QHeaderView, QToolBar, QFileDialog)
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QIcon
 from src.database.db_manager import DatabaseManager
 from src.ui.styles.styles import Styles
 from src.database.models import GendarmeRepository, SanctionRepository
+from src.ui.windows.import_etat_window import ImportEtatCompletWindow
 
 
 class MainGendarmeApp(QMainWindow):
@@ -83,6 +84,16 @@ class MainGendarmeApp(QMainWindow):
         # Ajout de la barre d'outils avec les boutons d'import et de thème
         toolbar = QToolBar()
         self.addToolBar(toolbar)
+
+        # Bouton Import État Complet
+        import_etat_button = QPushButton("📋 Importer État Complet")
+        import_etat_button.clicked.connect(self.import_etat_complet)
+        toolbar.addWidget(import_etat_button)
+
+        # Bouton Nouveau Dossier
+        new_case_button = QPushButton("📝 Nouveau Dossier")
+        new_case_button.clicked.connect(self.show_new_case_form)
+        toolbar.addWidget(new_case_button)
 
         # Bouton d'import
         import_button = QPushButton("Importer Excel")
@@ -277,6 +288,32 @@ class MainGendarmeApp(QMainWindow):
         from src.ui.import_window import ImportWindow
         self.import_window = ImportWindow()
         self.import_window.show()
+
+    def show_new_case_form(self):
+        """Ouvre le formulaire nouveau dossier"""
+        try:
+            from src.ui.forms.new_case_form import NewCaseForm
+            self.new_case_form = NewCaseForm(self.db_manager)
+            self.new_case_form.show()
+        except Exception as e:
+            print(f"Erreur lors de l'ouverture du formulaire : {str(e)}")
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                "Impossible d'ouvrir le formulaire nouveau dossier."
+            )
+
+    def import_etat_complet(self):
+        """Import de l'état complet des gendarmes"""
+        file_name, _ = QFileDialog.getOpenFileName(
+            self,
+            "Importer l'état complet",
+            "",
+            "Excel files (*.xlsx *.xls)"
+        )
+        if file_name:
+            self.import_window = ImportEtatCompletWindow(self.db_manager)
+            self.import_window.import_file(file_name)
 
     def toggle_theme(self):
         """Bascule entre les thèmes clair et sombre"""
