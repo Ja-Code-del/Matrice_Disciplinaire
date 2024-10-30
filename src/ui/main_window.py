@@ -294,6 +294,7 @@ class MainGendarmeApp(QMainWindow):
         try:
             from src.ui.forms.new_case_form import NewCaseForm
             self.new_case_form = NewCaseForm(self.db_manager)
+            self.new_case_form.is_dark_mode = self.is_dark_mode
             self.new_case_form.show()
         except Exception as e:
             print(f"Erreur lors de l'ouverture du formulaire : {str(e)}")

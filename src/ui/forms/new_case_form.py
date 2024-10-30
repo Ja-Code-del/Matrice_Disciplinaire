@@ -2,8 +2,8 @@ from datetime import datetime
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QFrame, QPushButton, QScrollArea, QGraphicsOpacityEffect, QApplication, QLineEdit,
-                             QFormLayout, QComboBox, QSpinBox)
-from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QTimer
+                             QFormLayout, QComboBox, QSpinBox, QDateEdit, QMessageBox)
+from PyQt6.QtCore import Qt, QDate, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QTimer
 from PyQt6.QtGui import QFont, QColor
 
 from src.data.gendarmerie import STRUCTURE_PRINCIPALE
@@ -23,6 +23,7 @@ class NewCaseForm(QMainWindow):
         self.db_manager = db_manager
         self.setWindowTitle("Page enregistrement de dossier")
         self.setMinimumSize(1200, 800)
+        self.is_dark_mode = False
         self.current_section = 0  # Pour tracker la section active
         self.init_ui()
 
@@ -43,7 +44,7 @@ class NewCaseForm(QMainWindow):
         # Titre du formulaire
         title = QLabel("Nouveau Dossier Disciplinaire")
         title.setFont(QFont('Helvetica', 24, QFont.Weight.Bold))
-        title.setStyleSheet("color: #2c3e50; margin-bottom: 20px;")
+        title.setStyleSheet("color: #FFFFFF; margin-bottom: 20px;")
         layout.addWidget(title)
 
         # Conteneur des sections
@@ -141,7 +142,7 @@ class NewCaseForm(QMainWindow):
                 padding: 20px;
             }
             QFrame:hover {
-                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                border : 1px solid #d1d1d1
             }
         """)
 
@@ -161,22 +162,15 @@ class NewCaseForm(QMainWindow):
             content = self.create_suspect_info_section()
             layout.addWidget(content)
         else:
-            # Garde le placeholder pour les autres sections pour l'instant
-            content = QLabel("Contenu à venir...")
-            content.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            content.setStyleSheet("color: #999; padding: 40px;")
+            #title.startswith("⚖️"):  # Section Info Faute
+            content = self.create_fault_info_section()
             layout.addWidget(content)
-
-        # if subtitle:
-        #     subtitle_label = QLabel(subtitle)
-        #     subtitle_label.setStyleSheet("color: #666; margin-bottom: 20px;")
-        #     layout.addWidget(subtitle_label)
-        # 
-        # # Placeholder pour le contenu
-        # content = QLabel("Contenu à venir...")
-        # content.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # content.setStyleSheet("color: #999; padding: 40px;")
-        # layout.addWidget(content)
+        # else:
+        #     # Garde le placeholder pour les autres sections pour l'instant
+        #     content = QLabel("Contenu à venir...")
+        #     content.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        #     content.setStyleSheet("color: #999; padding: 40px;")
+        #     layout.addWidget(content)
 
         layout.addStretch()
         return section
@@ -213,9 +207,8 @@ class NewCaseForm(QMainWindow):
                         background: white;
                         border-radius: 10px;
                         padding: 20px;
-                        border: 2px solid #2196f3;
+                        border: 1px solid #2196f3;
                         opacity : 1;
-                        box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.8);
                         z-index: 1000;
                         position: relative;
                     }
@@ -319,6 +312,50 @@ class NewCaseForm(QMainWindow):
                 font-size: 15px;  
             }
         """
+        # Style pour les ComboBox
+        combo_style = """
+                QComboBox {
+                    padding: 11px 20px;
+                    border: 2px solid #e0e0e0;
+                    border-radius: 5px;
+                    background: white;
+                    min-width: 300px;
+                    font-size: 14px;
+                    color: #555;
+                }
+                QComboBox:hover {
+                    border-color: #2196f3;
+                }
+                QComboBox:focus {
+                    border-color: #2196f3;
+                    background: white;
+                }
+                QComboBox::drop-down {
+                    border: none;
+                    padding-right: 20px;
+                }
+                QComboBox::down-arrow {
+                    image: url(../resources/icons/down-arrow.png);
+                    width: 12px;
+                    height: 12px;
+                }
+                QComboBox QAbstractItemView {
+                    border: 1px solid #e0e0e0;
+                    border-radius: 5px;
+                    background: white;
+                    selection-background-color: #2196f3;
+                    selection-color: white;
+                    color: #000;
+                }
+                QComboBox QAbstractItemView::item {
+                    padding: 8px 20px;
+                    min-height: 30px;
+                }
+                QComboBox QAbstractItemView::item:hover {
+                    background-color: #e3f2fd;
+                    color: #1976d2;
+                }
+            """
 
         # Style pour les labels
         label_style = """
@@ -443,75 +480,15 @@ class NewCaseForm(QMainWindow):
         Returns:
             QWidget: Container contenant les informations du gendarme
         """
-        container = QWidget()
-        layout = QFormLayout()
-        layout.setSpacing(15)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
-
-        # Style commun pour les QLineEdit
-        line_edit_style = """
-            QLineEdit {
-                padding: 12px 20px;
-                border: 2px solid #e0e0e0;
-                border-radius: 5px;
-                background: white;
-                min-width: 300px;
-                font-size: 14px;
-                margin-left: 0px;
-            }
-            QLineEdit:focus {
-                border-color: #2196f3;
-                background: #f8f9fa;
-            }
-            QLineEdit:disabled {
-                background: #f5f5f5;
-                color: #666;
-            }
-            QLineEdit::placeholder {
-                color: #aaa;
-                padding-left: 5px;
-            }
-        """
-
-        # Style pour les ComboBox
-        combo_style = """
-            QComboBox {
-                padding: 11px 20px;
-                border: 2px solid #e0e0e0;
-                border-radius: 5px;
-                background: white;
-                min-width: 300px;
-                font-size: 14px;
-            }
-            QComboBox:focus {
-                border-color: #2196f3;
-            }
-            QComboBox::drop-down {
-                border: none;
-                padding-right: 20px;
-            }
-            QComboBox::down-arrow {
-                image: url(resources/icons/down-arrow.png);
-                width: 12px;
-                height: 12px;
-            }
-            QComboBox QAbstractItemView {
-                border: 1px solid #e0e0e0;
-                border-radius: 5px;
-                background: white;
-                selection-background-color: #f0f0f0;
-            }
-        """
 
         def create_row(label_text, widget):
             """
-            Crée une ligne du formulaire avec label et widget
+            Crée une ligne de formulaire avec label et widget
             Args:
                 label_text: Texte du label
-                widget: Widget à afficher
+                widget: Widget à afficher (QLineEdit, QComboBox, etc.)
             Returns:
-                QWidget: Ligne complète du formulaire
+                QWidget: La ligne complète du formulaire
             """
             row_widget = QWidget()
             row_layout = QHBoxLayout(row_widget)
@@ -533,69 +510,67 @@ class NewCaseForm(QMainWindow):
             row_layout.addStretch()
             return row_widget
 
+        container = QWidget()
+        layout = QFormLayout()
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        # Récupération des styles
+        styles = Styles.get_styles(self.is_dark_mode)
+
         # Matricule avec auto-complétion
         self.matricule = QLineEdit()
         self.matricule.setPlaceholderText("Entrez le matricule")
-        self.matricule.setStyleSheet(line_edit_style)
+        self.matricule.setStyleSheet(styles['INPUT'])
         self.matricule.textChanged.connect(self.on_matricule_change)
         layout.addRow(create_row("Matricule", self.matricule))
 
         # Champs auto-remplis
         self.nom = QLineEdit()
         self.nom.setReadOnly(True)
-        self.nom.setStyleSheet(line_edit_style)
+        self.nom.setStyleSheet(styles['INPUT'])
         layout.addRow(create_row("Nom", self.nom))
 
         self.prenoms = QLineEdit()
         self.prenoms.setReadOnly(True)
-        self.prenoms.setStyleSheet(line_edit_style)
+        self.prenoms.setStyleSheet(styles['INPUT'])
         layout.addRow(create_row("Prénoms", self.prenoms))
 
         self.date_naissance = QLineEdit()
         self.date_naissance.setReadOnly(True)
-        self.date_naissance.setStyleSheet(line_edit_style)
+        self.date_naissance.setStyleSheet(styles['INPUT'])
         layout.addRow(create_row("Date de naissance", self.date_naissance))
 
-        # Région/CSG
+        # Type d'affectation
         self.type_affectation = QComboBox()
         self.type_affectation.addItems(["REGIONS", "CSG"])
-        self.type_affectation.setStyleSheet(combo_style)
+        self.type_affectation.setStyleSheet(styles['COMBO_BOX'])
         self.type_affectation.currentTextChanged.connect(self.on_affectation_change)
         layout.addRow(create_row("Type d'affectation", self.type_affectation))
 
+        # Région/Direction
         self.direction = QComboBox()
-        self.direction.setStyleSheet(combo_style)
+        self.direction.setStyleSheet(styles['COMBO_BOX'])
         self.direction.currentTextChanged.connect(self.on_direction_change)
         layout.addRow(create_row("Région/Direction", self.direction))
 
+        # Légion/Service
         self.service = QComboBox()
-        self.service.setStyleSheet(combo_style)
+        self.service.setStyleSheet(styles['COMBO_BOX'])
         self.service.currentTextChanged.connect(self.on_service_change)
         layout.addRow(create_row("Légion/Service", self.service))
 
+        # Unité
         self.unite = QComboBox()
-        self.unite.setStyleSheet(combo_style)
+        self.unite.setStyleSheet(styles['COMBO_BOX'])
         layout.addRow(create_row("Unité", self.unite))
 
         # Nombre d'enfants
         self.nb_enfants = QSpinBox()
-        self.nb_enfants.setStyleSheet("""
-            QSpinBox {
-                padding: 11px 20px;
-                border: 2px solid #e0e0e0;
-                border-radius: 5px;
-                background: white;
-                min-width: 300px;
-                font-size: 14px;
-            }
-            QSpinBox:focus {
-                border-color: #2196f3;
-            }
-            QSpinBox::up-button, QSpinBox::down-button {
-                width: 20px;
-                background: #f8f9fa;
-            }
-        """)
+        self.nb_enfants.setStyleSheet(styles['SPIN_BOX'])
+        self.nb_enfants.setMinimum(0)
+        self.nb_enfants.setMaximum(99)
         layout.addRow(create_row("Nombre d'enfants", self.nb_enfants))
 
         container.setLayout(layout)
@@ -697,6 +672,260 @@ class NewCaseForm(QMainWindow):
                     print(f"Unités disponibles: {unites}")  # Debug
                     self.unite.addItems(unites)
 
+
+    ### TROISIEME SECTION
+
+    def create_fault_info_section(self):
+        """
+        Crée la section des informations sur la faute
+        Returns:
+            QWidget: Container contenant les informations sur la faute
+        """
+
+        def create_row(label_text, widget):
+            """
+            Crée une ligne de formulaire avec label et widget
+            Args:
+                label_text: Texte du label
+                widget: Widget à afficher (QLineEdit, QComboBox, etc.)
+            Returns:
+                QWidget: La ligne complète du formulaire
+            """
+            row_widget = QWidget()
+            row_layout = QHBoxLayout(row_widget)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setSpacing(10)
+
+            label = QLabel(label_text)
+            label.setStyleSheet("""
+                QLabel {
+                    font-size: 14px;
+                    font-weight: 800;
+                    color: #333;
+                    padding: 8px 0;
+                    min-width: 200px;
+                }
+            """)
+            row_layout.addWidget(label)
+            row_layout.addWidget(widget)
+            row_layout.addStretch()
+            return row_widget
+
+        container = QWidget()
+        layout = QFormLayout()
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        styles = Styles.get_styles(self.is_dark_mode)
+
+        # Date des faits avec calendrier
+        self.date_faits = QDateEdit()
+        self.date_faits.setCalendarPopup(True)
+        self.date_faits.setDate(QDate.currentDate())
+        self.date_faits.dateChanged.connect(self.update_annee_faits)
+        self.date_faits.setStyleSheet(styles['DATE_EDIT'])
+        layout.addRow(create_row("Date des faits", self.date_faits))
+
+        # Faute commise (ComboBox)
+        self.faute_commise = QComboBox()
+        self.faute_commise.addItems([
+            "ABANDON DE POSTE",
+            "NEGLIGENCE",
+            "CORRUPTION",
+            "DESERTION",
+            # ... ajoute ta liste complète de fautes ici
+        ])
+        self.faute_commise.setStyleSheet(styles['COMBO_BOX'])
+        layout.addRow(create_row("Faute commise", self.faute_commise))
+
+        # Catégorie
+        self.categorie = QLineEdit()
+        self.categorie.setStyleSheet(styles['INPUT'])
+        layout.addRow(create_row("Catégorie", self.categorie))
+
+        # Statut du dossier
+        self.statut = QComboBox()
+        self.statut.addItems(["EN COURS", "CLASSE", "RADIE"])
+        self.statut.currentTextChanged.connect(self.on_statut_change)
+        self.statut.setStyleSheet(styles['COMBO_BOX'])
+        layout.addRow(create_row("Statut du dossier", self.statut))
+
+        # Référence du statut (visible uniquement si RADIE)
+        self.ref_statut_container = QWidget()
+        self.ref_statut = QLineEdit()
+        self.ref_statut.setStyleSheet(styles['INPUT'])
+        self.ref_statut.setPlaceholderText("Référence de radiation")
+        layout.addRow(create_row("Référence du statut", self.ref_statut_container))
+        self.ref_statut_container.hide()
+
+        # TAUX (JAR)
+        self.taux_jar = QSpinBox()
+        self.taux_jar.setMinimum(0)
+        self.taux_jar.setMaximum(365)
+        self.taux_jar.setStyleSheet(styles['SPIN_BOX'])
+        layout.addRow(create_row("TAUX (JAR)", self.taux_jar))
+
+        # COMITE
+        self.comite = QLineEdit()
+        self.comite.setStyleSheet(styles['INPUT'])
+        layout.addRow(create_row("COMITE", self.comite))
+
+        # ANNEE DES FAITS (auto)
+        self.annee_faits = QLineEdit()
+        self.annee_faits.setReadOnly(True)
+        self.annee_faits.setStyleSheet(styles['INPUT'])
+        layout.addRow(create_row("ANNEE DES FAITS", self.annee_faits))
+
+        container.setLayout(layout)
+        return container
+
+    def update_annee_faits(self):
+        """Met à jour l'année des faits automatiquement"""
+        self.annee_faits.setText(str(self.date_faits.date().year()))
+
+    def on_statut_change(self, statut):
+        """Gère l'affichage du champ référence selon le statut"""
+        self.ref_statut_container.setVisible(statut == "RADIE")
+
     def submit_form(self):
-        # À implémenter
-        pass
+        """
+        Enregistre toutes les données du formulaire dans la base de données
+        """
+        try:
+            # Validation des champs obligatoires
+            if not self.validate_form():
+                return
+
+            # Récupération des données du formulaire
+            form_data = {
+                # Section Info Dossier
+                'numero_dossier': self.num_dossier.text(),
+                'numero_radiation': self.num_radiation.text(),
+                'annee': self.annee.text(),
+                'date_enregistrement': self.date_enr.text(),
+                'numero_enregistrement': self.num_enr.text(),
+
+                # Section Info Mis en cause
+                'matricule': self.matricule.text(),
+                'type_affectation': self.type_affectation.currentText(),
+                'direction': self.direction.currentText(),
+                'service': self.service.currentText(),
+                'unite': self.unite.currentText(),
+                'nb_enfants': self.nb_enfants.value(),
+
+                # Section Info Faute
+                'date_faits': self.date_faits.date().toString("yyyy-MM-dd"),
+                'faute_commise': self.faute_commise.currentText(),
+                'categorie': self.categorie.text(),
+                'statut': self.statut.currentText(),
+                'ref_statut': self.ref_statut.text() if self.statut.currentText() == "RADIE" else "",
+                'taux_jar': self.taux_jar.value(),
+                'comite': self.comite.text(),
+                'annee_faits': self.annee_faits.text()
+            }
+
+            # Sauvegarde dans la base de données
+            with self.db_manager.get_connection() as conn:
+                cursor = conn.cursor()
+
+                # Insertion dans la table sanctions
+                cursor.execute("""
+                    INSERT INTO sanctions (
+                        numero_dossier, numero_radiation, annee, date_enregistrement,
+                        numero, gendarme_id, date_faits, faute_commise, categorie,
+                        statut, reference_statut, taux_jar, comite, annee_faits
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    form_data['numero_dossier'],
+                    form_data['numero_radiation'],
+                    form_data['annee'],
+                    form_data['date_enregistrement'],
+                    form_data['numero_enregistrement'],
+                    self.get_gendarme_id(form_data['matricule']),  # On récupère l'ID du gendarme
+                    form_data['date_faits'],
+                    form_data['faute_commise'],
+                    form_data['categorie'],
+                    form_data['statut'],
+                    form_data['ref_statut'],
+                    form_data['taux_jar'],
+                    form_data['comite'],
+                    form_data['annee_faits']
+                ))
+
+                # Mise à jour des informations du gendarme
+                cursor.execute("""
+                    UPDATE gendarmes_etat 
+                    SET type_affectation = ?, direction = ?, service = ?, 
+                        unite = ?, nb_enfants = ?
+                    WHERE matricule = ?
+                """, (
+                    form_data['type_affectation'],
+                    form_data['direction'],
+                    form_data['service'],
+                    form_data['unite'],
+                    form_data['nb_enfants'],
+                    form_data['matricule']
+                ))
+
+                conn.commit()
+
+                QMessageBox.information(self, "Succès", "Dossier enregistré avec succès!")
+                self.close()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur", f"Erreur lors de l'enregistrement : {str(e)}")
+            print(f"Erreur détaillée : {str(e)}")
+
+    def validate_form(self):
+        """
+        Valide les champs obligatoires du formulaire
+        Returns:
+            bool: True si tous les champs obligatoires sont remplis
+        """
+        required_fields = {
+            'Numéro de dossier': self.num_dossier,
+            'Matricule': self.matricule,
+            'Date des faits': self.date_faits,
+            'Faute commise': self.faute_commise,
+            'Catégorie': self.categorie,
+            'Statut': self.statut
+        }
+
+        for field_name, field in required_fields.items():
+            if isinstance(field, QLineEdit) and not field.text().strip():
+                QMessageBox.warning(self, "Champs manquants",
+                                    f"Le champ '{field_name}' est obligatoire.")
+                field.setFocus()
+                return False
+            elif isinstance(field, QComboBox) and not field.currentText():
+                QMessageBox.warning(self, "Champs manquants",
+                                    f"Le champ '{field_name}' est obligatoire.")
+                field.setFocus()
+                return False
+
+        # Validation spécifique pour le statut RADIE
+        if self.statut.currentText() == "RADIE" and not self.ref_statut.text().strip():
+            QMessageBox.warning(self, "Champs manquants",
+                                "La référence du statut est obligatoire pour une radiation.")
+            self.ref_statut.setFocus()
+            return False
+
+        return True
+
+    def get_gendarme_id(self, matricule):
+        """
+        Récupère l'ID du gendarme à partir de son matricule
+        Args:
+            matricule: Matricule du gendarme
+        Returns:
+            int: ID du gendarme
+        """
+        with self.db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM gendarmes_etat WHERE matricule = ?", (matricule,))
+            result = cursor.fetchone()
+            if result:
+                return result[0]
+            raise ValueError(f"Gendarme avec matricule {matricule} non trouvé")
+
