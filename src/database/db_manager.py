@@ -1,6 +1,17 @@
 import os
 import sqlite3
 from contextlib import contextmanager
+import pandas as pd
+
+
+# Fonction pour vérifier la présence des colonnes
+def check_required_columns(df, required_columns):
+    """Vérifie si les colonnes requises sont présentes dans le DataFrame"""
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        print(f"Colonnes manquantes dans le fichier : {missing_columns}")
+        return False
+    return True
 
 
 class DatabaseManager:
@@ -30,7 +41,7 @@ class DatabaseManager:
             cursor.execute("DROP TABLE IF EXISTS gendarmes_etat")
 
             # Table des gendarmes (reste inchangée)
-            cursor.execute('''CREATE TABLE gendarmes_etat (
+            cursor.execute('''CREATE TABLE IF NOT EXISTS gendarmes_etat (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 matricule TEXT UNIQUE,
                 nom TEXT,
@@ -42,10 +53,10 @@ class DatabaseManager:
             )''')
 
             # Table sanctions avec les nouveaux champs
-            cursor.execute('''CREATE TABLE sanctions (
+            cursor.execute('''CREATE TABLE IF NOT EXISTS sanctions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                numero_dossier TEXT,
                 numero_radiation TEXT,
+                numero_dossier TEXT,
                 annee INTEGER,
                 date_enregistrement DATE,
                 numero TEXT,
@@ -61,59 +72,61 @@ class DatabaseManager:
                 FOREIGN KEY (gendarme_id) REFERENCES gendarmes_etat(id)
             )''')
 
+            # Table principale des gendarmes
+            cursor.execute('''CREATE TABLE IF NOT EXISTS gendarmes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                numero_radiation TEXT,
+                numero_dossier TEXT,
+                mle TEXT,
+                nom_prenoms TEXT,
+                grade TEXT,
+                sexe TEXT,
+                date_naissance TEXT,
+                age INTEGER,
+                unite TEXT,
+                leg TEXT,
+                sub TEXT,
+                rg TEXT,
+                legions TEXT,
+                subdiv TEXT,
+                regions TEXT,
+                date_entree_gie TEXT,
+                annee_service INTEGER,
+                situation_matrimoniale TEXT,
+                nb_enfants INTEGER)''')
+
             conn.commit()
-    # def create_tables(self):
-    #     """Crée les tables de la base de données"""
-    #     with self.get_connection() as conn:
-    #         cursor = conn.cursor()
-    #
-    #         # Suppression des tables existantes si elles existent
-    #         cursor.execute("DROP TABLE IF EXISTS sanctions")
-    #         cursor.execute("DROP TABLE IF EXISTS gendarmes")
-    #
-    #         # Table principale des gendarmes
-    #         cursor.execute('''CREATE TABLE gendarmes
-    #                         (id INTEGER PRIMARY KEY AUTOINCREMENT,
-    #                          numero_radiation TEXT,
-    #                          mle TEXT,
-    #                          nom_prenoms TEXT,
-    #                          grade TEXT,
-    #                          sexe TEXT,
-    #                          date_naissance TEXT,
-    #                          age INTEGER,
-    #                          unite TEXT,
-    #                          leg TEXT,
-    #                          sub TEXT,
-    #                          rg TEXT,
-    #                          legions TEXT,
-    #                          subdiv TEXT,
-    #                          regions TEXT,
-    #                          date_entree_gie TEXT,
-    #                          annee_service INTEGER,
-    #                          situation_matrimoniale TEXT,
-    #                          nb_enfants INTEGER)''')
-    #
-    #         # Table des sanctions
-    #         # Ajouter nouvelle colonne numero_dossier
-    #         cursor.execute('''CREATE TABLE sanctions
-    #                         (id INTEGER PRIMARY KEY AUTOINCREMENT,
-    #                          gendarme_id INTEGER,
-    #                          numero_dossier TEXT,
-    #                          annee_punition INTEGER,
-    #                          numero TEXT,
-    #                          numero_l TEXT,
-    #                          date_enr TEXT,
-    #                          faute_commise TEXT,
-    #                          date_faits TEXT,
-    #                          numero_cat TEXT,
-    #                          statut TEXT,
-    #                          reference_statut TEXT,
-    #                          taux_jar INTEGER,
-    #                          comite TEXT,
-    #                          annee_faits INTEGER,
-    #                          FOREIGN KEY (gendarme_id) REFERENCES gendarmes(id))''')
-    #
-    #         conn.commit()
+
+    def insert_gendarmes_from_excel(self, file_path):
+        """Insère les données du fichier Excel dans la base de données après vérification des colonnes"""
+        required_columns = [
+            "N° DOSSIER", "ANNEE DE PUNITION", "NOM", "GRADE",
+            # Ajouter toutes les colonnes nécessaires pour l'insertion
+        ]
+
+        # Charger le fichier Excel dans un DataFrame
+        df = pd.read_excel(file_path)
+
+        # Vérifier la présence des colonnes nécessaires
+        if not check_required_columns(df, required_columns):
+            print("Erreur : le fichier Excel ne contient pas toutes les colonnes nécessaires.")
+            return
+
+        # Insertion ligne par ligne avec gestion d'erreurs
+        for index, row in df.iterrows():
+            try:
+                # Exemple d'insertion (à adapter selon votre structure)
+                with self.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        INSERT INTO gendarmes (numero_dossier, annee_punition, nom_prenoms, grade)
+                        VALUES (?, ?, ?, ?)
+                    ''', (row["N° DOSSIER"], row["ANNEE DE PUNITION"], row["NOM"], row["GRADE"]))
+                    conn.commit()
+            except KeyError as e:
+                print(f"Erreur sur la ligne {index + 1}: Colonne manquante - {e}")
+            except Exception as e:
+                print(f"Erreur sur la ligne {index + 1}: {e}")
 
     def get_all_gendarmes(self):
         """Récupère tous les gendarmes de la base de données"""
@@ -168,3 +181,8 @@ class DatabaseManager:
                 stats['moyenne_sanctions'] = 0
 
             return stats
+
+# Exemple d'utilisation :
+# db_manager = DatabaseManager()
+# db_manager.create_tables()
+# db_manager.insert_gendarmes_from_excel("votre_fichier.xlsx")

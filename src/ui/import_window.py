@@ -104,10 +104,11 @@ class ImportWindow(QMainWindow):
                     # Import des gendarmes
                     for _, row in gendarmes_df.iterrows():
                         try:
+                            print("On est avant execute")
                             cursor.execute('''
                                 INSERT OR REPLACE INTO sanctions (
-                                    numero_dossier,
                                     numero_radiation,
+                                    numero_dossier,
                                     annee_punition,
                                     numero,
                                     numero_l,
@@ -139,10 +140,10 @@ class ImportWindow(QMainWindow):
                                     annee_faits
                                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                             ''', (
-                                str(row['N° DOSSIER']),
                                 str(row['N° DE RADIATION']),
+                                str(row['N° DOSSIER']),
                                 int(row['ANNEE DE PUNITION']) if pd.notna(row['ANNEE DE PUNITION']) else None,
-                                str(row['N°']),
+                                int(row['N°']),
                                 str(row['N° L']),
                                 adapt_date(row['DATE ENR']),
                                 str(row['MLE']),
