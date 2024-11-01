@@ -4,24 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="new window for stats. added a new folder to organize all this stuff">
-      <change afterPath="$PROJECT_DIR$/src/ui/stats_views/fault_stats.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/ui/stats_views/global_stats.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/ui/stats_views/grade_stats.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/ui/stats_views/period_stats.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/ui/stats_views/subdiv_stats.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/ui/stats_views/time_stats.py" afterDir="false" />
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="new icons">
+      <change beforePath="$PROJECT_DIR$/.idea/Matrice_Disciplinaire.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Matrice_Disciplinaire.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/stats_view/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/stats_views/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/stats_view/fault_stats.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/stats_view/global_stats.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/stats_view/grade_stats.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/stats_view/period_stats.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/stats_view/subdiv_stats.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/stats_view/time_stats.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/stats_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/stats_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/styles/styles.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/styles/styles.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/matrice.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/matrice.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/database/db_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/db_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -65,21 +53,27 @@
     <option name="showLibraryContents" value="true" />
     <option name="sortKey" value="BY_TIME_DESCENDING" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.gendarme-app-import-2.executor": "Run",
-    "Python.gendarme-app-import-5.executor": "Run",
-    "Python.gendarme-app-import.executor": "Run",
-    "Python.import_window.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.main_window.executor": "Run",
-    "Python.styles.executor": "Run",
-    "Python.test.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
-    "run.code.analysis.last.selected.profile": "pProject Default"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.gendarme-app-import-2.executor&quot;: &quot;Run&quot;,
+    &quot;Python.gendarme-app-import-5.executor&quot;: &quot;Run&quot;,
+    &quot;Python.gendarme-app-import.executor&quot;: &quot;Run&quot;,
+    &quot;Python.import_window.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main_window.executor&quot;: &quot;Run&quot;,
+    &quot;Python.styles.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/bretwalda/PycharmProjects/Matrice_Disciplinaire/src/data/gendarmerie&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;
   }
-}]]></component>
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/data/gendarmerie" />
+    </key>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -160,7 +154,87 @@
       <option name="project" value="LOCAL" />
       <updated>1729871484086</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="Work on style of main_window principally">
+      <option name="closed" value="true" />
+      <created>1730070271258</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1730070271258</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Work on style of main_window deleted old code put in comment">
+      <option name="closed" value="true" />
+      <created>1730070428675</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1730070428675</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Main_window : date des faits no : date &#10;stats_window: worked on total list of punished&#10;and finally added the punis_list.py file to handle it">
+      <option name="closed" value="true" />
+      <created>1730096412122</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1730096412122</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Main_window : update to handle new button : import Soff complete excel files. new button to write forms now diretcly into the app">
+      <option name="closed" value="true" />
+      <created>1730161992865</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1730161992865</updated>
+    </task>
+    <task id="LOCAL-00013" summary="new files to manage forms and complete gendarmes datas">
+      <option name="closed" value="true" />
+      <created>1730162045338</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1730162045338</updated>
+    </task>
+    <task id="LOCAL-00014" summary="first of form section done">
+      <option name="closed" value="true" />
+      <created>1730202936668</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1730202936668</updated>
+    </task>
+    <task id="LOCAL-00015" summary="WORKED ON FIRST FORM SECTION NOW SATISFIED; The field was too short">
+      <option name="closed" value="true" />
+      <created>1730213431918</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1730213431918</updated>
+    </task>
+    <task id="LOCAL-00016" summary="Now we can provide informations about a gendarme into a form but it remains his fault info form. and some little style improvements">
+      <option name="closed" value="true" />
+      <created>1730230266668</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1730230266668</updated>
+    </task>
+    <task id="LOCAL-00017" summary="All the section of the form are operational. but we should make some changes on table sanction about N° dossier and everything would be great. A">
+      <option name="closed" value="true" />
+      <created>1730251448462</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1730251448462</updated>
+    </task>
+    <task id="LOCAL-00018" summary="new icons">
+      <option name="closed" value="true" />
+      <created>1730251478435</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1730251478435</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -171,7 +245,17 @@
     <MESSAGE value="New : now we can add the excel file from the prnicipal window. added a button inside the toolbar" />
     <MESSAGE value="update" />
     <MESSAGE value="new window for stats. added a new folder to organize all this stuff" />
-    <option name="LAST_COMMIT_MESSAGE" value="new window for stats. added a new folder to organize all this stuff" />
+    <MESSAGE value="Work on style of main_window principally" />
+    <MESSAGE value="Work on style of main_window deleted old code put in comment" />
+    <MESSAGE value="Main_window : date des faits no : date &#10;stats_window: worked on total list of punished&#10;and finally added the punis_list.py file to handle it" />
+    <MESSAGE value="Main_window : update to handle new button : import Soff complete excel files. new button to write forms now diretcly into the app" />
+    <MESSAGE value="new files to manage forms and complete gendarmes datas" />
+    <MESSAGE value="first of form section done" />
+    <MESSAGE value="WORKED ON FIRST FORM SECTION NOW SATISFIED; The field was too short" />
+    <MESSAGE value="Now we can provide informations about a gendarme into a form but it remains his fault info form. and some little style improvements" />
+    <MESSAGE value="All the section of the form are operational. but we should make some changes on table sanction about N° dossier and everything would be great. A" />
+    <MESSAGE value="new icons" />
+    <option name="LAST_COMMIT_MESSAGE" value="new icons" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

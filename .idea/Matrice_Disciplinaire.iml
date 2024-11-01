@@ -10,4 +10,11 @@
   <component name="PackageRequirementsSettings">
     <option name="removeUnused" value="true" />
   </component>
+  <component name="PyNamespacePackagesService">
+    <option name="namespacePackageFolders">
+      <list>
+        <option value="$MODULE_DIR$/src/data/gendarmerie" />
+      </list>
+    </option>
+  </component>
 </module>

@@ -66,18 +66,36 @@ class ImportWindow(QMainWindow):
                 self.progress_bar.setValue(0)
                 self.status_label.setText("Lecture du fichier Excel...")
 
-                # Lecture du fichier Excel
                 df = pd.read_excel(file_name)
+                total_rows = len(df)
+                self.progress_bar.setMaximum(total_rows)
+
+                success_count = 0
+                error_count = 0
 
                 with self.db_manager.get_connection() as conn:
                     cursor = conn.cursor()
 
                     # Préparation des données gendarmes (informations uniques)
                     gendarmes_df = df[[
-                        'N° DE RADIATION', 'MLE', 'NOM ET PRENOMS', 'GRADE', 'SEXE',
-                        'DATE DE NAISSANCE', 'AGE', 'UNITE', 'LEG', 'SUB', 'RG',
-                        'LEGIONS', 'SUBDIV', 'REGIONS', 'DATE D\'ENTREE GIE',
-                        'ANNEE DE SERVICE', 'SITUATION MATRIMONIALE', 'NB ENF'
+                        'N° DE RADIATION',
+                        'MLE',
+                        'NOM ET PRENOMS',
+                        'GRADE',
+                        'SEXE',
+                        'DATE DE NAISSANCE',
+                        'AGE',
+                        'UNITE',
+                        'LEG',
+                        'SUB',
+                        'RG',
+                        'LEGIONS',
+                        'SUBDIV',
+                        'REGIONS',
+                        'DATE D\'ENTREE GIE',
+                        'ANNEE DE SERVICE',
+                        'SITUATION MATRIMONIALE',
+                        'NB ENF'
                     ]].drop_duplicates()
 
                     self.progress_bar.setValue(30)
@@ -86,122 +104,84 @@ class ImportWindow(QMainWindow):
                     # Import des gendarmes
                     for _, row in gendarmes_df.iterrows():
                         try:
-                            date_naissance = row['DATE DE NAISSANCE']
-                            age = calculate_age(date_naissance)
-                            if age is None and date_naissance:  # Si la date existe mais n'est pas valide
-                                print(
-                                    f"Attention : Date de naissance invalide pour {row['NOM ET PRENOMS']} ({date_naissance})")
-
                             cursor.execute('''
-                                INSERT OR IGNORE INTO gendarmes (
-                                    numero_radiation, mle, nom_prenoms, grade, sexe,
-                                    date_naissance, age, unite, leg, sub, rg,
-                                    legions, subdiv, regions, date_entree_gie,
-                                    annee_service, situation_matrimoniale, nb_enfants
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                INSERT OR REPLACE INTO sanctions (
+                                    numero_dossier,
+                                    numero_radiation,
+                                    annee_punition,
+                                    numero,
+                                    numero_l,
+                                    date_enr,
+                                    matricule,
+                                    nom_prenoms,
+                                    grade,
+                                    sexe,
+                                    date_naissance,
+                                    age,
+                                    unite,
+                                    leg,
+                                    sub,
+                                    rg,
+                                    legions,
+                                    subdiv,
+                                    regions,
+                                    date_entree_gie,
+                                    annee_service,
+                                    situation_matrimoniale,
+                                    nb_enfants,
+                                    faute_commise,
+                                    date_faits,
+                                    numero_cat,
+                                    statut,
+                                    reference_statut,
+                                    taux_jar,
+                                    comite,
+                                    annee_faits
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                             ''', (
-                                str(row['N° DE RADIATION']), str(row['MLE']), str(row['NOM ET PRENOMS']),
-                                str(row['GRADE']), str(row['SEXE']), date_naissance,
-                                age,  # Sera None si la date est invalide
-                                str(row['UNITE']), str(row['LEG']), str(row['SUB']),
-                                str(row['RG']), str(row['LEGIONS']), str(row['SUBDIV']), str(row['REGIONS']),
+                                str(row['N° DOSSIER']),
+                                str(row['N° DE RADIATION']),
+                                int(row['ANNEE DE PUNITION']) if pd.notna(row['ANNEE DE PUNITION']) else None,
+                                str(row['N°']),
+                                str(row['N° L']),
+                                adapt_date(row['DATE ENR']),
+                                str(row['MLE']),
+                                str(row['NOM ET PRENOMS']),
+                                str(row['GRADE']),
+                                str(row['SEXE']),
+                                adapt_date(row['DATE DE NAISSANCE']),
+                                int(row['AGE']) if pd.notna(row['AGE']) else None,
+                                str(row['UNITE']),
+                                str(row['LEG']),
+                                str(row['SUB']),
+                                str(row['RG']),
+                                str(row['LEGIONS']),
+                                str(row['SUBDIV']),
+                                str(row['REGIONS']),
                                 adapt_date(row['DATE D\'ENTREE GIE']),
-                                parse_annee_service(row['ANNEE DE SERVICE']),
+                                str(row['ANNEE DE SERVICE']),
                                 str(row['SITUATION MATRIMONIALE']),
-                                int(row['NB ENF']) if pd.notna(row['NB ENF']) else None
+                                int(row['NB ENF']) if pd.notna(row['NB ENF']) else None,
+                                str(row['FAUTE COMMISE']),
+                                adapt_date(row['DATE DES FAITS']),
+                                str(row['N° CAT']),
+                                str(row['STATUT']),
+                                str(row['REFERENCE DU STATUT']),
+                                str(row['TAUX (JAR)']) if pd.notna(row['TAUX (JAR)']) else None,
+                                str(row['COMITE']),
+                                int(row['ANNEE DES FAITS']) if pd.notna(row['ANNEE DES FAITS']) else None
                             ))
-                        except Exception as e:
-                            print(f"Erreur lors du traitement de la ligne pour {row['NOM ET PRENOMS']}: {str(e)}")
-                            continue
-
-                    self.progress_bar.setValue(60)
-                    self.status_label.setText("Import des sanctions...")
-
-                    sanctions_count = 0
-                    failed_sanctions = []
-
-                    # Import des sanctions
-                    for _, row in df.iterrows():
-                        try:
-                            # Récupération de l'ID du gendarme
-                            cursor.execute(
-                                "SELECT id FROM gendarmes WHERE numero_radiation = ? AND mle = ?",
-                                (str(row['N° DE RADIATION']), str(row['MLE']))
-                            )
-                            result = cursor.fetchone()
-
-                            if result:
-                                gendarme_id = result[0]
-                                try:
-                                    cursor.execute('''
-                                        INSERT INTO sanctions (
-                                            gendarme_id, annee_punition, numero, numero_l,
-                                            date_enr, faute_commise, date_faits, numero_cat,
-                                            statut, reference_statut, taux_jar, comite,
-                                            annee_faits
-                                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                    ''', (
-                                        gendarme_id,
-                                        int(row['ANNEE DE PUNITION']) if pd.notna(row['ANNEE DE PUNITION']) else None,
-                                        str(row['N°']),
-                                        str(row['N° L']),
-                                        adapt_date(row['DATE ENR']),
-                                        str(row['FAUTE COMMISE']),
-                                        adapt_date(row['DATE DES FAITS']),
-                                        str(row['N° CAT']),
-                                        str(row['STATUT']),
-                                        str(row['REFERENCE DU STATUT']),
-                                        str(row['TAUX (JAR)']) if pd.notna(row['TAUX (JAR)']) else None,
-                                        str(row['COMITE']),
-                                        int(row['ANNEE DES FAITS']) if pd.notna(row['ANNEE DES FAITS']) else None
-                                    ))
-                                    sanctions_count += 1
-                                except Exception as e:
-                                    error_info = {
-                                        'n_radiation': row['N° DE RADIATION'],
-                                        'mle': row['MLE'],
-                                        'error': str(e)
-                                    }
-                                    failed_sanctions.append(error_info)
-                            else:
-                                error_info = {
-                                    'n_radiation': row['N° DE RADIATION'],
-                                    'mle': row['MLE'],
-                                    'error': "Gendarme non trouvé"
-                                }
-                                failed_sanctions.append(error_info)
+                            success_count += 1
 
                         except Exception as e:
-                            error_info = {
-                                'n_radiation': row['N° DE RADIATION'],
-                                'mle': row['MLE'],
-                                'error': f"Erreur générale: {str(e)}"
-                            }
-                            failed_sanctions.append(error_info)
+                            error_count += 1
+                            print(f"Erreur sur la ligne {_ + 2}: {str(e)}")
 
-                    # Écriture des erreurs dans un fichier
-                    if failed_sanctions:
-                        with open(self.log_file, 'w', encoding='utf-8') as f:
-                            f.write("=== Sanctions non importées ===\n\n")
-                            for error in failed_sanctions:
-                                f.write(f"N° Radiation: {error['n_radiation']}\n")
-                                f.write(f"MLE: {error['mle']}\n")
-                                f.write(f"Erreur: {error['error']}\n")
-                                f.write("-" * 50 + "\n")
-
-                        print(f"Nombre de sanctions importées avec succès: {sanctions_count}")
-                        print(f"Nombre de sanctions non importées: {len(failed_sanctions)}")
-                        print(f"Les détails des erreurs ont été enregistrés dans {self.log_file}")
-
-                        QMessageBox.warning(
-                            self,
-                            "Import partiel",
-                            f"{sanctions_count} sanctions importées avec succès.\n"
-                            f"{len(failed_sanctions)} sanctions n'ont pas pu être importées.\n"
-                            f"Consultez le fichier {self.log_file} pour plus de détails."
-                        )
+                        self.progress_bar.setValue(success_count)
+                        self.update_stats(total_rows, success_count, error_count)
 
                     conn.commit()
+
                     self.progress_bar.setValue(100)
                     self.status_label.setText("Import terminé avec succès!")
                     QMessageBox.information(self, "Succès", "Les données ont été importées avec succès!")
@@ -210,3 +190,20 @@ class ImportWindow(QMainWindow):
                 QMessageBox.critical(self, "Erreur", f"Erreur lors de l'import : {str(e)}")
                 self.status_label.setText("Erreur lors de l'import")
                 print(f"Erreur détaillée : {str(e)}")
+
+    def update_stats(self, total, success, errors):
+        """
+        Met à jour les statistiques d'import en temps réel
+        Args:
+            total: Nombre total de lignes à traiter
+            success: Nombre de lignes importées avec succès
+            errors: Nombre d'erreurs
+        """
+        progress = (success + errors) * 100 // total if total > 0 else 0
+        self.progress_bar.setValue(progress)
+        self.status_label.setText(
+            f"Total : {total} | "
+            f"Succès : {success} | "
+            f"Erreurs : {errors} | "
+            f"Progression : {progress}%"
+        )

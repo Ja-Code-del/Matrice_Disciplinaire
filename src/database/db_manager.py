@@ -11,10 +11,6 @@ class DatabaseManager:
         self.db_name = os.path.join(project_root, db_name)
         print(f"Chemin complet de la DB: {self.db_name}")  # Debug
 
-    # class DatabaseManager:
-    #     def __init__(self, db_name="gendarmes.db"):
-    #         self.db_name = db_name
-
     @contextmanager
     def get_connection(self):
         """Crée et gère la connexion à la base de données"""
@@ -31,49 +27,93 @@ class DatabaseManager:
 
             # Suppression des tables existantes si elles existent
             cursor.execute("DROP TABLE IF EXISTS sanctions")
-            cursor.execute("DROP TABLE IF EXISTS gendarmes")
+            cursor.execute("DROP TABLE IF EXISTS gendarmes_etat")
 
-            # Table principale des gendarmes
-            cursor.execute('''CREATE TABLE gendarmes
-                            (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                             numero_radiation TEXT,
-                             mle TEXT,              
-                             nom_prenoms TEXT,
-                             grade TEXT,
-                             sexe TEXT,
-                             date_naissance TEXT,
-                             age INTEGER,
-                             unite TEXT,
-                             leg TEXT,
-                             sub TEXT,
-                             rg TEXT,
-                             legions TEXT,
-                             subdiv TEXT,
-                             regions TEXT,
-                             date_entree_gie TEXT,
-                             annee_service INTEGER,
-                             situation_matrimoniale TEXT,
-                             nb_enfants INTEGER)''')
+            # Table des gendarmes (reste inchangée)
+            cursor.execute('''CREATE TABLE gendarmes_etat (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                matricule TEXT UNIQUE,
+                nom TEXT,
+                prenoms TEXT,
+                date_naissance DATE,
+                lieu_naissance TEXT,
+                date_entree_service DATE,
+                sexe TEXT
+            )''')
 
-            # Table des sanctions
-            cursor.execute('''CREATE TABLE sanctions
-                            (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                             gendarme_id INTEGER,
-                             annee_punition INTEGER,
-                             numero TEXT,
-                             numero_l TEXT,
-                             date_enr TEXT,
-                             faute_commise TEXT,
-                             date_faits TEXT,
-                             numero_cat TEXT,
-                             statut TEXT,
-                             reference_statut TEXT,
-                             taux_jar INTEGER,
-                             comite TEXT,
-                             annee_faits INTEGER,
-                             FOREIGN KEY (gendarme_id) REFERENCES gendarmes(id))''')
+            # Table sanctions avec les nouveaux champs
+            cursor.execute('''CREATE TABLE sanctions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                numero_dossier TEXT,
+                numero_radiation TEXT,
+                annee INTEGER,
+                date_enregistrement DATE,
+                numero TEXT,
+                gendarme_id INTEGER,
+                date_faits DATE,
+                faute_commise TEXT,
+                categorie TEXT,
+                statut TEXT,
+                reference_statut TEXT,
+                taux_jar INTEGER,
+                comite TEXT,
+                annee_faits INTEGER,
+                FOREIGN KEY (gendarme_id) REFERENCES gendarmes_etat(id)
+            )''')
 
             conn.commit()
+    # def create_tables(self):
+    #     """Crée les tables de la base de données"""
+    #     with self.get_connection() as conn:
+    #         cursor = conn.cursor()
+    #
+    #         # Suppression des tables existantes si elles existent
+    #         cursor.execute("DROP TABLE IF EXISTS sanctions")
+    #         cursor.execute("DROP TABLE IF EXISTS gendarmes")
+    #
+    #         # Table principale des gendarmes
+    #         cursor.execute('''CREATE TABLE gendarmes
+    #                         (id INTEGER PRIMARY KEY AUTOINCREMENT,
+    #                          numero_radiation TEXT,
+    #                          mle TEXT,
+    #                          nom_prenoms TEXT,
+    #                          grade TEXT,
+    #                          sexe TEXT,
+    #                          date_naissance TEXT,
+    #                          age INTEGER,
+    #                          unite TEXT,
+    #                          leg TEXT,
+    #                          sub TEXT,
+    #                          rg TEXT,
+    #                          legions TEXT,
+    #                          subdiv TEXT,
+    #                          regions TEXT,
+    #                          date_entree_gie TEXT,
+    #                          annee_service INTEGER,
+    #                          situation_matrimoniale TEXT,
+    #                          nb_enfants INTEGER)''')
+    #
+    #         # Table des sanctions
+    #         # Ajouter nouvelle colonne numero_dossier
+    #         cursor.execute('''CREATE TABLE sanctions
+    #                         (id INTEGER PRIMARY KEY AUTOINCREMENT,
+    #                          gendarme_id INTEGER,
+    #                          numero_dossier TEXT,
+    #                          annee_punition INTEGER,
+    #                          numero TEXT,
+    #                          numero_l TEXT,
+    #                          date_enr TEXT,
+    #                          faute_commise TEXT,
+    #                          date_faits TEXT,
+    #                          numero_cat TEXT,
+    #                          statut TEXT,
+    #                          reference_statut TEXT,
+    #                          taux_jar INTEGER,
+    #                          comite TEXT,
+    #                          annee_faits INTEGER,
+    #                          FOREIGN KEY (gendarme_id) REFERENCES gendarmes(id))''')
+    #
+    #         conn.commit()
 
     def get_all_gendarmes(self):
         """Récupère tous les gendarmes de la base de données"""
@@ -103,7 +143,7 @@ class DatabaseManager:
             cursor.execute("""
                 SELECT * FROM sanctions 
                 WHERE gendarme_id = ? 
-                ORDER BY date_faits DESC
+                ORDER BY date_enr DESC
             """, (gendarme_id,))
             return cursor.fetchall()
 

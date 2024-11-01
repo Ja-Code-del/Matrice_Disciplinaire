@@ -746,7 +746,7 @@ class NewCaseForm(QMainWindow):
 
         # Statut du dossier
         self.statut = QComboBox()
-        self.statut.addItems(["EN COURS", "CLASSE", "RADIE"])
+        self.statut.addItems(["EN COURS", "PUNI", "RADIE"])
         self.statut.currentTextChanged.connect(self.on_statut_change)
         self.statut.setStyleSheet(styles['COMBO_BOX'])
         layout.addRow(create_row("Statut du dossier", self.statut))
