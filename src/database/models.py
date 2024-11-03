@@ -7,7 +7,6 @@ from typing import Optional, List
 class Gendarme:
     """Classe représentant un gendarme"""
     id: Optional[int] = None
-    numero_radiation: str = ""
     mle: str = ""
     nom_prenoms: str = ""
     grade: str = ""
@@ -15,9 +14,6 @@ class Gendarme:
     date_naissance: str = ""
     age: Optional[int] = None
     unite: str = ""
-    leg: str = ""
-    sub: str = ""
-    rg: str = ""
     legions: str = ""
     subdiv: str = ""
     regions: str = ""
@@ -41,7 +37,6 @@ class Gendarme:
         """Convertit l'instance en dictionnaire"""
         return {
             'id': self.id,
-            'numero_radiation': self.numero_radiation,
             'mle': self.mle,
             'nom_prenoms': self.nom_prenoms,
             'grade': self.grade,
@@ -49,9 +44,6 @@ class Gendarme:
             'date_naissance': self.date_naissance,
             'age': self.age,
             'unite': self.unite,
-            'leg': self.leg,
-            'sub': self.sub,
-            'rg': self.rg,
             'legions': self.legions,
             'subdiv': self.subdiv,
             'regions': self.regions,
@@ -67,9 +59,9 @@ class Sanction:
     """Classe représentant une sanction"""
     id: Optional[int] = None
     gendarme_id: Optional[int] = None
+    numero_dossier: str = ""
     annee_punition: Optional[int] = None
-    numero: str = ""
-    numero_l: str = ""
+    numero_ordre: int = ""
     date_enr: str = ""
     faute_commise: str = ""
     date_faits: str = ""
@@ -91,9 +83,9 @@ class Sanction:
         return {
             'id': self.id,
             'gendarme_id': self.gendarme_id,
+            'numero_dossier': self.numero_dossier,
             'annee_punition': self.annee_punition,
-            'numero': self.numero,
-            'numero_l': self.numero_l,
+            'numero_ordre': self.numero_ordre,
             'date_enr': self.date_enr,
             'faute_commise': self.faute_commise,
             'date_faits': self.date_faits,

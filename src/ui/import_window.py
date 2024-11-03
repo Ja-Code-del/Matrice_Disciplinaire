@@ -68,7 +68,7 @@ class ImportWindow(QMainWindow):
 
                 df = pd.read_excel(file_name)
                 total_rows = len(df)
-                self.progress_bar.setMaximum(total_rows)
+                self.progress_bar.setMaximum(100)
 
                 success_count = 0
                 error_count = 0
@@ -76,110 +76,82 @@ class ImportWindow(QMainWindow):
                 with self.db_manager.get_connection() as conn:
                     cursor = conn.cursor()
 
-                    # Préparation des données gendarmes (informations uniques)
-                    gendarmes_df = df[[
-                        'N° DE RADIATION',
+                    # Préparation des données des sanctions (informations uniques)
+                    sanctions_df = df[[
+                        'N° DOSSIER',
+                        'ANNEE DE PUNITION',
+                        'N° ORDRE',
+                        'DATE ENR',
                         'MLE',
-                        'NOM ET PRENOMS',
-                        'GRADE',
-                        'SEXE',
-                        'DATE DE NAISSANCE',
-                        'AGE',
-                        'UNITE',
-                        'LEG',
-                        'SUB',
-                        'RG',
-                        'LEGIONS',
-                        'SUBDIV',
-                        'REGIONS',
-                        'DATE D\'ENTREE GIE',
-                        'ANNEE DE SERVICE',
-                        'SITUATION MATRIMONIALE',
-                        'NB ENF'
+                        'FAUTE COMMISE',
+                        'DATE DES FAITS',
+                        'N° CAT',
+                        'STATUT',
+                        'REFERENCE DU STATUT',
+                        'TAUX (JAR)',
+                        'COMITE',
+                        'ANNEE DES FAITS'
                     ]].drop_duplicates()
 
                     self.progress_bar.setValue(30)
                     self.status_label.setText("Import des données gendarmes...")
 
                     # Import des gendarmes
-                    for _, row in gendarmes_df.iterrows():
+                    for _, row in sanctions_df.iterrows():
                         try:
                             print("On est avant execute")
                             cursor.execute('''
-                                INSERT OR REPLACE INTO sanctions (
-                                    numero_radiation,
+                                INSERT INTO sanctions (
                                     numero_dossier,
                                     annee_punition,
-                                    numero,
-                                    numero_l,
+                                    numero_ordre,
                                     date_enr,
                                     matricule,
-                                    nom_prenoms,
-                                    grade,
-                                    sexe,
-                                    date_naissance,
-                                    age,
-                                    unite,
-                                    leg,
-                                    sub,
-                                    rg,
-                                    legions,
-                                    subdiv,
-                                    regions,
-                                    date_entree_gie,
-                                    annee_service,
-                                    situation_matrimoniale,
-                                    nb_enfants,
                                     faute_commise,
                                     date_faits,
-                                    numero_cat,
+                                    categorie,
                                     statut,
                                     reference_statut,
                                     taux_jar,
                                     comite,
                                     annee_faits
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            ''', (
-                                str(row['N° DE RADIATION']),
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                ''', (
                                 str(row['N° DOSSIER']),
                                 int(row['ANNEE DE PUNITION']) if pd.notna(row['ANNEE DE PUNITION']) else None,
-                                int(row['N°']),
-                                str(row['N° L']),
-                                adapt_date(row['DATE ENR']),
-                                str(row['MLE']),
-                                str(row['NOM ET PRENOMS']),
-                                str(row['GRADE']),
-                                str(row['SEXE']),
-                                adapt_date(row['DATE DE NAISSANCE']),
-                                int(row['AGE']) if pd.notna(row['AGE']) else None,
-                                str(row['UNITE']),
-                                str(row['LEG']),
-                                str(row['SUB']),
-                                str(row['RG']),
-                                str(row['LEGIONS']),
-                                str(row['SUBDIV']),
-                                str(row['REGIONS']),
-                                adapt_date(row['DATE D\'ENTREE GIE']),
-                                str(row['ANNEE DE SERVICE']),
-                                str(row['SITUATION MATRIMONIALE']),
-                                int(row['NB ENF']) if pd.notna(row['NB ENF']) else None,
-                                str(row['FAUTE COMMISE']),
-                                adapt_date(row['DATE DES FAITS']),
-                                str(row['N° CAT']),
-                                str(row['STATUT']),
-                                str(row['REFERENCE DU STATUT']),
+                                int(row['N° ORDRE']) if pd.notna(row['N° ORDRE']) else None,
+                                adapt_date(row['DATE ENR']) if pd.notna(row['DATE ENR']) else None,
+                                int(row['MLE']) if pd.notna(row['MLE']) else None,
+                                #str(row['NOM ET PRENOMS']),
+                                # str(row['GRADE']),
+                                # str(row['SEXE']),
+                                # adapt_date(row['DATE DE NAISSANCE']),
+                                # int(row['AGE']) if pd.notna(row['AGE']) else None,
+                                # str(row['UNITE']),
+                                # str(row['LEGIONS']),
+                                # str(row['SUBDIV']),
+                                # str(row['REGIONS']),
+                                # adapt_date(row['DATE D\'ENTREE GIE']),
+                                # str(row['ANNEE DE SERVICE']),
+                                # str(row['SITUATION MATRIMONIALE']),
+                                # int(row['NB ENF']) if pd.notna(row['NB ENF']) else None,
+                                str(row['FAUTE COMMISE']) if pd.notna(row['FAUTE COMMISE']) else None,
+                                adapt_date(row['DATE DES FAITS']) if pd.notna(row['DATE DES FAITS']) else None,
+                                int(row['N° CAT']) if pd.notna(row['N° CAT']) else None,
+                                str(row['STATUT']) if pd.notna(row['STATUT']) else None,
+                                str(row['REFERENCE DU STATUT']) if pd.notna(row['REFERENCE DU STATUT']) else None,
                                 str(row['TAUX (JAR)']) if pd.notna(row['TAUX (JAR)']) else None,
-                                str(row['COMITE']),
+                                str(row['COMITE']) if pd.notna(row['COMITE']) else None,
                                 int(row['ANNEE DES FAITS']) if pd.notna(row['ANNEE DES FAITS']) else None
                             ))
+                            print(f'{success_count} tache terminée')
                             success_count += 1
+                            self.progress_bar.setValue(success_count)
+                            self.update_stats(total_rows, success_count, error_count)
 
                         except Exception as e:
                             error_count += 1
                             print(f"Erreur sur la ligne {_ + 2}: {str(e)}")
-
-                        self.progress_bar.setValue(success_count)
-                        self.update_stats(total_rows, success_count, error_count)
 
                     conn.commit()
 

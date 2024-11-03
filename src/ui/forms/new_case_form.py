@@ -672,7 +672,6 @@ class NewCaseForm(QMainWindow):
                     print(f"Unités disponibles: {unites}")  # Debug
                     self.unite.addItems(unites)
 
-
     ### TROISIEME SECTION
 
     def create_fault_info_section(self):
@@ -928,4 +927,3 @@ class NewCaseForm(QMainWindow):
             if result:
                 return result[0]
             raise ValueError(f"Gendarme avec matricule {matricule} non trouvé")
-

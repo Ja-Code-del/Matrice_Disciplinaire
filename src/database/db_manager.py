@@ -40,7 +40,7 @@ class DatabaseManager:
             cursor.execute("DROP TABLE IF EXISTS sanctions")
             cursor.execute("DROP TABLE IF EXISTS gendarmes_etat")
 
-            # Table des gendarmes (reste inchangée)
+            # Table des gendarmes
             cursor.execute('''CREATE TABLE IF NOT EXISTS gendarmes_etat (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 matricule TEXT UNIQUE,
@@ -52,31 +52,28 @@ class DatabaseManager:
                 sexe TEXT
             )''')
 
-            # Table sanctions avec les nouveaux champs
+            # Table sanctions
             cursor.execute('''CREATE TABLE IF NOT EXISTS sanctions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                numero_radiation TEXT,
                 numero_dossier TEXT,
-                annee INTEGER,
-                date_enregistrement DATE,
-                numero TEXT,
-                gendarme_id INTEGER,
-                date_faits DATE,
+                annee_punition INTEGER,
+                numero_ordre INTEGER,
+                date_enr DATE,
+                matricule INTEGER,
                 faute_commise TEXT,
-                categorie TEXT,
+                date_faits DATE,
+                categorie INTEGER,
                 statut TEXT,
                 reference_statut TEXT,
-                taux_jar INTEGER,
-                comite TEXT,
+                taux_jar TEXT,
+                comite INTEGER,
                 annee_faits INTEGER,
-                FOREIGN KEY (gendarme_id) REFERENCES gendarmes_etat(id)
+                FOREIGN KEY (matricule) REFERENCES gendarmes_etat(matricule)
             )''')
 
             # Table principale des gendarmes
             cursor.execute('''CREATE TABLE IF NOT EXISTS gendarmes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                numero_radiation TEXT,
-                numero_dossier TEXT,
                 mle TEXT,
                 nom_prenoms TEXT,
                 grade TEXT,
@@ -84,9 +81,6 @@ class DatabaseManager:
                 date_naissance TEXT,
                 age INTEGER,
                 unite TEXT,
-                leg TEXT,
-                sub TEXT,
-                rg TEXT,
                 legions TEXT,
                 subdiv TEXT,
                 regions TEXT,
