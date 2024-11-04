@@ -149,7 +149,7 @@ class DatabaseManager:
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT * FROM sanctions 
-                WHERE gendarme_id = ? 
+                WHERE matricule = ? 
                 ORDER BY date_enr DESC
             """, (gendarme_id,))
             return cursor.fetchall()

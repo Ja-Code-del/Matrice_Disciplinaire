@@ -68,7 +68,7 @@ class ImportWindow(QMainWindow):
 
                 df = pd.read_excel(file_name)
                 total_rows = len(df)
-                self.progress_bar.setMaximum(100)
+                self.progress_bar.setMaximum(total_rows)
 
                 success_count = 0
                 error_count = 0
@@ -96,7 +96,24 @@ class ImportWindow(QMainWindow):
                     self.progress_bar.setValue(30)
                     self.status_label.setText("Import des données gendarmes...")
 
-                    # Import des gendarmes
+                    gendarmes_df = df[[
+                        'MLE',
+                        'NOM ET PRENOMS',
+                        'GRADE',
+                        'SEXE',
+                        'DATE DE NAISSANCE',
+                        'AGE',
+                        'UNITE',
+                        'LEGIONS',
+                        'SUBDIV',
+                        'REGIONS',
+                        'DATE D\'ENTREE GIE',
+                        'ANNEE DE SERVICE',
+                        'SITUATION MATRIMONIALE',
+                        'NB ENF'
+                    ]].drop_duplicates()
+
+                    # Import des sanctions
                     for _, row in sanctions_df.iterrows():
                         try:
                             print("On est avant execute")
@@ -117,24 +134,11 @@ class ImportWindow(QMainWindow):
                                     annee_faits
                                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                                 ''', (
-                                str(row['N° DOSSIER']),
+                                str(row['N° DOSSIER']) if pd.notna(row['N° DOSSIER']) else None,
                                 int(row['ANNEE DE PUNITION']) if pd.notna(row['ANNEE DE PUNITION']) else None,
                                 int(row['N° ORDRE']) if pd.notna(row['N° ORDRE']) else None,
                                 adapt_date(row['DATE ENR']) if pd.notna(row['DATE ENR']) else None,
                                 int(row['MLE']) if pd.notna(row['MLE']) else None,
-                                #str(row['NOM ET PRENOMS']),
-                                # str(row['GRADE']),
-                                # str(row['SEXE']),
-                                # adapt_date(row['DATE DE NAISSANCE']),
-                                # int(row['AGE']) if pd.notna(row['AGE']) else None,
-                                # str(row['UNITE']),
-                                # str(row['LEGIONS']),
-                                # str(row['SUBDIV']),
-                                # str(row['REGIONS']),
-                                # adapt_date(row['DATE D\'ENTREE GIE']),
-                                # str(row['ANNEE DE SERVICE']),
-                                # str(row['SITUATION MATRIMONIALE']),
-                                # int(row['NB ENF']) if pd.notna(row['NB ENF']) else None,
                                 str(row['FAUTE COMMISE']) if pd.notna(row['FAUTE COMMISE']) else None,
                                 adapt_date(row['DATE DES FAITS']) if pd.notna(row['DATE DES FAITS']) else None,
                                 int(row['N° CAT']) if pd.notna(row['N° CAT']) else None,
@@ -144,6 +148,47 @@ class ImportWindow(QMainWindow):
                                 str(row['COMITE']) if pd.notna(row['COMITE']) else None,
                                 int(row['ANNEE DES FAITS']) if pd.notna(row['ANNEE DES FAITS']) else None
                             ))
+                        except Exception as e:
+                            error_count += 1
+                            print(f"Erreur sur la ligne {_ + 2}: {str(e)}")
+
+                    for _, row in gendarmes_df.iterrows():
+                        try:
+                            print("On importe les données des gendarmes")
+                            cursor.execute('''
+                                INSERT INTO gendarmes (
+                                    mle,
+                                    nom_prenoms,
+                                    grade,
+                                    sexe,
+                                    date_naissance,
+                                    age,
+                                    unite,
+                                    legions,
+                                    subdiv,
+                                    regions,
+                                    date_entree_gie,
+                                    annee_service,
+                                    situation_matrimoniale,
+                                    nb_enfants
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                ''', (
+                                str(row['MLE']) if pd.notna(row['MLE']) else None,
+                                str(row['NOM ET PRENOMS']) if pd.notna(row['NOM ET PRENOMS']) else None,
+                                str(row['GRADE']) if pd.notna(row['GRADE']) else None,
+                                str(row['SEXE']) if pd.notna(row['SEXE']) else None,
+                                adapt_date(row['DATE DE NAISSANCE']) if pd.notna(row['DATE DE NAISSANCE']) else None,
+                                int(row['AGE']) if pd.notna(row['AGE']) else None,
+                                str(row['UNITE']) if pd.notna(row['UNITE']) else None,
+                                str(row['LEGIONS']) if pd.notna(row['LEGIONS']) else None,
+                                str(row['SUBDIV']) if pd.notna(row['SUBDIV']) else None,
+                                str(row['REGIONS']) if pd.notna(row['REGIONS']) else None,
+                                adapt_date(row['DATE D\'ENTREE GIE']) if pd.notna(row['DATE D\'ENTREE GIE']) else None,
+                                int(row['ANNEE DE SERVICE']) if pd.notna(row['ANNEE DE SERVICE']) else None,
+                                str(row['SITUATION MATRIMONIALE']) if pd.notna(row['SITUATION MATRIMONIALE']) else None,
+                                int(row['NB ENF']) if pd.notna(row['NB ENF']) else None,
+                            ))
+
                             print(f'{success_count} tache terminée')
                             success_count += 1
                             self.progress_bar.setValue(success_count)

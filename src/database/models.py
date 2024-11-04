@@ -58,11 +58,11 @@ class Gendarme:
 class Sanction:
     """Classe représentant une sanction"""
     id: Optional[int] = None
-    gendarme_id: Optional[int] = None
     numero_dossier: str = ""
     annee_punition: Optional[int] = None
     numero_ordre: int = ""
     date_enr: str = ""
+    matricule: int = ""
     faute_commise: str = ""
     date_faits: str = ""
     numero_cat: str = ""
@@ -82,11 +82,11 @@ class Sanction:
         """Convertit l'instance en dictionnaire"""
         return {
             'id': self.id,
-            'gendarme_id': self.gendarme_id,
             'numero_dossier': self.numero_dossier,
             'annee_punition': self.annee_punition,
             'numero_ordre': self.numero_ordre,
             'date_enr': self.date_enr,
+            'matricule': self.matricule,
             'faute_commise': self.faute_commise,
             'date_faits': self.date_faits,
             'numero_cat': self.numero_cat,
@@ -144,7 +144,7 @@ class SanctionRepository:
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT * FROM sanctions 
-                WHERE gendarme_id = ? 
+                WHERE matricule = ? 
                 ORDER BY date_faits DESC
             """, (gendarme_id,))
             columns = [description[0] for description in cursor.description]

@@ -4,12 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="ALL SEEMS PERFECT">
-      <change beforePath="$PROJECT_DIR$/matrice_last.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/matrice_last.xlsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/database/db_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/db_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/database/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" afterDir="false" />
-    </list>
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="sanctions import correct but need to import the gendarme info" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -257,7 +252,15 @@
       <option name="project" value="LOCAL" />
       <updated>1730480942165</updated>
     </task>
-    <option name="localTasksCounter" value="22" />
+    <task id="LOCAL-00022" summary="sanctions import correct but need to import the gendarme info">
+      <option name="closed" value="true" />
+      <created>1730666204110</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1730666204110</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -281,7 +284,8 @@
     <MESSAGE value="Style and design : ok but bug to import Excel Tab" />
     <MESSAGE value="ERROR / name 'info_group' is not define" />
     <MESSAGE value="ALL SEEMS PERFECT" />
-    <option name="LAST_COMMIT_MESSAGE" value="ALL SEEMS PERFECT" />
+    <MESSAGE value="sanctions import correct but need to import the gendarme info" />
+    <option name="LAST_COMMIT_MESSAGE" value="sanctions import correct but need to import the gendarme info" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

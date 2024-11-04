@@ -1,3 +1,5 @@
+import sqlite3
+
 import pandas as pd
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLineEdit, QPushButton, QLabel,
@@ -16,6 +18,7 @@ from src.ui.windows.import_etat_window import ImportEtatCompletWindow
 class MainGendarmeApp(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.search_type = None
         self.logo_label = QLabel()  # Ajouter pour le logo
         # Autres initialisations
         self.sanctions_table = None
@@ -32,7 +35,7 @@ class MainGendarmeApp(QMainWindow):
 
         # Définir info_fields comme attribut de classe
         self.info_fields = [
-            ('numero_radiation', 'N° de radiation'),
+            ('numero_dossier', 'N° de dossier'),
             ('mle', 'Matricule'),
             ('nom_prenoms', 'Nom et Prénoms'),
             ('grade', 'Grade'),
@@ -124,7 +127,7 @@ class MainGendarmeApp(QMainWindow):
         self.info_labels = {}
         for i, (field_id, field_name) in enumerate(self.info_fields):
             label = QLabel(f"{field_name}:")
-            label.setFont(QFont('Helvetica', 11, QFont.Weight.Bold))
+            label.setFont(QFont('Helvetica', 12, QFont.Weight.Bold))
             value_label = QLabel()
             self.info_labels[field_id] = value_label
             row = i // 3
@@ -143,11 +146,12 @@ class MainGendarmeApp(QMainWindow):
 
         self.sanctions_table = QTableWidget()
         self.sanctions_table.setColumnCount(8)
-        headers = ["Date des faits", "Type de faute", "Sanction", "Référence",
+        headers = ["Date des faits", "Faute commise", "Sanction", "Référence du statut",
                    "Taux (JAR)", "Comité", "Année", "N° Dossier"]
         self.sanctions_table.setHorizontalHeaderLabels(headers)
-        self.sanctions_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-
+        #self.sanctions_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # adapte la largeur des colonnes
+        self.sanctions_table.resizeColumnToContents(1)
         sanctions_layout.addWidget(self.sanctions_table)
         self.sanctions_group.setLayout(sanctions_layout)
         layout.addWidget(self.sanctions_group)
@@ -166,6 +170,7 @@ class MainGendarmeApp(QMainWindow):
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
 
+                # Requête pour le gendarme
                 if self.search_type.currentText() == "Matricule (MLE)":
                     where_clause = "WHERE mle = ?"
                 else:
@@ -173,42 +178,52 @@ class MainGendarmeApp(QMainWindow):
                     search_text = f"%{search_text}%"
 
                 cursor.execute(f"SELECT * FROM gendarmes {where_clause}", (search_text,))
-                gendarme = cursor.fetchall()
+                gendarmes = cursor.fetchall()
 
-                if gendarme:
+                if gendarmes:
                     self.logo_label.setVisible(False)
                     self.info_group.setVisible(True)
                     self.sanctions_group.setVisible(True)
 
-                    field_names = [description[0] for description in cursor.description]
-                    for field_name, value in zip(field_names[1:], gendarme[1:]):
-                        if field_name in self.info_labels:
-                            if field_name in ['date_naissance', 'date_entree_gie'] and value:
-                                try:
-                                    date_obj = pd.to_datetime(value)
-                                    formatted_value = date_obj.strftime('%d/%m/%Y')
-                                    self.info_labels[field_name].setText(formatted_value)
-                                except:
+                    # Affichage des informations du gendarme
+                    for gendarme in gendarmes:
+                        field_names = [description[0] for description in cursor.description]
+                        for field_name, value in zip(field_names, gendarme):
+                            if field_name in self.info_labels:
+                                if field_name in ['date_naissance', 'date_entree_gie'] and value:
+                                    try:
+                                        date_obj = pd.to_datetime(value)
+                                        formatted_value = date_obj.strftime('%d/%m/%Y')
+                                        self.info_labels[field_name].setText(formatted_value)
+                                    except Exception as date_error:
+                                        print(f"Erreur de formatage de la date pour {field_name}: {date_error}")
+                                        self.info_labels[field_name].setText(str(value))
+                                else:
                                     self.info_labels[field_name].setText(str(value if value is not None else ""))
-                            else:
-                                self.info_labels[field_name].setText(str(value if value is not None else ""))
 
-                    cursor.execute("""
-                        SELECT date_faits, faute_commise, statut, reference_statut,
-                               taux_jar, comite, annee_faits, numero_dossier
-                        FROM sanctions
-                        WHERE gendarme_id = ?
-                        ORDER BY date_faits DESC
-                    """, (gendarme[0],))
+                        # Requête pour les sanctions
+                        cursor.execute("""
+                            SELECT date_faits, faute_commise, statut, reference_statut,
+                                   taux_jar, comite, annee_faits, numero_dossier
+                            FROM sanctions
+                            WHERE matricule = ?
+                            ORDER BY date_faits DESC
+                        """, (gendarme[0],))
 
-                    sanctions = cursor.fetchall()
-                    self.sanctions_table.setRowCount(len(sanctions))
-                    for row, sanction in enumerate(sanctions):
-                        for col, value in enumerate(sanction):
-                            self.sanctions_table.setItem(row, col, QTableWidgetItem(str(value)))
+                        sanctions = cursor.fetchall()
+                        print(f"Sanctions trouvées pour {gendarme[0]}: {sanctions}")  # DEBUG: Vérifier les sanctions
+
+                        # Remplir la table des sanctions
+                        self.sanctions_table.setRowCount(len(sanctions))
+                        for row, sanction in enumerate(sanctions):
+                            for col, value in enumerate(sanction):
+                                self.sanctions_table.setItem(row, col, QTableWidgetItem(str(value)))
                 else:
                     QMessageBox.information(self, "Résultat", "Aucun gendarme trouvé.")
 
+        except sqlite3.Error as db_error:
+            QMessageBox.critical(self, "Erreur de base de données", f"Erreur : {db_error}")
+            print(f"Erreur de base de données : {db_error}")
         except Exception as e:
             QMessageBox.critical(self, "Erreur", str(e))
 
