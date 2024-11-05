@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLabel, QGroupBox)
-from PyQt6.QtCharts import QChart, QChartView, QBarSet, QBarSeries, QPieSeries
+from PyQt6.QtCharts import QChart, QChartView, QBarSet, QBarSeries, QPieSeries, QLineSeries
 from PyQt6.QtGui import QPainter
 from PyQt6.QtCore import Qt
 from src.ui.styles.styles import Styles

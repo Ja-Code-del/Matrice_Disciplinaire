@@ -91,37 +91,6 @@ class DatabaseManager:
 
             conn.commit()
 
-    def insert_gendarmes_from_excel(self, file_path):
-        """Insère les données du fichier Excel dans la base de données après vérification des colonnes"""
-        required_columns = [
-            "N° DOSSIER", "ANNEE DE PUNITION", "NOM", "GRADE",
-            # Ajouter toutes les colonnes nécessaires pour l'insertion
-        ]
-
-        # Charger le fichier Excel dans un DataFrame
-        df = pd.read_excel(file_path)
-
-        # Vérifier la présence des colonnes nécessaires
-        if not check_required_columns(df, required_columns):
-            print("Erreur : le fichier Excel ne contient pas toutes les colonnes nécessaires.")
-            return
-
-        # Insertion ligne par ligne avec gestion d'erreurs
-        for index, row in df.iterrows():
-            try:
-                # Exemple d'insertion (à adapter selon votre structure)
-                with self.get_connection() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute('''
-                        INSERT INTO gendarmes (numero_dossier, annee_punition, nom_prenoms, grade)
-                        VALUES (?, ?, ?, ?)
-                    ''', (row["N° DOSSIER"], row["ANNEE DE PUNITION"], row["NOM"], row["GRADE"]))
-                    conn.commit()
-            except KeyError as e:
-                print(f"Erreur sur la ligne {index + 1}: Colonne manquante - {e}")
-            except Exception as e:
-                print(f"Erreur sur la ligne {index + 1}: {e}")
-
     def get_all_gendarmes(self):
         """Récupère tous les gendarmes de la base de données"""
         with self.get_connection() as conn:
@@ -129,21 +98,8 @@ class DatabaseManager:
             cursor.execute("SELECT * FROM gendarmes ORDER BY nom_prenoms")
             return cursor.fetchall()
 
-    def get_gendarme_by_mle(self, mle):
-        """Récupère un gendarme par son matricule"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM gendarmes WHERE mle = ?", (mle,))
-            return cursor.fetchone()
 
-    def get_gendarme_by_name(self, name):
-        """Récupère un gendarme par son nom"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM gendarmes WHERE nom_prenoms LIKE ?", (f"%{name}%",))
-            return cursor.fetchall()
-
-    def get_sanctions_by_gendarme_id(self, gendarme_id):
+    def get_sanctions_by_gendarme_id(self, matricule):
         """Récupère toutes les sanctions d'un gendarme"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -151,7 +107,7 @@ class DatabaseManager:
                 SELECT * FROM sanctions 
                 WHERE matricule = ? 
                 ORDER BY date_enr DESC
-            """, (gendarme_id,))
+            """, (matricule,))
             return cursor.fetchall()
 
     def get_statistics(self):

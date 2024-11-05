@@ -51,6 +51,18 @@ class MainGendarmeApp(QMainWindow):
             ('situation_matrimoniale', 'Situation matrimoniale'),
             ('nb_enfants', 'Nombre d\'enfants')
         ]
+        #pour sanction fields
+        # self.sanctions_fields = [
+        #     ('mle', 'Matricule'),
+        #     ('date_faits', 'Date des faits'),
+        #     ('faute_commise', 'Faute commise'),
+        #     ('statut', 'Statut'),
+        #     ('reference_statut', 'Référence du statut'),
+        #     ('taux_jar', 'Taux (JAR)'),
+        #     ('comite', 'Comité'),
+        #     ('annee_faits', 'Année des faits'),
+        #     ('numero_dossier', 'N° Dossier')
+        # ]
 
         self.init_ui()
 
@@ -146,8 +158,8 @@ class MainGendarmeApp(QMainWindow):
 
         self.sanctions_table = QTableWidget()
         self.sanctions_table.setColumnCount(8)
-        headers = ["Date des faits", "Faute commise", "Sanction", "Référence du statut",
-                   "Taux (JAR)", "Comité", "Année", "N° Dossier"]
+        headers = ["Date des faits", "Faute commise", "Référence du statut",
+                   "Taux (JAR)", "Comité", "Année des faits", "N° Dossier"]
         self.sanctions_table.setHorizontalHeaderLabels(headers)
         #self.sanctions_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         # adapte la largeur des colonnes
@@ -203,8 +215,7 @@ class MainGendarmeApp(QMainWindow):
 
                         # Requête pour les sanctions
                         cursor.execute("""
-                            SELECT date_faits, faute_commise, statut, reference_statut,
-                                   taux_jar, comite, annee_faits, numero_dossier
+                            SELECT *
                             FROM sanctions
                             WHERE matricule = ?
                             ORDER BY date_faits DESC
@@ -217,7 +228,10 @@ class MainGendarmeApp(QMainWindow):
                         self.sanctions_table.setRowCount(len(sanctions))
                         for row, sanction in enumerate(sanctions):
                             for col, value in enumerate(sanction):
-                                self.sanctions_table.setItem(row, col, QTableWidgetItem(str(value)))
+                                self.sanctions_table.setItem(row, col,
+                                                             QTableWidgetItem(str(value if value is not None else "")))
+
+
                 else:
                     QMessageBox.information(self, "Résultat", "Aucun gendarme trouvé.")
 

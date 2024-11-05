@@ -116,7 +116,6 @@ class ImportWindow(QMainWindow):
                     # Import des sanctions
                     for _, row in sanctions_df.iterrows():
                         try:
-                            print("On est avant execute")
                             cursor.execute('''
                                 INSERT INTO sanctions (
                                     numero_dossier,
@@ -134,7 +133,7 @@ class ImportWindow(QMainWindow):
                                     annee_faits
                                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                                 ''', (
-                                str(row['N° DOSSIER']) if pd.notna(row['N° DOSSIER']) else None,
+                                str(row['N° DOSSIER']),
                                 int(row['ANNEE DE PUNITION']) if pd.notna(row['ANNEE DE PUNITION']) else None,
                                 int(row['N° ORDRE']) if pd.notna(row['N° ORDRE']) else None,
                                 adapt_date(row['DATE ENR']) if pd.notna(row['DATE ENR']) else None,
@@ -177,7 +176,7 @@ class ImportWindow(QMainWindow):
                                 str(row['NOM ET PRENOMS']) if pd.notna(row['NOM ET PRENOMS']) else None,
                                 str(row['GRADE']) if pd.notna(row['GRADE']) else None,
                                 str(row['SEXE']) if pd.notna(row['SEXE']) else None,
-                                adapt_date(row['DATE DE NAISSANCE']) if pd.notna(row['DATE DE NAISSANCE']) else None,
+                                adapt_date(row['DATE DE NAISSANCE']) if pd.notna(row['DATE DE NAISSANCE']) else pd.to_datetime(row['DATE DE NAISSANCE']).strftime('%d-%m-%Y'),
                                 int(row['AGE']) if pd.notna(row['AGE']) else None,
                                 str(row['UNITE']) if pd.notna(row['UNITE']) else None,
                                 str(row['LEGIONS']) if pd.notna(row['LEGIONS']) else None,
