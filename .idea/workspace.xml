@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="sanctions import correct but need to import the gendarme info" />
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="QtCharts installation" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -47,22 +47,23 @@
     <option name="showLibraryContents" value="true" />
     <option name="sortKey" value="BY_TIME_DESCENDING" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.gendarme-app-import-2.executor&quot;: &quot;Run&quot;,
-    &quot;Python.gendarme-app-import-5.executor&quot;: &quot;Run&quot;,
-    &quot;Python.gendarme-app-import.executor&quot;: &quot;Run&quot;,
-    &quot;Python.import_window.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main_window.executor&quot;: &quot;Run&quot;,
-    &quot;Python.styles.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/bretwalda/PycharmProjects/Matrice_Disciplinaire/src/data/gendarmerie&quot;,
-    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.gendarme-app-import-2.executor": "Run",
+    "Python.gendarme-app-import-5.executor": "Run",
+    "Python.gendarme-app-import.executor": "Run",
+    "Python.import_window.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.main_window.executor": "Run",
+    "Python.styles.executor": "Run",
+    "Python.test.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/Users/bretwalda/PycharmProjects/Matrice_Disciplinaire/src/data/gendarmerie",
+    "run.code.analysis.last.selected.profile": "pProject Default",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/data/gendarmerie" />
@@ -260,7 +261,23 @@
       <option name="project" value="LOCAL" />
       <updated>1730666204110</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="The informations of gendarmes are dislayed but it misses the age and n° dossier and all sanctions informations">
+      <option name="closed" value="true" />
+      <created>1730763908407</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1730763908407</updated>
+    </task>
+    <task id="LOCAL-00024" summary="QtCharts installation">
+      <option name="closed" value="true" />
+      <created>1730807548606</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1730807548606</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -285,7 +302,9 @@
     <MESSAGE value="ERROR / name 'info_group' is not define" />
     <MESSAGE value="ALL SEEMS PERFECT" />
     <MESSAGE value="sanctions import correct but need to import the gendarme info" />
-    <option name="LAST_COMMIT_MESSAGE" value="sanctions import correct but need to import the gendarme info" />
+    <MESSAGE value="The informations of gendarmes are dislayed but it misses the age and n° dossier and all sanctions informations" />
+    <MESSAGE value="QtCharts installation" />
+    <option name="LAST_COMMIT_MESSAGE" value="QtCharts installation" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
