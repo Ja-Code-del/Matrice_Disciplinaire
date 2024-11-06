@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLineEdit, QPushButton, QLabel,
                              QTableWidget, QTableWidgetItem, QTabWidget,
                              QComboBox, QGroupBox, QGridLayout, QMessageBox,
-                             QHeaderView, QToolBar, QFileDialog, QDockWidget)
+                             QHeaderView, QDialog, QToolBar, QFileDialog, QDockWidget, QSizePolicy)
 
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QIcon, QPixmap
@@ -13,6 +13,7 @@ from src.database.db_manager import DatabaseManager
 from src.ui.styles.styles import Styles
 from src.database.models import GendarmeRepository, SanctionRepository
 from src.ui.windows.import_etat_window import ImportEtatCompletWindow
+from src.ui.forms.edit_gendarme_form import SearchMatriculeDialog, EditCaseForm
 
 
 class MainGendarmeApp(QMainWindow):
@@ -106,22 +107,27 @@ class MainGendarmeApp(QMainWindow):
         # Déplacement de la barre d'outils à gauche
         dock_widget = QDockWidget("MENU", self)
         dock_widget.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
+        dock_widget.setMinimumWidth(220)
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock_widget)
 
         toolbar = QToolBar("Toolbar")
         toolbar.setOrientation(Qt.Orientation.Vertical)
+        # Ajoutez ces lignes pour que la toolbar prenne toute la largeur
+        toolbar.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        toolbar.setMinimumWidth(dock_widget.minimumWidth())
 
         #CSS style for the toolbar
         toolbar.setStyleSheet("""
         QTooBar{
-            spacing: 10px;
+            spacing: 15px;
             padding: 5px;
             background: #efede7;
             border: none;
         }
         QPushButton {
         text-align: left;
-        padding: 8px 5px 8px 5px; 
+        
+        margin: 0px;
         border: none;
         width: 100%;
     }
@@ -137,7 +143,7 @@ class MainGendarmeApp(QMainWindow):
             {
                 "text": "Modifier un dossier",
                 "icon": "../resources/icons/edit_note.png",
-                "callback": None  # Callback non défini dans le code original
+                "callback": "edit_gendarme"
             },
             {
                 "text": "Statistiques",
@@ -160,9 +166,9 @@ class MainGendarmeApp(QMainWindow):
         common_style = """
             QPushButton {
                 text-align: left;
-                padding: 8px 5px 8px 5px;
+                
                 border: none;
-                width: 200px;  /* Largeur fixe pour tous les boutons */
+                width: 210px;  /* Largeur fixe pour tous les boutons */
             }
         """
 
@@ -173,8 +179,12 @@ class MainGendarmeApp(QMainWindow):
             button = QPushButton(button_config["text"])
             button.setIcon(QIcon(button_config["icon"]))
             button.setStyleSheet(common_style)
-            button.setIconSize(QSize(20, 20))  # Taille d'icône uniforme
+            button.setIconSize(QSize(20, 20))  # icons have same size
 
+            button.setContentsMargins(0, 0, 0, 0)  # delete intern margin
+            button.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+
+            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             # Connection of callback if defined
             if button_config["callback"]:
                 callback_method = getattr(self, button_config["callback"])
@@ -347,6 +357,51 @@ class MainGendarmeApp(QMainWindow):
         from src.ui.stats_window import StatsWindow
         self.stats_window = StatsWindow(self.db_manager)
         self.stats_window.show()
+
+    def edit_gendarme(self):
+        """Ouvre le formulaire de modification d'un dossier"""
+        try:
+            # Ouvre d'abord la boîte de dialogue de recherche par matricule
+            search_dialog = SearchMatriculeDialog(self.db_manager, self)
+            if search_dialog.exec() == QDialog.DialogCode.Accepted:
+                matricule = search_dialog.get_matricule()
+                # Ouvre ensuite le formulaire d'édition avec le matricule
+                edit_form = EditCaseForm(matricule, self.db_manager)
+                edit_form.show()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur",
+                                 f"Erreur lors de l'ouverture du formulaire : {str(e)}")
+
+    # def edit_gendarme(self):
+    #     """Ouvre le formulaire d'édition pour le gendarme"""
+    #     try:
+    #         # Ouvrir la boîte de dialogue de recherche
+    #         search_dialog = SearchMatriculeDialog(self)
+    #         if search_dialog.exec_() == QDialog.Accepted:
+    #             matricule = search_dialog.get_matricule()
+    #
+    #             if not matricule:
+    #                 QMessageBox.warning(self, "Erreur",
+    #                                     "Veuillez entrer un matricule.")
+    #                 return
+    #
+    #             # Vérifier que le matricule existe
+    #             with self.db_manager.get_connection() as conn:
+    #                 cursor = conn.cursor()
+    #                 cursor.execute("SELECT matricule FROM sanctions WHERE matricule = ?",
+    #                                (matricule,))
+    #                 if cursor.fetchone():
+    #                     # Ouvrir le formulaire d'édition
+    #                     edit_form = EditGendarmeForm(matricule, self.db_manager, self)
+    #                     edit_form.show()
+    #                 else:
+    #                     QMessageBox.warning(self, "Erreur",
+    #                                         f"Aucun gendarme trouvé avec le matricule {matricule}")
+    #
+    #     except Exception as e:
+    #         QMessageBox.critical(self, "Erreur",
+    #                              f"Erreur lors de l'ouverture du formulaire d'édition : {str(e)}")
 
     def show_import_window(self):
         """Ouvre la fenêtre d'import"""

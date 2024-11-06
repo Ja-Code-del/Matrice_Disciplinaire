@@ -4,7 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="QtCharts installation" />
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="work on new button of the toolbar. edit and delete added icon for Reglages et works on alignment">
+      <change afterPath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -47,23 +51,23 @@
     <option name="showLibraryContents" value="true" />
     <option name="sortKey" value="BY_TIME_DESCENDING" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.gendarme-app-import-2.executor": "Run",
-    "Python.gendarme-app-import-5.executor": "Run",
-    "Python.gendarme-app-import.executor": "Run",
-    "Python.import_window.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.main_window.executor": "Run",
-    "Python.styles.executor": "Run",
-    "Python.test.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "/Users/bretwalda/PycharmProjects/Matrice_Disciplinaire/src/data/gendarmerie",
-    "run.code.analysis.last.selected.profile": "pProject Default",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.gendarme-app-import-2.executor&quot;: &quot;Run&quot;,
+    &quot;Python.gendarme-app-import-5.executor&quot;: &quot;Run&quot;,
+    &quot;Python.gendarme-app-import.executor&quot;: &quot;Run&quot;,
+    &quot;Python.import_window.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main_window.executor&quot;: &quot;Run&quot;,
+    &quot;Python.styles.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/bretwalda/PycharmProjects/Matrice_Disciplinaire/src/data/gendarmerie&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/data/gendarmerie" />
@@ -72,7 +76,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-975db3bf15a3-31b6be0877a2-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-241.18034.82" />
+        <option value="bundled-python-sdk-d7ad00fb9fc3-c546a90a8094-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-242.23726.102" />
       </set>
     </attachedChunks>
   </component>
@@ -277,11 +281,34 @@
       <option name="project" value="LOCAL" />
       <updated>1730807548606</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="couldn't be able to merge but set modifications manually. thanks again bro ANT.">
+      <option name="closed" value="true" />
+      <created>1730883921425</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1730883921425</updated>
+    </task>
+    <task id="LOCAL-00026" summary="BUGS BUSTED YOOOOOOOO!!!">
+      <option name="closed" value="true" />
+      <created>1730885743538</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1730885743538</updated>
+    </task>
+    <task id="LOCAL-00027" summary="work on new button of the toolbar. edit and delete added icon for Reglages et works on alignment">
+      <option name="closed" value="true" />
+      <created>1730894574260</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1730894574260</updated>
+    </task>
+    <option name="localTasksCounter" value="28" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Everything is working wit the test but the app is not displaying sancions info" />
     <MESSAGE value="Everything works properly. In test. Am going to launch now. Added button to change theme." />
     <MESSAGE value="new gitignore file" />
     <MESSAGE value="added an absolute path for db" />
@@ -304,7 +331,10 @@
     <MESSAGE value="sanctions import correct but need to import the gendarme info" />
     <MESSAGE value="The informations of gendarmes are dislayed but it misses the age and n° dossier and all sanctions informations" />
     <MESSAGE value="QtCharts installation" />
-    <option name="LAST_COMMIT_MESSAGE" value="QtCharts installation" />
+    <MESSAGE value="couldn't be able to merge but set modifications manually. thanks again bro ANT." />
+    <MESSAGE value="BUGS BUSTED YOOOOOOOO!!!" />
+    <MESSAGE value="work on new button of the toolbar. edit and delete added icon for Reglages et works on alignment" />
+    <option name="LAST_COMMIT_MESSAGE" value="work on new button of the toolbar. edit and delete added icon for Reglages et works on alignment" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -313,6 +343,11 @@
           <url>file://$PROJECT_DIR$/Cerebro/gendarme-app-import-5.py</url>
           <line>205</line>
           <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/main.py</url>
+          <line>5</line>
+          <option name="timeStamp" value="3" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
