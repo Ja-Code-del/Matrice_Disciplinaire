@@ -158,8 +158,8 @@ class MainGendarmeApp(QMainWindow):
 
         self.sanctions_table = QTableWidget()
         self.sanctions_table.setColumnCount(8)
-        headers = ["Date des faits", "Faute commise", "Référence du statut",
-                   "Taux (JAR)", "Comité", "Année des faits", "N° Dossier"]
+        headers = ["Faute commise", "N° Dossier", "Année des faits", "Date des faits", "Référence du statut",
+                   "Taux (JAR)", "Comité"]
         self.sanctions_table.setHorizontalHeaderLabels(headers)
         #self.sanctions_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         # adapte la largeur des colonnes
@@ -219,7 +219,7 @@ class MainGendarmeApp(QMainWindow):
                             FROM sanctions
                             WHERE matricule = ?
                             ORDER BY date_faits DESC
-                        """, (gendarme[0],))
+                        """, (search_text,))
 
                         sanctions = cursor.fetchall()
                         print(f"Sanctions trouvées pour {gendarme[0]}: {sanctions}")  # DEBUG: Vérifier les sanctions
