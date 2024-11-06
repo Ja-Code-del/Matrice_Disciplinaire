@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QComboBox, QGroupBox, QGridLayout, QMessageBox,
                              QHeaderView, QToolBar, QFileDialog, QDockWidget)
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QIcon, QPixmap
 from src.database.db_manager import DatabaseManager
 from src.ui.styles.styles import Styles
@@ -104,31 +104,87 @@ class MainGendarmeApp(QMainWindow):
         layout.addWidget(self.logo_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Déplacement de la barre d'outils à gauche
-        dock_widget = QDockWidget("Options", self)
+        dock_widget = QDockWidget("MENU", self)
         dock_widget.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock_widget)
 
         toolbar = QToolBar("Toolbar")
         toolbar.setOrientation(Qt.Orientation.Vertical)
 
-        # Boutons "Statistiques" et "Nouveau dossier" avec icônes et labels
-        stats_button = QPushButton("Statistiques")
-        stats_button.setIcon(QIcon("../resources/icons/statistics_icon.png"))
-        stats_button.setStyleSheet("text-align: left; padding: 5px;")
-        stats_button.clicked.connect(self.show_stats_window)
+        #CSS style for the toolbar
+        toolbar.setStyleSheet("""
+        QTooBar{
+            spacing: 10px;
+            padding: 5px;
+            background: #efede7;
+            border: none;
+        }
+        QPushButton {
+        text-align: left;
+        padding: 8px 5px 8px 5px; 
+        border: none;
+        width: 100%;
+    }
+        """)
 
-        new_case_button = QPushButton("Nouveau Dossier")
-        new_case_button.setIcon(QIcon("../resources/icons/new_case_icon.png"))
-        new_case_button.setStyleSheet("text-align: left; padding: 5px;")
-        new_case_button.clicked.connect(self.show_new_case_form)
+        # Buttons
+        buttons_config = [
+            {
+                "text": "Nouveau Dossier",
+                "icon": "../resources/icons/person_add.png",
+                "callback": "show_new_case_form"
+            },
+            {
+                "text": "Modifier un dossier",
+                "icon": "../resources/icons/edit_note.png",
+                "callback": None  # Callback non défini dans le code original
+            },
+            {
+                "text": "Statistiques",
+                "icon": "../resources/icons/statistics_icon.png",
+                "callback": "show_stats_window"
+            },
+            {
+                "text": "Supprimer un dossier",
+                "icon": "../resources/icons/person_remove.png",
+                "callback": None  # Callback non défini dans le code original
+            },
+            {
+                "text": "Réglages",
+                "icon": "../resources/icons/settings.png",
+                "callback": "open_settings_window"
+            }
+        ]
 
-        toolbar.addWidget(stats_button)
-        toolbar.addWidget(new_case_button)
+        # Same style for button
+        common_style = """
+            QPushButton {
+                text-align: left;
+                padding: 8px 5px 8px 5px;
+                border: none;
+                width: 200px;  /* Largeur fixe pour tous les boutons */
+            }
+        """
+
+        #common_style = "text-align: left; padding-left: 35px;"
+
+        # Creation and config of button
+        for button_config in buttons_config:
+            button = QPushButton(button_config["text"])
+            button.setIcon(QIcon(button_config["icon"]))
+            button.setStyleSheet(common_style)
+            button.setIconSize(QSize(20, 20))  # Taille d'icône uniforme
+
+            # Connection of callback if defined
+            if button_config["callback"]:
+                callback_method = getattr(self, button_config["callback"])
+                button.clicked.connect(callback_method)
+
+            # Add button to toolbar
+            toolbar.addWidget(button)
+
+        # Configuration of dock widget
         dock_widget.setWidget(toolbar)
-
-        settings_button = QPushButton("Réglages")
-        settings_button.clicked.connect(self.open_settings_window)
-        toolbar.addWidget(settings_button)
 
         # Informations du gendarme
         self.info_group = QGroupBox("Informations du gendarme")  # Correction : Déclaration de self.info_group
