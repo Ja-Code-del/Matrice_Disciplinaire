@@ -218,7 +218,7 @@ class MainGendarmeApp(QMainWindow):
                         SELECT * FROM sanctions
                         WHERE matricule = ?
                         ORDER BY date_faits DESC
-                    """, (gendarme[0],))
+                    """, (search_text,))
                     sanctions = cursor.fetchall()
                     for sanction in sanctions:
                         print(sanction)
