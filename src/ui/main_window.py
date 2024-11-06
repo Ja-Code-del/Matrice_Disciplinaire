@@ -157,9 +157,9 @@ class MainGendarmeApp(QMainWindow):
         self.sanctions_group.setFont(QFont('Helvetica', 18, QFont.Weight.Bold))
 
         self.sanctions_table = QTableWidget()
-        self.sanctions_table.setColumnCount(8)
-        headers = ["Date des faits", "Faute commise", "Référence du statut",
-                   "Taux (JAR)", "Comité", "Année des faits", "N° Dossier"]
+        self.sanctions_table.setColumnCount(9)
+        headers = ["N° Dossier", "Faute commise", "Date des faits", "Catégorie faute",
+                   "Statut", "Référence du statut", "Taux (JAR)", "Comité", "Année des faits"]
         self.sanctions_table.setHorizontalHeaderLabels(headers)
         #self.sanctions_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         # adapte la largeur des colonnes
@@ -191,7 +191,7 @@ class MainGendarmeApp(QMainWindow):
 
                 cursor.execute(f"SELECT * FROM gendarmes {where_clause}", (search_text,))
                 gendarmes = cursor.fetchall()
-
+                #print(gendarmes)
                 if gendarmes:
                     self.logo_label.setVisible(False)
                     self.info_group.setVisible(True)
@@ -213,24 +213,24 @@ class MainGendarmeApp(QMainWindow):
                                 else:
                                     self.info_labels[field_name].setText(str(value if value is not None else ""))
 
-                        # Requête pour les sanctions
-                        cursor.execute("""
-                            SELECT *
-                            FROM sanctions
-                            WHERE matricule = ?
-                            ORDER BY date_faits DESC
-                        """, (gendarme[0],))
+                    # Requête pour les sanctions
+                    cursor.execute("""
+                        SELECT * FROM sanctions
+                        WHERE matricule = ?
+                        ORDER BY date_faits DESC
+                    """, (gendarme[0],))
+                    sanctions = cursor.fetchall()
+                    for sanction in sanctions:
+                        print(sanction)
+                    #print(f"Sanction trouvée pour {gendarme[1:]}: {sanctions}")  # DEBUG: Vérifier les sanctions
 
-                        sanctions = cursor.fetchall()
-                        print(f"Sanctions trouvées pour {gendarme[0]}: {sanctions}")  # DEBUG: Vérifier les sanctions
-
-                        # Remplir la table des sanctions
-                        self.sanctions_table.setRowCount(len(sanctions))
-                        for row, sanction in enumerate(sanctions):
-                            for col, value in enumerate(sanction):
-                                self.sanctions_table.setItem(row, col,
-                                                             QTableWidgetItem(str(value if value is not None else "")))
-
+                    # Remplir la table des sanctions
+                    self.sanctions_table.setColumnCount(len(sanctions[0]))
+                    self.sanctions_table.setRowCount(len(sanctions))
+                    for row, sanction in enumerate(sanctions):
+                        for col, value in enumerate(sanction[:9]):
+                            item = QTableWidgetItem(str(value if value is not None else ""))
+                            self.sanctions_table.setItem(row, col, item)
 
                 else:
                     QMessageBox.information(self, "Résultat", "Aucun gendarme trouvé.")
