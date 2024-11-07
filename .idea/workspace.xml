@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="work on new button of the toolbar. edit and delete added icon for Reglages et works on alignment">
-      <change afterPath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" afterDir="false" />
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="work on gendarme folder edition. same shape that new_case_form&#10;but some bugs remain&#10;- add new logo for the app footer">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -305,11 +304,18 @@
       <option name="project" value="LOCAL" />
       <updated>1730894574260</updated>
     </task>
-    <option name="localTasksCounter" value="28" />
+    <task id="LOCAL-00028" summary="work on gendarme folder edition. same shape that new_case_form&#10;but some bugs remain&#10;- add new logo for the app footer">
+      <option name="closed" value="true" />
+      <created>1730909097070</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1730909097070</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Everything works properly. In test. Am going to launch now. Added button to change theme." />
     <MESSAGE value="new gitignore file" />
     <MESSAGE value="added an absolute path for db" />
     <MESSAGE value="New : now we can add the excel file from the prnicipal window. added a button inside the toolbar" />
@@ -334,7 +340,8 @@
     <MESSAGE value="couldn't be able to merge but set modifications manually. thanks again bro ANT." />
     <MESSAGE value="BUGS BUSTED YOOOOOOOO!!!" />
     <MESSAGE value="work on new button of the toolbar. edit and delete added icon for Reglages et works on alignment" />
-    <option name="LAST_COMMIT_MESSAGE" value="work on new button of the toolbar. edit and delete added icon for Reglages et works on alignment" />
+    <MESSAGE value="work on gendarme folder edition. same shape that new_case_form&#10;but some bugs remain&#10;- add new logo for the app footer" />
+    <option name="LAST_COMMIT_MESSAGE" value="work on gendarme folder edition. same shape that new_case_form&#10;but some bugs remain&#10;- add new logo for the app footer" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -343,11 +350,6 @@
           <url>file://$PROJECT_DIR$/Cerebro/gendarme-app-import-5.py</url>
           <line>205</line>
           <option name="timeStamp" value="1" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/main.py</url>
-          <line>5</line>
-          <option name="timeStamp" value="3" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

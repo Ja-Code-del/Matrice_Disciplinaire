@@ -1,3 +1,4 @@
+import sqlite3
 from datetime import datetime
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -112,16 +113,20 @@ class SearchMatriculeDialog(QDialog):
             QMessageBox.warning(self, "Erreur", "Veuillez entrer un matricule.")
             return
 
-        # Vérifier l'existence du matricule
         try:
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
+                # Vérifier dans les deux tables
                 cursor.execute("""
-                    SELECT matricule 
-                    FROM sanctions 
-                    WHERE matricule = ?
+                    SELECT s.matricule 
+                    FROM sanctions s
+                    JOIN gendarmes g ON s.matricule = g.mle
+                    WHERE s.matricule = ?
                 """, (matricule,))
-                if cursor.fetchone():
+
+                result = cursor.fetchone()
+
+                if result:
                     self.accept()
                 else:
                     QMessageBox.warning(self, "Erreur",
@@ -129,21 +134,14 @@ class SearchMatriculeDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Erreur",
                                  f"Erreur lors de la recherche : {str(e)}")
+            print(f"Erreur détaillée : {str(e)}")
 
     def get_matricule(self):
         return self.matricule_input.text().strip()
 
 
 class EditCaseForm(QMainWindow):
-    """Formulaire de modification d'un dossier de sanction existant"""
-
     def __init__(self, matricule, db_manager):
-        """
-        Initialise le formulaire de modification
-        Args:
-            matricule: Matricule du gendarme à modifier
-            db_manager: Instance du gestionnaire de base de données
-        """
         super().__init__()
         self.matricule = matricule
         self.db_manager = db_manager
@@ -152,15 +150,53 @@ class EditCaseForm(QMainWindow):
         self.is_dark_mode = False
         self.current_section = 0
         self.init_ui()
-        self.load_data()  # Nouvelle méthode pour charger les données existantes
+        self.load_data()
 
-        # Deactivate gendarmeID edition
-        self.matricule.setEnabled(False)
-        # change the color to show its deactivate
-        self.matricule.setStyleSheet("QLineEdit { background-color: #f0f0f0; }")
+        # Désactiver l'édition du matricule
+        self.matricule_field.setEnabled(False)
+        self.matricule_field.setStyleSheet("QLineEdit { background-color: #f0f0f0; }")
+
+    def create_form_row(self, label_text, widget, with_info=False):
+        """Crée une ligne de formulaire avec label et widget"""
+        row_widget = QWidget()
+        row_layout = QHBoxLayout(row_widget)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setSpacing(10)
+
+        label = QLabel(label_text)
+        label.setStyleSheet("""
+            QLabel {
+                font-size: 14px;
+                font-weight: 600;
+                color: #333;
+                padding: 8px 0;
+                min-width: 200px;
+            }
+        """)
+        row_layout.addWidget(label)
+        row_layout.addWidget(widget)
+
+        if with_info:
+            info_icon = QPushButton("ℹ️")
+            info_icon.setToolTip("Information complémentaire")
+            info_icon.setStyleSheet("""
+                QPushButton {
+                    border: none;
+                    background: transparent;
+                    font-size: 16px;
+                    color: #2196f3;
+                    margin: 0 5px;
+                }
+                QPushButton:hover {
+                    color: #1769aa;
+                }
+            """)
+            row_layout.addWidget(info_icon)
+
+        row_layout.addStretch()
+        return row_widget
 
     def init_ui(self):
-
         # Widget principal avec scroll
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -247,7 +283,7 @@ class EditCaseForm(QMainWindow):
         nav_layout.addWidget(self.submit_button)
         layout.addLayout(nav_layout)
 
-        # Initial state
+        # État initial
         self.prev_button.setVisible(False)
         self.submit_button.setVisible(False)
         self.update_navigation()
@@ -258,74 +294,272 @@ class EditCaseForm(QMainWindow):
         self.submit_button.clicked.connect(self.submit_form)
 
     def create_section(self, title, subtitle=""):
-        """
-                       Crée une section du formulaire
-                       Args:
-                           title: Titre de la section
-                           subtitle: Sous-titre de la section (optionnel)
-                       Returns:
-                           QFrame: La section créée avec son contenu
-                       """
         section = QFrame()
         section.setStyleSheet("""
-                   QFrame {
-                       background: white;
-                       border-radius: 10px;
-                       padding: 20px;
-                   }
-                   QFrame:hover {
-                       border : 1px solid #d1d1d1
-                   }
-               """)
+            QFrame {
+                background: white;
+                border-radius: 10px;
+                padding: 20px;
+            }
+            QFrame:hover {
+                border: 1px solid #d1d1d1
+            }
+        """)
 
         layout = QVBoxLayout(section)
 
-        # Titre avec icon
+        # Titre avec icône
         title_label = QLabel(title)
         title_label.setFont(QFont('Helvetica', 18, QFont.Weight.Bold))
         title_label.setStyleSheet("color: #1976d2; margin-bottom: 5px;")
         layout.addWidget(title_label)
 
-        # Sous-titre
+        # Création du contenu selon le type de section
         if title.startswith("📝"):  # Section Info Dossier
             content = self.create_case_info_section()
-            layout.addWidget(content)
         elif title.startswith("👤"):  # Section Info Mis en cause
             content = self.create_suspect_info_section()
-            layout.addWidget(content)
-        else:
-            # title.startswith("⚖️"):  # Section Info Faute
+        else:  # Section Info Faute
             content = self.create_fault_info_section()
-            layout.addWidget(content)
 
+        layout.addWidget(content)
         layout.addStretch()
         return section
 
-    def update_navigation(self):
-        self.prev_button.setVisible(self.current_section > 0)
-        self.next_button.setVisible(self.current_section < 2)
-        self.submit_button.setVisible(self.current_section == 2)
+    def create_case_info_section(self):
+        """Crée la section des informations du dossier (table sanctions)"""
+        container = QWidget()
+        layout = QFormLayout()
+        layout.setSpacing(20)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        styles = Styles.get_styles(self.is_dark_mode)
+
+        # Numéro de dossier
+        self.num_dossier = QLineEdit()
+        self.num_dossier.setPlaceholderText("Entrez le N° de dossier")
+        self.num_dossier.setStyleSheet(styles['INPUT'])
+        layout.addRow(self.create_form_row("N° Dossier", self.num_dossier))
+
+        # Année de punition
+        self.annee_punition = QLineEdit()
+        self.annee_punition.setReadOnly(True)
+        self.annee_punition.setStyleSheet(styles['INPUT'] + """
+            QLineEdit:read-only {
+                background: #f5f5f5;
+                color: #666;
+            }
+        """)
+        layout.addRow(self.create_form_row("Année de punition", self.annee_punition))
+
+        # Date d'enregistrement
+        self.date_enr = QDateEdit()
+        self.date_enr.setCalendarPopup(True)
+        self.date_enr.setDate(QDate.currentDate())
+        self.date_enr.setStyleSheet(styles['DATE_EDIT'])
+        layout.addRow(self.create_form_row("Date d'enregistrement", self.date_enr))
+
+        # Numéro d'ordre
+        self.numero_ordre = QLineEdit()
+        self.numero_ordre.setPlaceholderText("Numéro d'ordre")
+        self.numero_ordre.setStyleSheet(styles['INPUT'])
+        layout.addRow(self.create_form_row("N° d'ordre", self.numero_ordre))
+
+        container.setLayout(layout)
+        return container
+
+    def create_suspect_info_section(self):
+        """Crée la section des informations du mis en cause (table gendarmes)"""
+        container = QWidget()
+        layout = QFormLayout()
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        styles = Styles.get_styles(self.is_dark_mode)
+
+        # Matricule (mle)
+        self.matricule_field = QLineEdit()
+        self.matricule_field.setReadOnly(True)
+        self.matricule_field.setStyleSheet(styles['INPUT'] + """
+            QLineEdit:read-only {
+                background: #f5f5f5;
+                color: #666;
+            }
+        """)
+        layout.addRow(self.create_form_row("Matricule", self.matricule_field))
+
+        # Nom et prénoms (un seul champ)
+        self.nom_prenoms = QLineEdit()
+        self.nom_prenoms.setStyleSheet(styles['INPUT'])
+        self.nom_prenoms.setPlaceholderText("Nom et Prénoms")
+        layout.addRow(self.create_form_row("Nom et Prénoms", self.nom_prenoms))
+
+        # Grade
+        self.grade = QComboBox()
+        self.grade.addItems(["ESO", "MDL", "MDC", "ADJ", "ADC", "ACM"])
+        self.grade.setStyleSheet(styles['COMBO_BOX'])
+        layout.addRow(self.create_form_row("Grade", self.grade))
+
+
+        # Sexe
+        self.sexe = QComboBox()
+        self.sexe.addItems(["M", "F"])
+        self.sexe.setStyleSheet(styles['COMBO_BOX'])
+        layout.addRow(self.create_form_row("Sexe", self.sexe))
+
+        # Date de naissance
+        self.date_naissance = QDateEdit()
+        self.date_naissance.setCalendarPopup(True)
+        self.date_naissance.setStyleSheet(styles['DATE_EDIT'])
+        layout.addRow(self.create_form_row("Date de naissance", self.date_naissance))
+
+        # Age
+        self.age = QSpinBox()
+        self.age.setRange(18, 65)
+        self.age.setStyleSheet(styles['SPIN_BOX'])
+        layout.addRow(self.create_form_row("Age", self.age))
+
+        # Structure
+        self.type_affectation = QComboBox()
+        self.type_affectation.addItems(["REGIONS", "CSG"])
+        self.type_affectation.setStyleSheet(styles['COMBO_BOX'])
+        self.type_affectation.currentTextChanged.connect(self.on_affectation_change)
+        layout.addRow(self.create_form_row("Type d'affectation", self.type_affectation))
+
+        self.regions = QComboBox()
+        self.regions.setStyleSheet(styles['COMBO_BOX'])
+        self.regions.currentTextChanged.connect(self.on_region_change)
+        layout.addRow(self.create_form_row("Région", self.regions))
+
+        self.legions = QComboBox()
+        self.legions.setStyleSheet(styles['COMBO_BOX'])
+        self.legions.currentTextChanged.connect(self.on_legion_change)
+        layout.addRow(self.create_form_row("Légion", self.legions))
+
+        self.unite = QComboBox()
+        self.unite.setStyleSheet(styles['COMBO_BOX'])
+        layout.addRow(self.create_form_row("Unité", self.unite))
+
+        # Informations supplémentaires
+        self.subdiv = QLineEdit()
+        self.subdiv.setStyleSheet(styles['INPUT'])
+        layout.addRow(self.create_form_row("Subdivision", self.subdiv))
+
+        self.date_entree_gie = QDateEdit()
+        self.date_entree_gie.setCalendarPopup(True)
+        self.date_entree_gie.setStyleSheet(styles['DATE_EDIT'])
+        layout.addRow(self.create_form_row("Date d'entrée GIE", self.date_entree_gie))
+
+        self.annee_service = QSpinBox()
+        self.annee_service.setRange(0, 40)
+        self.annee_service.setStyleSheet(styles['SPIN_BOX'])
+        layout.addRow(self.create_form_row("Années de service", self.annee_service))
+
+        self.situation_matrimoniale = QComboBox()
+        self.situation_matrimoniale.addItems(["CELIBATAIRE", "MARIE(E)", "VEUF(VE)", "DIVORCE(E)"])
+        self.situation_matrimoniale.setStyleSheet(styles['COMBO_BOX'])
+        layout.addRow(self.create_form_row("Situation matrimoniale", self.situation_matrimoniale))
+
+        self.nb_enfants = QSpinBox()
+        self.nb_enfants.setRange(0, 20)
+        self.nb_enfants.setStyleSheet(styles['SPIN_BOX'])
+        layout.addRow(self.create_form_row("Nombre d'enfants", self.nb_enfants))
+
+        container.setLayout(layout)
+        return container
+
+    def create_fault_info_section(self):
+        """Crée la section des informations sur la faute (table sanctions)"""
+        container = QWidget()
+        layout = QFormLayout()
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        styles = Styles.get_styles(self.is_dark_mode)
+
+        # Date des faits
+        self.date_faits = QDateEdit()
+        self.date_faits.setCalendarPopup(True)
+        self.date_faits.setDate(QDate.currentDate())
+        self.date_faits.dateChanged.connect(self.update_annee_faits)
+        self.date_faits.setStyleSheet(styles['DATE_EDIT'])
+        layout.addRow(self.create_form_row("Date des faits", self.date_faits))
+
+        # Faute commise
+        self.faute_commise = QComboBox()
+        self.faute_commise.addItems([
+            "ABANDON DE POSTE",
+            "NEGLIGENCE",
+            "CORRUPTION",
+            "ABSENCE IRREGULIERE",
+            "ABSENCE IRREGULIERE PROLONGEE",
+            "FAUTE DE COMPORTEMENT"
+        ])
+        self.faute_commise.setStyleSheet(styles['COMBO_BOX'])
+        layout.addRow(self.create_form_row("Faute commise", self.faute_commise))
+
+        # Catégorie (INTEGER)
+        self.categorie = QSpinBox()
+        self.categorie.setRange(1, 10)
+        self.categorie.setStyleSheet(styles['SPIN_BOX'])
+        layout.addRow(self.create_form_row("Catégorie", self.categorie))
+
+        # Statut
+        self.statut = QComboBox()
+        self.statut.addItems(["EN COURS", "PUNI", "RADIE", "AVERTI"])
+        self.statut.currentTextChanged.connect(self.on_statut_change)
+        self.statut.setStyleSheet(styles['COMBO_BOX'])
+        layout.addRow(self.create_form_row("Statut du dossier", self.statut))
+
+        # Référence du statut (visible uniquement si RADIE)
+        self.ref_statut = QLineEdit()
+        self.ref_statut.setStyleSheet(styles['INPUT'])
+        self.ref_statut.setPlaceholderText("Référence de radiation")
+        self.ref_statut_container = QWidget()
+        layout.addRow(self.create_form_row("Référence du statut", self.ref_statut))
+        self.ref_statut_container.setVisible(False)
+
+        # TAUX (JAR) - TEXT
+        self.taux_jar = QLineEdit()
+        self.taux_jar.setStyleSheet(styles['INPUT'])
+        self.taux_jar.setPlaceholderText("Nombre de jours d'arrêt de rigueur")
+        layout.addRow(self.create_form_row("TAUX (JAR)", self.taux_jar))
+
+        # COMITE - INTEGER
+        self.comite = QSpinBox()
+        self.comite.setRange(0, 100)
+        self.comite.setStyleSheet(styles['SPIN_BOX'])
+        layout.addRow(self.create_form_row("COMITE", self.comite))
+
+        # ANNEE DES FAITS (calculée automatiquement)
+        self.annee_faits = QLineEdit()
+        self.annee_faits.setReadOnly(True)
+        self.annee_faits.setStyleSheet(styles['INPUT'] + """
+            QLineEdit:read-only {
+                background: #f5f5f5;
+                color: #666;
+            }
+        """)
+        layout.addRow(self.create_form_row("ANNEE DES FAITS", self.annee_faits))
+
+        container.setLayout(layout)
+        return container
 
     def switch_section(self, index):
-        """
-                Gère la transition entre les sections
-                Args:
-                    index: Index de la section à afficher
-                """
+        """Gère la transition entre les sections"""
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        # Animation des sections
+
         for i, section in enumerate([self.section1, self.section2, self.section3]):
-            # Création d'un groupe d'animations pour synchroniser les animations de taille, opacité et position
             animation_group = QParallelAnimationGroup()
 
-            # Animation de la taille
             size_animation = QPropertyAnimation(section, b"maximumWidth")
             size_animation.setDuration(1800)
             size_animation.setEasingCurve(QEasingCurve.Type.InOutQuint)
 
-            # Définir la taille en fonction de l'index de la section active
             if i == index:
-                # Section active
                 size_animation.setStartValue(section.width())
                 size_animation.setEndValue(section.width() * 2.2)
                 section.setStyleSheet("""
@@ -334,14 +568,13 @@ class EditCaseForm(QMainWindow):
                         border-radius: 10px;
                         padding: 20px;
                         border: 1px solid #2196f3;
-                        opacity : 1;
+                        opacity: 1;
                         z-index: 1000;
                         position: relative;
                     }
                 """)
-                section.raise_()  # Met la section au premier plan
+                section.raise_()
             else:
-                # Sections inactives
                 size_animation.setStartValue(section.width())
                 size_animation.setEndValue(section.width() // 2.5)
                 section.setStyleSheet("""
@@ -354,12 +587,10 @@ class EditCaseForm(QMainWindow):
                         z-index: 1;
                     }
                 """)
-                section.lower()  # Met les sections inactives en arrière-plan
+                section.lower()
 
-            # Ajouter l'animation de taille au groupe
             animation_group.addAnimation(size_animation)
 
-            # Animation de l'opacité
             opacity_effect = QGraphicsOpacityEffect(section)
             section.setGraphicsEffect(opacity_effect)
             opacity_animation = QPropertyAnimation(opacity_effect, b"opacity")
@@ -373,397 +604,104 @@ class EditCaseForm(QMainWindow):
                 opacity_animation.setStartValue(1.0)
                 opacity_animation.setEndValue(0.7)
 
-            # Ajouter l'animation d'opacité au groupe
             animation_group.addAnimation(opacity_animation)
 
-            # Animation de translation verticale pour la section active
             if i == index:
                 position_animation = QPropertyAnimation(section, b"geometry")
                 position_animation.setDuration(300)
                 position_animation.setEasingCurve(QEasingCurve.Type.InOutQuint)
                 position_animation.setStartValue(section.geometry())
-                # Translation de -10 pixels vers le haut
                 position_animation.setEndValue(section.geometry().adjusted(0, -10, 0, -10))
-                # Ajouter l'animation de position au groupe
                 animation_group.addAnimation(position_animation)
 
-            # Démarrer le groupe d'animations pour chaque section
             animation_group.start()
+
         QTimer.singleShot(1800, lambda: QApplication.restoreOverrideCursor())
 
-    def next_section(self):
-        if self.current_section < 2:
-            self.current_section += 1
-            self.switch_section(self.current_section)
-            self.update_navigation()
+    def update_navigation(self):
+        """Met à jour l'affichage des boutons de navigation"""
+        self.prev_button.setVisible(self.current_section > 0)
+        self.next_button.setVisible(self.current_section < 2)
+        self.submit_button.setVisible(self.current_section == 2)
 
     def previous_section(self):
+        """Passe à la section précédente"""
         if self.current_section > 0:
             self.current_section -= 1
             self.switch_section(self.current_section)
             self.update_navigation()
 
-    def on_matricule_change(self, matricule):
-        """
-        Gère l'auto-complétion lors de la saisie du matricule
-        Args:
-            matricule: Matricule saisi
-        """
-        if len(matricule) >= 4:  # On commence la recherche après 4 caractères
-            try:
-                with self.db_manager.get_connection() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        SELECT nom, prenoms, date_naissance
-                        FROM gendarmes_etat
-                        WHERE matricule = ?
-                    """, (matricule,))
-                    result = cursor.fetchone()
-                    if result:
-                        self.nom.setText(result[0])
-                        self.prenoms.setText(result[1])
-                        self.date_naissance.setText(result[2])
-            except Exception as e:
-                print(f"Erreur lors de la recherche du gendarme : {str(e)}")
+    def next_section(self):
+        """Passe à la section suivante"""
+        if self.current_section < 2:
+            self.current_section += 1
+            self.switch_section(self.current_section)
+            self.update_navigation()
 
-    def get_gendarme_id(self, matricule):
-        """
-        Récupère l'ID du gendarme à partir de son matricule
-        Args:
-            matricule: Matricule du gendarme
-        Returns:
-            int: ID du gendarme
-        """
-        with self.db_manager.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT id FROM gendarmes_etat WHERE matricule = ?", (matricule,))
-            result = cursor.fetchone()
-            if result:
-                return result[0]
-            raise ValueError(f"Gendarme avec matricule {matricule} non trouvé")
-
-    # Même code que NewCaseForm.create_case_info_section()
-    # Mais les champs seront modifiables (pas de setReadOnly)
-    def create_case_info_section(self):
-        """Crée le contenu de la section Informations du Dossier"""
-        container = QWidget()
-        layout = QFormLayout()
-        layout.setSpacing(20)
-        layout.setContentsMargins(20, 20, 20, 20)  # Marges uniformes
-        layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)  # Alignement gauche des labels
-
-        # Style commun pour les QLineEdit
-        line_edit_style = """
-            QLineEdit {
-                padding: 20px 20px; 
-                border: 2px solid #e0e0e0;
-                border-radius: 8px;
-                background: white;
-                min-width: 300px;  
-                min-height: 20px; 
-                font-size: 16px;  
-                color: #333;
-                margin-left: 0px;  
-            }
-            QLineEdit:focus {
-                border-color: #2196f3;
-                background: #f1f4f8;
-            }
-            QLineEdit:disabled {
-                background: #f5f5f5;
-                color: #888;
-            }
-            QLineEdit::placeholder {
-                color: #888;  
-                font-style: italic;  
-                font-size: 15px;  
-            }
-        """
-
-        def create_row(label_text, widget, with_info=False):
-            """
-            Crée une ligne de formulaire avec label et widget
-            Args:
-                label_text: Texte du label
-                widget: Widget à afficher (QLineEdit, etc.)
-                with_info: Booléen pour ajouter une icône d'info
-            Returns:
-                QWidget: La ligne complète du formulaire
-            """
-            row_widget = QWidget()
-            row_layout = QHBoxLayout(row_widget)
-            row_layout.setContentsMargins(0, 0, 0, 0)
-            row_layout.setSpacing(10)
-
-            label = QLabel(label_text)
-            label.setStyleSheet("""
-                QLabel {
-                    font-size: 15px;  
-                    font-weight: 600;
-                    color: #555;  
-                    padding: 8px 0;  
-                    min-width: 200px;  
-                }
-            """)
-            row_layout.addWidget(label)
-
-            widget.setStyleSheet(line_edit_style)
-            row_layout.addWidget(widget)
-
-            if with_info:
-                info_icon = QPushButton("ℹ️")
-                info_icon.setToolTip("Remplir uniquement en cas de radiation")
-                info_icon.setStyleSheet("""
-                    QPushButton {
-                        border: none;
-                        background: transparent;
-                        font-size: 16px;
-                        color: #2196f3;
-                        margin: 0 5px;
-                    }
-                    QPushButton:hover {
-                        color: #1769aa;
-                    }
-                """)
-                row_layout.addWidget(info_icon)
-
-            row_layout.addStretch()
-            return row_widget
-
-        # N° Dossier
-        self.num_dossier = QLineEdit()
-        self.num_dossier.setPlaceholderText("Entrez le N° de dossier")
-        layout.addRow(create_row("N° Dossier", self.num_dossier))
-
-        # N° Décision de radiation
-        self.num_radiation = QLineEdit()
-        self.num_radiation.setPlaceholderText("À remplir si radiation")
-        layout.addRow(create_row("N° Décision de radiation", self.num_radiation, True))
-
-        # Année - En lecture seule car c'est l'année de création
-        self.annee = QLineEdit()
-        self.annee.setReadOnly(True)  # L'année ne doit pas être modifiable
-        self.annee.setStyleSheet(line_edit_style + """
-            QLineEdit:read-only {
-                background: #f5f5f5;
-                color: #666;
-            }
-        """)
-        layout.addRow(create_row("Année", self.annee))
-
-        # Date d'enregistrement - En lecture seule
-        self.date_enr = QLineEdit()
-        self.date_enr.setReadOnly(True)  # La date d'enregistrement ne doit pas être modifiable
-        self.date_enr.setStyleSheet(line_edit_style + """
-            QLineEdit:read-only {
-                background: #f5f5f5;
-                color: #666;
-            }
-        """)
-        layout.addRow(create_row("Date d'enregistrement", self.date_enr))
-
-        # N° enregistrement - En lecture seule
-        self.num_enr = QLineEdit()
-        self.num_enr.setReadOnly(True)  # Le numéro d'enregistrement ne doit pas être modifiable
-        self.num_enr.setStyleSheet(line_edit_style + """
-            QLineEdit:read-only {
-                background: #f5f5f5;
-                color: #666;
-            }
-        """)
-        layout.addRow(create_row("N° enregistrement", self.num_enr))
-
-        container.setLayout(layout)
-        return container
-
-    def create_suspect_info_section(self):
-        """Crée la section des informations du mis en cause"""
-
-        def create_row(label_text, widget):
-            """
-            Crée une ligne de formulaire avec label et widget
-            Args:
-                label_text: Texte du label
-                widget: Widget à afficher (QLineEdit, QComboBox, etc.)
-            Returns:
-                QWidget: La ligne complète du formulaire
-            """
-            row_widget = QWidget()
-            row_layout = QHBoxLayout(row_widget)
-            row_layout.setContentsMargins(0, 0, 0, 0)
-            row_layout.setSpacing(10)
-
-            label = QLabel(label_text)
-            label.setStyleSheet("""
-                QLabel {
-                    font-size: 14px;
-                    font-weight: 800;
-                    color: #333;
-                    padding: 8px 0;
-                    min-width: 200px;
-                }
-            """)
-            row_layout.addWidget(label)
-            row_layout.addWidget(widget)
-            row_layout.addStretch()
-            return row_widget
-
-        container = QWidget()
-        layout = QFormLayout()
-        layout.setSpacing(15)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
-
-        # Récupération des styles
-        styles = Styles.get_styles(self.is_dark_mode)
-
-        # Matricule (en lecture seule car on ne peut pas le modifier)
-        self.matricule = QLineEdit()
-        self.matricule.setReadOnly(True)
-        self.matricule.setStyleSheet(styles['INPUT'] + """
-            QLineEdit:read-only {
-                background: #f5f5f5;
-                color: #666;
-                border: 2px solid #ddd;
-            }
-        """)
-        layout.addRow(create_row("Matricule", self.matricule))
-
-        # Champs auto-remplis et en lecture seule
-        self.nom = QLineEdit()
-        self.nom.setReadOnly(True)
-        self.nom.setStyleSheet(styles['INPUT'] + """
-            QLineEdit:read-only {
-                background: #f5f5f5;
-                color: #666;
-                border: 2px solid #ddd;
-            }
-        """)
-        layout.addRow(create_row("Nom", self.nom))
-
-        self.prenoms = QLineEdit()
-        self.prenoms.setReadOnly(True)
-        self.prenoms.setStyleSheet(styles['INPUT'] + """
-            QLineEdit:read-only {
-                background: #f5f5f5;
-                color: #666;
-                border: 2px solid #ddd;
-            }
-        """)
-        layout.addRow(create_row("Prénoms", self.prenoms))
-
-        self.date_naissance = QLineEdit()
-        self.date_naissance.setReadOnly(True)
-        self.date_naissance.setStyleSheet(styles['INPUT'] + """
-            QLineEdit:read-only {
-                background: #f5f5f5;
-                color: #666;
-                border: 2px solid #ddd;
-            }
-        """)
-        layout.addRow(create_row("Date de naissance", self.date_naissance))
-
-        # Type d'affectation
-        self.type_affectation = QComboBox()
-        self.type_affectation.addItems(["REGIONS", "CSG"])
-        self.type_affectation.setStyleSheet(styles['COMBO_BOX'])
-        self.type_affectation.currentTextChanged.connect(self.on_affectation_change)
-        layout.addRow(create_row("Type d'affectation", self.type_affectation))
-
-        # Région/Direction
-        self.direction = QComboBox()
-        self.direction.setStyleSheet(styles['COMBO_BOX'])
-        self.direction.currentTextChanged.connect(self.on_direction_change)
-        layout.addRow(create_row("Région/Direction", self.direction))
-
-        # Légion/Service
-        self.service = QComboBox()
-        self.service.setStyleSheet(styles['COMBO_BOX'])
-        self.service.currentTextChanged.connect(self.on_service_change)
-        layout.addRow(create_row("Légion/Service", self.service))
-
-        # Unité
-        self.unite = QComboBox()
-        self.unite.setStyleSheet(styles['COMBO_BOX'])
-        layout.addRow(create_row("Unité", self.unite))
-
-        # Nombre d'enfants
-        self.nb_enfants = QSpinBox()
-        self.nb_enfants.setStyleSheet(styles['SPIN_BOX'])
-        self.nb_enfants.setMinimum(0)
-        self.nb_enfants.setMaximum(99)
-        layout.addRow(create_row("Nombre d'enfants", self.nb_enfants))
-
-        container.setLayout(layout)
-        return container
+    def update_annee_faits(self):
+        """Met à jour l'année des faits automatiquement"""
+        self.annee_faits.setText(str(self.date_faits.date().year()))
 
     def on_affectation_change(self, affectation_type):
-        """Met à jour les choix de direction selon le type d'affectation"""
-        print(f"Changement d'affectation: {affectation_type}")
-        self.direction.clear()
-        self.service.clear()
+        """Met à jour les choix de région selon le type d'affectation"""
+        self.regions.clear()
+        self.legions.clear()
         self.unite.clear()
 
         if affectation_type == "REGIONS":
             regions = STRUCTURE_PRINCIPALE["REGIONS"].keys()
-            self.direction.addItems(regions)
+            self.regions.addItems(regions)
         else:  # CSG
             directions = STRUCTURE_PRINCIPALE["CSG"].keys()
-            self.direction.addItems(directions)
+            self.regions.addItems(directions)
 
-        # Si on a des données existantes, on essaie de restaurer la sélection
         if hasattr(self, '_stored_direction') and self._stored_direction:
-            index = self.direction.findText(self._stored_direction)
+            index = self.regions.findText(self._stored_direction)
             if index >= 0:
-                self.direction.setCurrentIndex(index)
+                self.regions.setCurrentIndex(index)
 
-    def on_direction_change(self, direction):
-        """Met à jour les choix de service selon la direction"""
-        print(f"Changement de direction: {direction}")
-        self.service.clear()
+    def on_region_change(self, region):
+        """Met à jour les choix de légion selon la région"""
+        self.legions.clear()
         self.unite.clear()
 
         affectation_type = self.type_affectation.currentText()
         if affectation_type == "REGIONS":
-            if direction in STRUCTURE_PRINCIPALE["REGIONS"]:
-                legions = STRUCTURE_PRINCIPALE["REGIONS"][direction].keys()
-                self.service.addItems(legions)
+            if region in STRUCTURE_PRINCIPALE["REGIONS"]:
+                legions = STRUCTURE_PRINCIPALE["REGIONS"][region].keys()
+                self.legions.addItems(legions)
         else:  # CSG
-            if direction in STRUCTURE_PRINCIPALE["CSG"]:
-                services = STRUCTURE_PRINCIPALE["CSG"][direction]
+            if region in STRUCTURE_PRINCIPALE["CSG"]:
+                services = STRUCTURE_PRINCIPALE["CSG"][region]
                 if services:
-                    self.service.addItems(services)
+                    self.legions.addItems(services)
 
-        # Restaurer la sélection précédente si elle existe
         if hasattr(self, '_stored_service') and self._stored_service:
-            index = self.service.findText(self._stored_service)
+            index = self.legions.findText(self._stored_service)
             if index >= 0:
-                self.service.setCurrentIndex(index)
+                self.legions.setCurrentIndex(index)
 
-    def on_service_change(self, service):
-        """Met à jour les choix d'unité selon le service"""
-        print(f"Changement de service: {service}")
+    def on_legion_change(self, legion):
+        """Met à jour les choix d'unité selon la légion"""
         self.unite.clear()
 
         affectation_type = self.type_affectation.currentText()
-        direction = self.direction.currentText()
+        region = self.regions.currentText()
 
-        if affectation_type == "REGIONS":
-            if direction in STRUCTURE_PRINCIPALE["REGIONS"]:
-                legion_data = STRUCTURE_PRINCIPALE["REGIONS"][direction]
-                if service in legion_data:
-                    unites = []
-                    service_data = legion_data[service]
+        if affectation_type == "REGIONS" and region in STRUCTURE_PRINCIPALE["REGIONS"]:
+            legion_data = STRUCTURE_PRINCIPALE["REGIONS"][region]
+            if legion in legion_data:
+                unites = []
+                service_data = legion_data[legion]
 
-                    if isinstance(service_data, list):
-                        unites = service_data
-                    else:
-                        for cie, cie_unites in service_data.items():
-                            unites.extend(cie_unites)
+                if isinstance(service_data, list):
+                    unites = service_data
+                else:
+                    for cie, cie_unites in service_data.items():
+                        unites.extend(cie_unites)
 
-                    self.unite.addItems(unites)
+                self.unite.addItems(unites)
 
-        # Restaurer la sélection précédente si elle existe
         if hasattr(self, '_stored_unite') and self._stored_unite:
             index = self.unite.findText(self._stored_unite)
             if index >= 0:
@@ -771,114 +709,56 @@ class EditCaseForm(QMainWindow):
 
     def on_statut_change(self, statut):
         """Gère l'affichage du champ référence selon le statut"""
-        self.ref_statut_container.setVisible(statut == "RADIE")
+        self.ref_statut.setVisible(statut == "RADIE")
 
-    def create_fault_info_section(self):
-        """Crée la section des informations sur la faute"""
-        container = QWidget()
-        layout = QFormLayout()
-        layout.setSpacing(15)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+    def validate_form(self):
+        """Valide les champs obligatoires du formulaire"""
+        try:
+            required_fields = {
+                'Numéro de dossier': self.num_dossier.text(),
+                'Date des faits': self.date_faits.date().toString("yyyy-MM-dd"),
+                'Faute commise': self.faute_commise.currentText(),
+                'Catégorie': self.categorie.value(),
+                'Statut': self.statut.currentText(),
+                'Type d\'affectation': self.type_affectation.currentText(),
+                'Région': self.regions.currentText(),
+                'Légion': self.legions.currentText(),
+                'Unité': self.unite.currentText()
+            }
 
-        def create_row(label_text, widget):
-            """
-            Crée une ligne de formulaire avec label et widget
-            Args:
-                label_text: Texte du label
-                widget: Widget à afficher (QLineEdit, QComboBox, etc.)
-            Returns:
-                QWidget: La ligne complète du formulaire
-            """
-            row_widget = QWidget()
-            row_layout = QHBoxLayout(row_widget)
-            row_layout.setContentsMargins(0, 0, 0, 0)
-            row_layout.setSpacing(10)
+            for field_name, value in required_fields.items():
+                if not value or not str(value).strip():
+                    QMessageBox.warning(self, "Champs manquants",
+                                        f"Le champ '{field_name}' est obligatoire.")
+                    return False
 
-            label = QLabel(label_text)
-            label.setStyleSheet("""
-                QLabel {
-                    font-size: 14px;
-                    font-weight: 800;
-                    color: #333;
-                    padding: 8px 0;
-                    min-width: 200px;
-                }
-            """)
-            row_layout.addWidget(label)
-            row_layout.addWidget(widget)
-            row_layout.addStretch()
-            return row_widget
+            if self.statut.currentText() == "RADIE" and not self.ref_statut.text().strip():
+                QMessageBox.warning(self, "Champs manquants",
+                                    "La référence du statut est obligatoire pour une radiation.")
+                self.ref_statut.setFocus()
+                return False
 
-        styles = Styles.get_styles(self.is_dark_mode)
+            try:
+                if self.taux_jar.text().strip():
+                    float(self.taux_jar.text())
+            except ValueError:
+                QMessageBox.warning(self, "Erreur de format",
+                                    "Le taux JAR doit être un nombre.")
+                self.taux_jar.setFocus()
+                return False
 
-        # Date des faits avec calendrier
-        self.date_faits = QDateEdit()
-        self.date_faits.setCalendarPopup(True)
-        self.date_faits.setDate(QDate.currentDate())
-        self.date_faits.dateChanged.connect(self.update_annee_faits)
-        self.date_faits.setStyleSheet(styles['DATE_EDIT'])
-        layout.addRow(create_row("Date des faits", self.date_faits))
+            return True
 
-        # Faute commise (ComboBox)
-        self.faute_commise = QComboBox()
-        self.faute_commise.addItems([
-            "ABANDON DE POSTE",
-            "NEGLIGENCE",
-            "CORRUPTION",
-            "DESERTION",
-            # Ajoutez d'autres fautes ici
-        ])
-        self.faute_commise.setStyleSheet(styles['COMBO_BOX'])
-        layout.addRow(create_row("Faute commise", self.faute_commise))
-
-        # Catégorie
-        self.categorie = QLineEdit()
-        self.categorie.setStyleSheet(styles['INPUT'])
-        layout.addRow(create_row("Catégorie", self.categorie))
-
-        # Statut du dossier
-        self.statut = QComboBox()
-        self.statut.addItems(["EN COURS", "PUNI", "RADIE"])
-        self.statut.currentTextChanged.connect(self.on_statut_change)
-        self.statut.setStyleSheet(styles['COMBO_BOX'])
-        layout.addRow(create_row("Statut du dossier", self.statut))
-
-        # Référence du statut
-        self.ref_statut = QLineEdit()
-        self.ref_statut.setStyleSheet(styles['INPUT'])
-        self.ref_statut.setPlaceholderText("Référence de radiation")
-        layout.addRow(create_row("Référence du statut", self.ref_statut))
-
-        # TAUX (JAR)
-        self.taux_jar = QSpinBox()
-        self.taux_jar.setMinimum(0)
-        self.taux_jar.setMaximum(365)
-        self.taux_jar.setStyleSheet(styles['SPIN_BOX'])
-        layout.addRow(create_row("TAUX (JAR)", self.taux_jar))
-
-        # COMITE
-        self.comite = QLineEdit()
-        self.comite.setStyleSheet(styles['INPUT'])
-        layout.addRow(create_row("COMITE", self.comite))
-
-        # ANNEE DES FAITS (auto)
-        self.annee_faits = QLineEdit()
-        self.annee_faits.setReadOnly(True)
-        self.annee_faits.setStyleSheet(styles['INPUT'])
-        layout.addRow(create_row("ANNEE DES FAITS", self.annee_faits))
-
-        container.setLayout(layout)
-        return container
-
-    def update_annee_faits(self):
-        """Met à jour l'année des faits automatiquement"""
-        self.annee_faits.setText(str(self.date_faits.date().year()))
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur",
+                                 f"Erreur lors de la validation : {str(e)}")
+            return False
 
     def load_data(self):
         """Charge les données existantes du dossier"""
         try:
             with self.db_manager.get_connection() as conn:
+                conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
 
                 # Charger les données de la table sanctions
@@ -892,50 +772,87 @@ class EditCaseForm(QMainWindow):
                 cursor.execute("""
                     SELECT * FROM gendarmes 
                     WHERE mle = ?
-                """, (self.matricule,))
+                """, (str(self.matricule),))  # Conversion en string car mle est TEXT
                 gendarmes_data = cursor.fetchone()
 
                 if sanctions_data and gendarmes_data:
-                    # Stocker les valeurs pour la restauration ultérieure
-                    self._stored_direction = sanctions_data['regions']
-                    self._stored_service = sanctions_data['legions']
-                    self._stored_unite = sanctions_data['unite']
+                    try:
+                        sanctions_dict = dict(sanctions_data)
+                        gendarmes_dict = dict(gendarmes_data)
 
-                    # Section 1 : Informations du Dossier
-                    self.num_dossier.setText(str(sanctions_data['numero_dossier']))
-                    self.num_radiation.setText(str(sanctions_data['numero_radiation']))
-                    self.annee.setText(str(sanctions_data['annee']))
-                    self.date_enr.setText(str(sanctions_data['date_enregistrement']))
-                    self.num_enr.setText(str(sanctions_data['numero']))
+                        # Section 1 : Informations du Dossier (depuis sanctions)
+                        self.num_dossier.setText(str(sanctions_dict.get('numero_dossier', '')))
+                        self.annee_punition.setText(str(sanctions_dict.get('annee_punition', '')))
+                        date_enr = QDate.fromString(str(sanctions_dict.get('date_enr', '')), "yyyy-MM-dd")
+                        if date_enr.isValid():
+                            self.date_enr.setDate(date_enr)
+                        self.numero_ordre.setText(str(sanctions_dict.get('numero_ordre', '')))
 
-                    # Section 2 : Informations du Mis en Cause
-                    self.matricule.setText(str(self.matricule))
-                    nom_prenoms = gendarmes_data['nom_prenoms'].split(' ', 1)
-                    self.nom.setText(nom_prenoms[0])
-                    self.prenoms.setText(nom_prenoms[1] if len(nom_prenoms) > 1 else "")
-                    self.grade.setCurrentText(gendarmes_data['grade'])
-                    self.sexe.setCurrentText(gendarmes_data['sexe'])
-                    self.date_naissance.setText(str(gendarmes_data['date_naissance']))
-                    self.age.setValue(gendarmes_data['age'])
+                        # Section 2 : Informations du Mis en Cause (depuis gendarmes)
+                        self.nom_prenoms.setText(gendarmes_dict.get('nom_prenoms', ''))
+                        self.grade.setCurrentText(gendarmes_dict.get('grade', ''))
+                        self.sexe.setCurrentText(gendarmes_dict.get('sexe', ''))
 
-                    # Type d'affectation et structure
-                    self.type_affectation.setCurrentText(sanctions_data['regions'])
-                    # Les ComboBox seront mises à jour via les signaux
+                        date_naissance = QDate.fromString(str(gendarmes_dict.get('date_naissance', '')), "yyyy-MM-dd")
+                        if date_naissance.isValid():
+                            self.date_naissance.setDate(date_naissance)
 
-                    self.nb_enfants.setValue(gendarmes_data['nb_enfants'])
+                        # Valeurs numériques (depuis gendarmes)
+                        try:
+                            # Age
+                            age_value = gendarmes_dict.get('age')
+                            self.age.setValue(int(age_value) if age_value is not None else 0)
 
-                    # Section 3 : Informations sur la Faute
-                    self.date_faits.setDate(QDate.fromString(str(sanctions_data['date_faits']), "yyyy-MM-dd"))
-                    self.faute_commise.setCurrentText(sanctions_data['faute_commise'])
-                    self.categorie.setText(str(sanctions_data['categorie']))
-                    self.statut.setCurrentText(sanctions_data['statut'])
-                    self.ref_statut.setText(sanctions_data['reference_statut'])
-                    self.taux_jar.setValue(int(sanctions_data['taux_jar']))
-                    self.comite.setText(str(sanctions_data['comite']))
-                    self.annee_faits.setText(str(sanctions_data['annee_faits']))
+                            # Nombre d'enfants
+                            nb_enfants_value = gendarmes_dict.get('nb_enfants')
+                            self.nb_enfants.setValue(int(nb_enfants_value) if nb_enfants_value is not None else 0)
 
-                    # Mise à jour de l'interface selon le statut
-                    self.on_statut_change(sanctions_data['statut'])
+                            # Années de service
+                            annee_service_value = gendarmes_dict.get('annee_service')
+                            self.annee_service.setValue(
+                                int(annee_service_value) if annee_service_value is not None else 0)
+                        except (ValueError, TypeError) as e:
+                            print(f"Erreur de conversion des valeurs numériques gendarmes: {str(e)}")
+
+                        # Structure et affectation
+                        self._stored_direction = gendarmes_dict.get('regions', '')
+                        self._stored_service = gendarmes_dict.get('legions', '')
+                        self._stored_unite = gendarmes_dict.get('unite', '')
+
+                        # Initialiser les combobox de structure
+                        if self._stored_direction in ["REGIONS", "CSG"]:
+                            self.type_affectation.setCurrentText(self._stored_direction)
+                        else:
+                            self.type_affectation.setCurrentText("REGIONS")
+
+                        # Les autres combobox seront mises à jour via les signaux
+
+                        # Informations supplémentaires
+                        self.subdiv.setText(str(gendarmes_dict.get('subdiv', '')))
+                        date_entree = QDate.fromString(str(gendarmes_dict.get('date_entree_gie', '')), "yyyy-MM-dd")
+                        if date_entree.isValid():
+                            self.date_entree_gie.setDate(date_entree)
+                        self.situation_matrimoniale.setCurrentText(gendarmes_dict.get('situation_matrimoniale', ''))
+
+                        # Section 3 : Informations sur la Faute (depuis sanctions)
+                        date_faits = QDate.fromString(str(sanctions_dict.get('date_faits', '')), "yyyy-MM-dd")
+                        if date_faits.isValid():
+                            self.date_faits.setDate(date_faits)
+
+                        self.faute_commise.setCurrentText(sanctions_dict.get('faute_commise', ''))
+                        self.categorie.setValue(int(sanctions_dict.get('categorie', 1)))
+                        self.statut.setCurrentText(sanctions_dict.get('statut', ''))
+                        self.ref_statut.setText(sanctions_dict.get('reference_statut', ''))
+                        self.taux_jar.setText(str(sanctions_dict.get('taux_jar', '')))
+                        self.comite.setValue(int(sanctions_dict.get('comite', 0)))
+                        self.annee_faits.setText(str(sanctions_dict.get('annee_faits', '')))
+
+                        # Mise à jour de l'interface selon le statut
+                        self.on_statut_change(sanctions_dict.get('statut', ''))
+
+                    except Exception as e:
+                        print(f"Erreur lors du traitement des données : {str(e)}")
+                        raise
 
                 else:
                     QMessageBox.warning(self, "Erreur",
@@ -945,41 +862,11 @@ class EditCaseForm(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Erreur",
                                  f"Erreur lors du chargement des données : {str(e)}")
-            print(f"Erreur détaillée : {str(e)}")  # Pour le débogage
+            print(f"Erreur détaillée : {str(e)}")
             self.close()
 
-    def validate_form(self):
-        """Valide les champs obligatoires du formulaire"""
-        try:
-            required_fields = {
-                'Numéro de dossier': self.num_dossier.text(),
-                'Date des faits': self.date_faits.text(),
-                'Faute commise': self.faute_commise.currentText(),
-                'Catégorie': self.categorie.text(),
-                'Statut': self.statut.currentText()
-            }
-
-            for field_name, value in required_fields.items():
-                if not value or not str(value).strip():
-                    QMessageBox.warning(self, "Champs manquants",
-                                        f"Le champ '{field_name}' est obligatoire.")
-                    return False
-
-            # Validation spécifique pour le statut RADIE
-            if self.statut.currentText() == "RADIE" and not self.ref_statut.text().strip():
-                QMessageBox.warning(self, "Champs manquants",
-                                    "La référence du statut est obligatoire pour une radiation.")
-                self.ref_statut.setFocus()
-                return False
-
-            return True
-
-        except Exception as e:
-            QMessageBox.critical(self, "Erreur",
-                                 f"Erreur lors de la validation : {str(e)}")
-            return False
-
     def submit_form(self):
+        """Enregistre les modifications dans la base de données"""
         try:
             if not self.validate_form():
                 return
@@ -992,40 +879,40 @@ class EditCaseForm(QMainWindow):
             if reply == QMessageBox.StandardButton.No:
                 return
 
-            # Préparation des données avec les noms corrects
+            # Préparation des données
             form_data = {
-                # Section Info Dossier
+                # Section Info Dossier (table sanctions)
                 'numero_dossier': self.num_dossier.text(),
-                'numero_radiation': self.num_radiation.text(),
-                'annee': self.annee.text(),
-                'date_enregistrement': self.date_enr.text(),
-                'numero_enregistrement': self.num_enr.text(),
+                'annee_punition': self.annee_punition.text(),
+                'numero_ordre': self.numero_ordre.text(),
+                'date_enr': self.date_enr.date().toString("yyyy-MM-dd"),
+                'matricule': self.matricule,
 
-                # Section Info Mis en cause
-                'matricule': self.matricule.text(),
-                'nom_prenoms': f"{self.nom.text()} {self.prenoms.text()}".strip(),
-                'grade': self.grade.currentText(),
-                'sexe': self.sexe.currentText(),
-                'date_naissance': self.date_naissance.text(),
-                'age': self.age.value(),
-                'unite': self.unite.currentText(),
-                'legions': self.service.currentText(),  # service devient légions
-                'subdiv': self.direction.currentText(),  # direction devient subdiv
-                'regions': self.type_affectation.currentText(),  # type_affectation devient regions
-                'date_entree_gie': self.date_entree_gie.text(),
-                'annee_service': self.annee_service.text(),
-                'situation_matrimoniale': self.situation_matrimoniale.currentText(),
-                'nb_enfants': self.nb_enfants.value(),
-
-                # Section Info Faute
+                # Section Info Faute (table sanctions)
                 'date_faits': self.date_faits.date().toString("yyyy-MM-dd"),
                 'faute_commise': self.faute_commise.currentText(),
-                'categorie': self.categorie.text(),
+                'categorie': self.categorie.value(),
                 'statut': self.statut.currentText(),
                 'reference_statut': self.ref_statut.text() if self.statut.currentText() == "RADIE" else "",
-                'taux_jar': self.taux_jar.value(),
-                'comite': self.comite.text(),
-                'annee_faits': self.annee_faits.text()
+                'taux_jar': self.taux_jar.text(),
+                'comite': self.comite.value(),
+                'annee_faits': int(self.annee_faits.text()),
+
+                # Section Info Mis en cause (table gendarmes)
+                'mle': str(self.matricule),  # Conversion en string car mle est TEXT
+                'nom_prenoms': self.nom_prenoms.text().strip(),
+                'grade': self.grade.currentText(),
+                'sexe': self.sexe.currentText(),
+                'date_naissance': self.date_naissance.date().toString("yyyy-MM-dd"),
+                'age': self.age.value(),
+                'unite': self.unite.currentText(),
+                'legions': self.legions.currentText(),
+                'subdiv': self.subdiv.text(),
+                'regions': self.regions.currentText(),
+                'date_entree_gie': self.date_entree_gie.date().toString("yyyy-MM-dd"),
+                'annee_service': self.annee_service.value(),
+                'situation_matrimoniale': self.situation_matrimoniale.currentText(),
+                'nb_enfants': self.nb_enfants.value()
             }
 
             with self.db_manager.get_connection() as conn:
@@ -1035,35 +922,31 @@ class EditCaseForm(QMainWindow):
                 cursor.execute("""
                     UPDATE sanctions SET
                         numero_dossier = ?,
-                        numero_radiation = ?,
-                        date_faits = ?,
+                        annee_punition = ?,
+                        numero_ordre = ?,
+                        date_enr = ?,
                         faute_commise = ?,
+                        date_faits = ?,
                         categorie = ?,
                         statut = ?,
                         reference_statut = ?,
                         taux_jar = ?,
                         comite = ?,
-                        annee_faits = ?,
-                        unite = ?,
-                        legions = ?,
-                        subdiv = ?,
-                        regions = ?
+                        annee_faits = ?
                     WHERE matricule = ?
                 """, (
                     form_data['numero_dossier'],
-                    form_data['numero_radiation'],
-                    form_data['date_faits'],
+                    form_data['annee_punition'],
+                    form_data['numero_ordre'],
+                    form_data['date_enr'],
                     form_data['faute_commise'],
+                    form_data['date_faits'],
                     form_data['categorie'],
                     form_data['statut'],
                     form_data['reference_statut'],
                     form_data['taux_jar'],
                     form_data['comite'],
                     form_data['annee_faits'],
-                    form_data['unite'],
-                    form_data['legions'],
-                    form_data['subdiv'],
-                    form_data['regions'],
                     form_data['matricule']
                 ))
 
@@ -1095,28 +978,10 @@ class EditCaseForm(QMainWindow):
                     form_data['subdiv'],
                     form_data['regions'],
                     form_data['date_entree_gie'],
-                    int(form_data['annee_service']),
+                    form_data['annee_service'],
                     form_data['situation_matrimoniale'],
                     form_data['nb_enfants'],
-                    form_data['matricule']
-                ))
-
-                # 3. Mise à jour de la table gendarmes_etat
-                cursor.execute("""
-                    UPDATE gendarmes_etat SET
-                        unite = ?,
-                        legions = ?,
-                        subdiv = ?,
-                        regions = ?,
-                        nb_enfants = ?
-                    WHERE matricule = ?
-                """, (
-                    form_data['unite'],
-                    form_data['legions'],
-                    form_data['subdiv'],
-                    form_data['regions'],
-                    form_data['nb_enfants'],
-                    form_data['matricule']
+                    form_data['mle']
                 ))
 
                 conn.commit()
@@ -1129,4 +994,3 @@ class EditCaseForm(QMainWindow):
             QMessageBox.critical(self, "Erreur",
                                  f"Erreur lors de la mise à jour des données : {str(e)}")
             print(f"Erreur détaillée : {str(e)}")
-
