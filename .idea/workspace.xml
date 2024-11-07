@@ -4,10 +4,27 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="YOOOOOO Everyhting works we can now edit gendarme datas">
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="OOk now we can modify the unit of a gendarme by just searching his unit">
+      <change afterPath="$PROJECT_DIR$/src/ui/handlers/stats_handler.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ui/windows/statistics/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ui/windows/statistics/subject_dialog.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ui/windows/statistics/table_config_dialog.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/stats_views/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/handlers/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/stats_views/fault_stats.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/stats_views/global_stats.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/stats_views/grade_stats.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/stats_views/period_stats.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/stats_views/punis_list.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/stats_views/subdiv_stats.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/stats_views/time_stats.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/stats_window.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/import_etat_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/import_etat_window.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -329,11 +346,26 @@
       <option name="project" value="LOCAL" />
       <updated>1730939075007</updated>
     </task>
-    <option name="localTasksCounter" value="31" />
+    <task id="LOCAL-00031" summary="OOk now we can modify the unit of a gendarme by just searching his unit">
+      <option name="closed" value="true" />
+      <created>1730942476205</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1730942476205</updated>
+    </task>
+    <task id="LOCAL-00032" summary="OOk now we can modify the unit of a gendarme by just searching his unit">
+      <option name="closed" value="true" />
+      <created>1730942514512</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1730942514512</updated>
+    </task>
+    <option name="localTasksCounter" value="33" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="New : now we can add the excel file from the prnicipal window. added a button inside the toolbar" />
     <MESSAGE value="update" />
     <MESSAGE value="new window for stats. added a new folder to organize all this stuff" />
     <MESSAGE value="Work on style of main_window principally" />
@@ -358,7 +390,8 @@
     <MESSAGE value="work on gendarme folder edition. same shape that new_case_form&#10;but some bugs remain&#10;- add new logo for the app footer" />
     <MESSAGE value="edit_gendarme_form.py : corrected the bugs but nothing appears when I click on Recherche" />
     <MESSAGE value="YOOOOOO Everyhting works we can now edit gendarme datas" />
-    <option name="LAST_COMMIT_MESSAGE" value="YOOOOOO Everyhting works we can now edit gendarme datas" />
+    <MESSAGE value="OOk now we can modify the unit of a gendarme by just searching his unit" />
+    <option name="LAST_COMMIT_MESSAGE" value="OOk now we can modify the unit of a gendarme by just searching his unit" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

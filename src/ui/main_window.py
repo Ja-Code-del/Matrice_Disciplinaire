@@ -14,6 +14,7 @@ from src.ui.styles.styles import Styles
 from src.database.models import GendarmeRepository, SanctionRepository
 from src.ui.windows.import_etat_window import ImportEtatCompletWindow
 from src.ui.forms.edit_gendarme_form import SearchMatriculeDialog, EditCaseForm
+from .handlers.stats_handler import StatsHandler
 
 
 class MainGendarmeApp(QMainWindow):
@@ -148,7 +149,7 @@ class MainGendarmeApp(QMainWindow):
             {
                 "text": "Statistiques",
                 "icon": "../resources/icons/statistics_icon.png",
-                "callback": "show_stats_window"
+                "callback": "show_statistics"
             },
             {
                 "text": "Supprimer un dossier",
@@ -352,11 +353,7 @@ class MainGendarmeApp(QMainWindow):
                 }}
             """)
 
-    def show_stats_window(self):
-        """Ouvre la fenêtre des statistiques"""
-        from src.ui.stats_window import StatsWindow
-        self.stats_window = StatsWindow(self.db_manager)
-        self.stats_window.show()
+
 
     def edit_gendarme(self):
         dialog = SearchMatriculeDialog(self.db_manager, self)
@@ -425,6 +422,25 @@ class MainGendarmeApp(QMainWindow):
         self.settings_window.setCentralWidget(settings_widget)
         self.settings_window.setGeometry(100, 100, 300, 200)
         self.settings_window.show()
+
+    def show_statistics(self):
+        """
+        Méthode appelée lors du clic sur le bouton statistiques.
+        Délègue l'ouverture au gestionnaire de statistiques.
+        """
+        if hasattr(self, 'stats_handler') and self.stats_handler:
+            self.stats_handler.open_statistics()
+
+    def closeEvent(self, event):
+        """
+        Surcharge de la méthode de fermeture pour nettoyer les ressources.
+        """
+        # Nettoyage du gestionnaire de statistiques
+        if hasattr(self, 'stats_handler') and self.stats_handler:
+            self.stats_handler.cleanup()
+
+        # Appel de la méthode parente ou votre code existant
+        super().closeEvent(event)
 
     def toggle_theme(self):
         """Bascule entre les thèmes clair et sombre"""
