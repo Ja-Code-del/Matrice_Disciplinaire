@@ -359,49 +359,17 @@ class MainGendarmeApp(QMainWindow):
         self.stats_window.show()
 
     def edit_gendarme(self):
-        """Ouvre le formulaire de modification d'un dossier"""
-        try:
-            # Ouvre d'abord la boîte de dialogue de recherche par matricule
-            search_dialog = SearchMatriculeDialog(self.db_manager, self)
-            if search_dialog.exec() == QDialog.DialogCode.Accepted:
-                matricule = search_dialog.get_matricule()
-                # Ouvre ensuite le formulaire d'édition avec le matricule
-                edit_form = EditCaseForm(matricule, self.db_manager)
-                edit_form.show()
-
-        except Exception as e:
-            QMessageBox.critical(self, "Erreur",
-                                 f"Erreur lors de l'ouverture du formulaire : {str(e)}")
-
-    # def edit_gendarme(self):
-    #     """Ouvre le formulaire d'édition pour le gendarme"""
-    #     try:
-    #         # Ouvrir la boîte de dialogue de recherche
-    #         search_dialog = SearchMatriculeDialog(self)
-    #         if search_dialog.exec_() == QDialog.Accepted:
-    #             matricule = search_dialog.get_matricule()
-    #
-    #             if not matricule:
-    #                 QMessageBox.warning(self, "Erreur",
-    #                                     "Veuillez entrer un matricule.")
-    #                 return
-    #
-    #             # Vérifier que le matricule existe
-    #             with self.db_manager.get_connection() as conn:
-    #                 cursor = conn.cursor()
-    #                 cursor.execute("SELECT matricule FROM sanctions WHERE matricule = ?",
-    #                                (matricule,))
-    #                 if cursor.fetchone():
-    #                     # Ouvrir le formulaire d'édition
-    #                     edit_form = EditGendarmeForm(matricule, self.db_manager, self)
-    #                     edit_form.show()
-    #                 else:
-    #                     QMessageBox.warning(self, "Erreur",
-    #                                         f"Aucun gendarme trouvé avec le matricule {matricule}")
-    #
-    #     except Exception as e:
-    #         QMessageBox.critical(self, "Erreur",
-    #                              f"Erreur lors de l'ouverture du formulaire d'édition : {str(e)}")
+        dialog = SearchMatriculeDialog(self.db_manager, self)
+        if dialog.exec():
+            matricule_str = dialog.get_matricule()
+            try:
+                # Conversion du matricule en entier avant de créer EditCaseForm
+                matricule_int = int(matricule_str)
+                self.edit_form = EditCaseForm(matricule_int, self.db_manager)
+                self.edit_form.show()
+            except ValueError:
+                QMessageBox.warning(self, "Erreur",
+                                    "Le matricule doit être un nombre valide.")
 
     def show_import_window(self):
         """Ouvre la fenêtre d'import"""

@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="work on gendarme folder edition. same shape that new_case_form&#10;but some bugs remain&#10;- add new logo for the app footer">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" afterDir="false" />
-    </list>
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="edit_gendarme_form.py : corrected the bugs but nothing appears when I click on Recherche" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -312,11 +309,18 @@
       <option name="project" value="LOCAL" />
       <updated>1730909097070</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="edit_gendarme_form.py : corrected the bugs but nothing appears when I click on Recherche">
+      <option name="closed" value="true" />
+      <created>1730937866534</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1730937866534</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="new gitignore file" />
     <MESSAGE value="added an absolute path for db" />
     <MESSAGE value="New : now we can add the excel file from the prnicipal window. added a button inside the toolbar" />
     <MESSAGE value="update" />
@@ -341,7 +345,8 @@
     <MESSAGE value="BUGS BUSTED YOOOOOOOO!!!" />
     <MESSAGE value="work on new button of the toolbar. edit and delete added icon for Reglages et works on alignment" />
     <MESSAGE value="work on gendarme folder edition. same shape that new_case_form&#10;but some bugs remain&#10;- add new logo for the app footer" />
-    <option name="LAST_COMMIT_MESSAGE" value="work on gendarme folder edition. same shape that new_case_form&#10;but some bugs remain&#10;- add new logo for the app footer" />
+    <MESSAGE value="edit_gendarme_form.py : corrected the bugs but nothing appears when I click on Recherche" />
+    <option name="LAST_COMMIT_MESSAGE" value="edit_gendarme_form.py : corrected the bugs but nothing appears when I click on Recherche" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
