@@ -179,7 +179,7 @@ class MainGendarmeApp(QMainWindow):
             button = QPushButton(button_config["text"])
             button.setIcon(QIcon(button_config["icon"]))
             button.setStyleSheet(common_style)
-            button.setIconSize(QSize(20, 20))  # icons have same size
+            button.setIconSize(QSize(32, 32))  # icons have same size
 
             button.setContentsMargins(0, 0, 0, 0)  # delete intern margin
             button.setLayoutDirection(Qt.LayoutDirection.LeftToRight)

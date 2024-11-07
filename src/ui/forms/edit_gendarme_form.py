@@ -5,11 +5,83 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QFrame, QPushButton, QScrollArea, QLineEdit,
                              QFormLayout, QComboBox, QSpinBox, QDateEdit, QMessageBox,
                              QDialog, QGraphicsOpacityEffect, QApplication)
-from PyQt6.QtCore import Qt, QDate, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QTimer
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtCore import Qt, QDate, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QTimer, QSize
+from PyQt6.QtGui import QFont, QColor, QIcon
 
 from src.data.gendarmerie import STRUCTURE_PRINCIPALE
 from src.ui.styles.styles import Styles
+
+
+#pour la recherche d'unité
+class SearchUniteDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Rechercher par unité")
+        self.setMinimumWidth(300)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+
+        # Combo pour choisir l'unité
+        self.unite_combo = QComboBox()
+        self.unite_combo.setEditable(True)  # Permet la saisie libre
+        self.unite_combo.setPlaceholderText("Entrez ou sélectionnez une unité")
+
+        # Remplir avec toutes les unités disponibles
+        all_unites = set()
+        for region_data in STRUCTURE_PRINCIPALE["REGIONS"].values():
+            for legion_data in region_data.values():
+                if isinstance(legion_data, list):
+                    all_unites.update(legion_data)
+                else:
+                    for cie_unites in legion_data.values():
+                        all_unites.update(cie_unites)
+
+        self.unite_combo.addItems(sorted(all_unites))
+        layout.addWidget(self.unite_combo)
+
+        # Boutons
+        button_layout = QHBoxLayout()
+        self.search_button = QPushButton("Rechercher")
+        self.cancel_button = QPushButton("Annuler")
+
+        self.search_button.setStyleSheet("""
+            QPushButton {
+                padding: 8px 15px;
+                background-color: #2196f3;
+                color: white;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #1976d2;
+            }
+        """)
+
+        self.cancel_button.setStyleSheet("""
+            QPushButton {
+                padding: 8px 15px;
+                background-color: #e0e0e0;
+                color: #333;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #d0d0d0;
+            }
+        """)
+
+        button_layout.addWidget(self.cancel_button)
+        button_layout.addWidget(self.search_button)
+        layout.addLayout(button_layout)
+
+        self.setLayout(layout)
+
+        # Connexions
+        self.search_button.clicked.connect(self.accept)
+        self.cancel_button.clicked.connect(self.reject)
+
+    def get_unite(self):
+        return self.unite_combo.currentText()
 
 
 class SearchMatriculeDialog(QDialog):
@@ -402,7 +474,6 @@ class EditCaseForm(QMainWindow):
         self.grade.setStyleSheet(styles['COMBO_BOX'])
         layout.addRow(self.create_form_row("Grade", self.grade))
 
-
         # Sexe
         self.sexe = QComboBox()
         self.sexe.addItems(["M", "F"])
@@ -440,7 +511,37 @@ class EditCaseForm(QMainWindow):
 
         self.unite = QComboBox()
         self.unite.setStyleSheet(styles['COMBO_BOX'])
-        layout.addRow(self.create_form_row("Unité", self.unite))
+        # Création du layout horizontal pour l'unité et le bouton
+        unite_layout = QHBoxLayout()
+        unite_layout.addWidget(self.unite)
+
+        # Ajout du bouton de recherche
+        search_button = QPushButton()
+        search_button.setIcon(QIcon("../resources/icons/search.png"))
+        search_button.setIconSize(QSize(16, 16))
+        search_button.setToolTip("Rechercher région/légion par unité")
+        search_button.setStyleSheet("""
+            QPushButton {
+                padding: 8px;
+                border-radius: 3px;
+                background: #2196f3;
+                border: none;
+            }
+            QPushButton:hover {
+                background: #1976d2;
+            }
+        """)
+
+        print("Connexion du bouton de recherche")  # Debug
+        search_button.clicked.connect(self.on_unite_search)
+        print("Bouton connecté")  # Debug
+
+        unite_layout.addWidget(search_button)
+
+        # Ajout au layout principal avec le widget container
+        unite_container = QWidget()
+        unite_container.setLayout(unite_layout)
+        layout.addRow(self.create_form_row("Unité", unite_container))
 
         # Informations supplémentaires
         self.subdiv = QLineEdit()
@@ -720,10 +821,6 @@ class EditCaseForm(QMainWindow):
                 'Faute commise': self.faute_commise.currentText(),
                 'Catégorie': self.categorie.value(),
                 'Statut': self.statut.currentText(),
-                'Type d\'affectation': self.type_affectation.currentText(),
-                'Région': self.regions.currentText(),
-                'Légion': self.legions.currentText(),
-                'Unité': self.unite.currentText()
             }
 
             for field_name, value in required_fields.items():
@@ -783,19 +880,20 @@ class EditCaseForm(QMainWindow):
                         # Section 1 : Informations du Dossier (depuis sanctions)
                         self.num_dossier.setText(str(sanctions_dict.get('numero_dossier', '')))
                         self.annee_punition.setText(str(sanctions_dict.get('annee_punition', '')))
-                        date_enr = QDate.fromString(str(sanctions_dict.get('date_enr', '')), "yyyy-MM-dd")
-                        if date_enr.isValid():
-                            self.date_enr.setDate(date_enr)
+
+                        # Gestion de la date d'enregistrement
+                        date_enr = str(sanctions_dict.get('date_enr', ''))
+                        if date_enr:
+                            try:
+                                self.date_enr.setDate(QDate.fromString(date_enr, "yyyy-MM-dd"))
+                            except Exception as e:
+                                print(f"Erreur lors de la conversion de la date d'enregistrement: {e}")
+
                         self.numero_ordre.setText(str(sanctions_dict.get('numero_ordre', '')))
 
                         # Section 2 : Informations du Mis en Cause (depuis gendarmes)
+                        self.matricule_field.setText(str(gendarmes_dict.get('mle', '')))
                         self.nom_prenoms.setText(gendarmes_dict.get('nom_prenoms', ''))
-                        self.grade.setCurrentText(gendarmes_dict.get('grade', ''))
-                        self.sexe.setCurrentText(gendarmes_dict.get('sexe', ''))
-
-                        date_naissance = QDate.fromString(str(gendarmes_dict.get('date_naissance', '')), "yyyy-MM-dd")
-                        if date_naissance.isValid():
-                            self.date_naissance.setDate(date_naissance)
 
                         # Valeurs numériques (depuis gendarmes)
                         try:
@@ -814,37 +912,94 @@ class EditCaseForm(QMainWindow):
                         except (ValueError, TypeError) as e:
                             print(f"Erreur de conversion des valeurs numériques gendarmes: {str(e)}")
 
-                        # Structure et affectation
-                        self._stored_direction = gendarmes_dict.get('regions', '')
-                        self._stored_service = gendarmes_dict.get('legions', '')
-                        self._stored_unite = gendarmes_dict.get('unite', '')
+                        # Gestion des ComboBox
+                        self.grade.setCurrentText(gendarmes_dict.get('grade', ''))
+                        self.sexe.setCurrentText(gendarmes_dict.get('sexe', ''))
 
-                        # Initialiser les combobox de structure
-                        if self._stored_direction in ["REGIONS", "CSG"]:
-                            self.type_affectation.setCurrentText(self._stored_direction)
-                        else:
-                            self.type_affectation.setCurrentText("REGIONS")
+                        # Gestion de la date de naissance
+                        date_naissance = str(gendarmes_dict.get('date_naissance', ''))
+                        if date_naissance:
+                            try:
+                                self.date_naissance.setDate(QDate.fromString(date_naissance, "yyyy-MM-dd"))
+                            except Exception as e:
+                                print(f"Erreur lors de la conversion de la date de naissance: {e}")
 
-                        # Les autres combobox seront mises à jour via les signaux
+                        # Chargement direct de la structure sans passer par la hiérarchie
+                        self.type_affectation.blockSignals(True)
+                        self.regions.blockSignals(True)
+                        self.legions.blockSignals(True)
+                        self.unite.blockSignals(True)
+
+                        # Récupérer les valeurs existantes
+                        current_region = gendarmes_dict.get('regions', '')
+                        current_legion = gendarmes_dict.get('legions', '')
+                        current_unite = gendarmes_dict.get('unite', '')
+
+                        # Ajouter les valeurs existantes si elles ne sont pas dans les listes
+                        if current_region and current_region not in [self.regions.itemText(i) for i in
+                                                                     range(self.regions.count())]:
+                            self.regions.addItem(current_region)
+                        if current_legion and current_legion not in [self.legions.itemText(i) for i in
+                                                                     range(self.legions.count())]:
+                            self.legions.addItem(current_legion)
+                        if current_unite and current_unite not in [self.unite.itemText(i) for i in
+                                                                   range(self.unite.count())]:
+                            self.unite.addItem(current_unite)
+
+                        # Sélectionner les valeurs
+                        self.regions.setCurrentText(current_region)
+                        self.legions.setCurrentText(current_legion)
+                        self.unite.setCurrentText(current_unite)
+
+                        # Réactiver les signaux
+                        self.type_affectation.blockSignals(False)
+                        self.regions.blockSignals(False)
+                        self.legions.blockSignals(False)
+                        self.unite.blockSignals(False)
 
                         # Informations supplémentaires
                         self.subdiv.setText(str(gendarmes_dict.get('subdiv', '')))
-                        date_entree = QDate.fromString(str(gendarmes_dict.get('date_entree_gie', '')), "yyyy-MM-dd")
-                        if date_entree.isValid():
-                            self.date_entree_gie.setDate(date_entree)
+
+                        # Date d'entrée GIE
+                        date_entree = str(gendarmes_dict.get('date_entree_gie', ''))
+                        if date_entree:
+                            try:
+                                self.date_entree_gie.setDate(QDate.fromString(date_entree, "yyyy-MM-dd"))
+                            except Exception as e:
+                                print(f"Erreur lors de la conversion de la date d'entrée GIE: {e}")
+
                         self.situation_matrimoniale.setCurrentText(gendarmes_dict.get('situation_matrimoniale', ''))
 
                         # Section 3 : Informations sur la Faute (depuis sanctions)
-                        date_faits = QDate.fromString(str(sanctions_dict.get('date_faits', '')), "yyyy-MM-dd")
-                        if date_faits.isValid():
-                            self.date_faits.setDate(date_faits)
+                        date_faits = str(sanctions_dict.get('date_faits', ''))
+                        if date_faits:
+                            try:
+                                self.date_faits.setDate(QDate.fromString(date_faits, "yyyy-MM-dd"))
+                            except Exception as e:
+                                print(f"Erreur lors de la conversion de la date des faits: {e}")
 
                         self.faute_commise.setCurrentText(sanctions_dict.get('faute_commise', ''))
-                        self.categorie.setValue(int(sanctions_dict.get('categorie', 1)))
+
+                        # Conversion de la catégorie
+                        try:
+                            categorie_value = sanctions_dict.get('categorie')
+                            self.categorie.setValue(int(categorie_value) if categorie_value is not None else 1)
+                        except (ValueError, TypeError) as e:
+                            print(f"Erreur de conversion de la catégorie: {str(e)}")
+                            self.categorie.setValue(1)
+
                         self.statut.setCurrentText(sanctions_dict.get('statut', ''))
                         self.ref_statut.setText(sanctions_dict.get('reference_statut', ''))
                         self.taux_jar.setText(str(sanctions_dict.get('taux_jar', '')))
-                        self.comite.setValue(int(sanctions_dict.get('comite', 0)))
+
+                        # Conversion du comité
+                        try:
+                            comite_value = sanctions_dict.get('comite')
+                            self.comite.setValue(int(comite_value) if comite_value is not None else 0)
+                        except (ValueError, TypeError) as e:
+                            print(f"Erreur de conversion du comité: {str(e)}")
+                            self.comite.setValue(0)
+
                         self.annee_faits.setText(str(sanctions_dict.get('annee_faits', '')))
 
                         # Mise à jour de l'interface selon le statut
@@ -994,3 +1149,94 @@ class EditCaseForm(QMainWindow):
             QMessageBox.critical(self, "Erreur",
                                  f"Erreur lors de la mise à jour des données : {str(e)}")
             print(f"Erreur détaillée : {str(e)}")
+
+    def on_unite_search(self):
+        """Ouvre une boîte de dialogue pour rechercher une unité"""
+        dialog = SearchUniteDialog(self)
+        if dialog.exec():
+            unite_recherchee = dialog.get_unite()
+            if unite_recherchee:
+                if not self.search_by_unite(unite_recherchee):
+                    QMessageBox.warning(self, "Recherche",
+                                        "Aucune correspondance trouvée pour cette unité.")
+
+    def search_by_unite(self, unite_recherchee):
+        """Recherche la région et la légion correspondant à une unité"""
+        print(f"Recherche de l'unité : {unite_recherchee}")  # Debug
+
+        # Parcourir la structure REGIONS
+        for region, region_data in STRUCTURE_PRINCIPALE["REGIONS"].items():
+            for legion, legion_data in region_data.items():
+                unites = []
+                if isinstance(legion_data, list):
+                    unites = legion_data
+                else:
+                    for cie, cie_unites in legion_data.items():
+                        unites.extend(cie_unites)
+
+                if unite_recherchee in unites:
+                    print(f"Unité trouvée dans {region} / {legion}")  # Debug
+
+                    # Désactiver les signaux pour éviter les mises à jour en cascade
+                    self.type_affectation.blockSignals(True)
+                    self.regions.blockSignals(True)
+                    self.legions.blockSignals(True)
+                    self.unite.blockSignals(True)
+
+                    # Mettre à jour type d'affectation
+                    self.type_affectation.setCurrentText("REGIONS")
+
+                    # Ajouter et sélectionner la région si elle n'existe pas déjà
+                    if region not in [self.regions.itemText(i) for i in range(self.regions.count())]:
+                        self.regions.addItem(region)
+                    self.regions.setCurrentText(region)
+
+                    # Ajouter et sélectionner la légion si elle n'existe pas déjà
+                    if legion not in [self.legions.itemText(i) for i in range(self.legions.count())]:
+                        self.legions.addItem(legion)
+                    self.legions.setCurrentText(legion)
+
+                    # Ajouter et sélectionner l'unité si elle n'existe pas déjà
+                    if unite_recherchee not in [self.unite.itemText(i) for i in range(self.unite.count())]:
+                        self.unite.addItem(unite_recherchee)
+                    self.unite.setCurrentText(unite_recherchee)
+
+                    # Réactiver les signaux
+                    self.type_affectation.blockSignals(False)
+                    self.regions.blockSignals(False)
+                    self.legions.blockSignals(False)
+                    self.unite.blockSignals(False)
+
+                    return True
+
+        # Vérifier aussi dans la structure CSG
+        for direction, services in STRUCTURE_PRINCIPALE["CSG"].items():
+            if isinstance(services, list) and unite_recherchee in services:
+                # Désactiver les signaux
+                self.type_affectation.blockSignals(True)
+                self.regions.blockSignals(True)
+                self.unite.blockSignals(True)
+
+                # Mettre à jour type d'affectation
+                self.type_affectation.setCurrentText("CSG")
+
+                # Ajouter et sélectionner la direction si elle n'existe pas déjà
+                if direction not in [self.regions.itemText(i) for i in range(self.regions.count())]:
+                    self.regions.addItem(direction)
+                self.regions.setCurrentText(direction)
+
+                # Ajouter et sélectionner l'unité si elle n'existe pas déjà
+                if unite_recherchee not in [self.unite.itemText(i) for i in range(self.unite.count())]:
+                    self.unite.addItem(unite_recherchee)
+                self.unite.setCurrentText(unite_recherchee)
+
+                # Réactiver les signaux
+                self.type_affectation.blockSignals(False)
+                self.regions.blockSignals(False)
+                self.unite.blockSignals(False)
+
+                return True
+
+        return False
+
+

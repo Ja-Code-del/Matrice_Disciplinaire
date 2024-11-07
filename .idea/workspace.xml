@@ -4,7 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="edit_gendarme_form.py : corrected the bugs but nothing appears when I click on Recherche" />
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="YOOOOOO Everyhting works we can now edit gendarme datas">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -317,11 +321,18 @@
       <option name="project" value="LOCAL" />
       <updated>1730937866534</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="YOOOOOO Everyhting works we can now edit gendarme datas">
+      <option name="closed" value="true" />
+      <created>1730939075007</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1730939075007</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="added an absolute path for db" />
     <MESSAGE value="New : now we can add the excel file from the prnicipal window. added a button inside the toolbar" />
     <MESSAGE value="update" />
     <MESSAGE value="new window for stats. added a new folder to organize all this stuff" />
@@ -346,7 +357,8 @@
     <MESSAGE value="work on new button of the toolbar. edit and delete added icon for Reglages et works on alignment" />
     <MESSAGE value="work on gendarme folder edition. same shape that new_case_form&#10;but some bugs remain&#10;- add new logo for the app footer" />
     <MESSAGE value="edit_gendarme_form.py : corrected the bugs but nothing appears when I click on Recherche" />
-    <option name="LAST_COMMIT_MESSAGE" value="edit_gendarme_form.py : corrected the bugs but nothing appears when I click on Recherche" />
+    <MESSAGE value="YOOOOOO Everyhting works we can now edit gendarme datas" />
+    <option name="LAST_COMMIT_MESSAGE" value="YOOOOOO Everyhting works we can now edit gendarme datas" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
