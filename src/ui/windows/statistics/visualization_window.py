@@ -287,22 +287,62 @@ class VisualizationWindow(QMainWindow):
             )
 
     def update_graph(self, df):
-        """Met à jour le graphique avec les données."""
-        self.figure.clear()
-        ax = self.figure.add_subplot(111)
+        """Crée un graphique à barres empilées."""
+        try:
+            # Création du pivot pour le graphique
+            pivot_table = pd.pivot_table(
+                df,
+                values='count',
+                index='y_value',  # Grades en index
+                columns='x_value',  # Subdivisions en colonnes
+                fill_value=0
+            )
 
-        if len(df) > 10:  # Si beaucoup de données, utiliser un graphique en barres vertical
-            df.plot(kind='bar', x='x_value', y='count', ax=ax)
-            plt.xticks(rotation=45)
-        else:  # Sinon utiliser un graphique en barres horizontal
-            df.plot(kind='barh', x='x_value', y='count', ax=ax)
+            # Nettoyage du graphique précédent
+            self.figure.clear()
+            ax = self.figure.add_subplot(111)
 
-        ax.set_title(f"{self.config['y_axis']['theme']} par {self.config['x_axis']['theme']}")
-        ax.set_xlabel(self.config['x_axis']['theme'])
-        ax.set_ylabel('Nombre')
+            # Création du graphique à barres empilées
+            bottom = np.zeros(len(pivot_table.index))
+            colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
 
-        self.figure.tight_layout()
-        self.canvas.draw()
+            # Pour chaque subdivision, créer une barre empilée
+            bars = []
+            labels = []
+            for i, column in enumerate(pivot_table.columns):
+                bar = ax.bar(pivot_table.index, pivot_table[column], bottom=bottom,
+                             color=colors[i % len(colors)])
+                bottom += pivot_table[column]
+                bars.append(bar)
+                labels.append(column)
+
+            # Personnalisation du graphique
+            ax.set_ylabel('Nombre')
+            ax.grid(True, axis='y', linestyle='--', alpha=0.7)
+
+            # Légende
+            ax.legend(bars, labels,
+                      loc='upper center',
+                      bbox_to_anchor=(0.5, -0.1),
+                      ncol=len(labels),
+                      frameon=False)
+
+            # Rotation des étiquettes de l'axe x
+            plt.xticks(rotation=0)
+
+            # Ajustement de la mise en page
+            self.figure.tight_layout(rect=[0, 0.1, 1, 1])  # Espace pour la légende
+
+            # Mise à jour du canvas
+            self.canvas.draw()
+
+        except Exception as e:
+            print(f"Erreur dans update_graph: {str(e)}")
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                f"Erreur lors de la mise à jour du graphique: {str(e)}"
+            )
 
     def update_info(self, df):
         """Met à jour les informations d'en-tête."""
