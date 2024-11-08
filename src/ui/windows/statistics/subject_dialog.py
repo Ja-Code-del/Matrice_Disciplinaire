@@ -2,9 +2,16 @@
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
                              QComboBox, QPushButton, QGroupBox, QRadioButton,
-                             QDialogButtonBox)
+                             QDialogButtonBox, QWidget, QFrame, QTableWidget, QTableWidgetItem)
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt6.QtCore import Qt
 import pandas as pd
+
+from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
+                             QComboBox, QDialogButtonBox, QGroupBox)
+from PyQt6.QtCore import Qt
+from src.data.gendarmerie.structure import SUBDIVISIONS, SERVICE_RANGES, ANALYSIS_THEMES
 
 
 class SubjectDialog(QDialog):
@@ -15,39 +22,42 @@ class SubjectDialog(QDialog):
         self.db_manager = db_manager
         self.setWindowTitle("Analyse par sujet")
         self.setModal(True)
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(500)
         self.setup_ui()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
 
-        # Groupe de choix du type d'analyse
-        type_group = QGroupBox("Type d'analyse")
-        type_layout = QVBoxLayout()
+        # Groupe pour le choix du thème
+        theme_group = QGroupBox("Choix du thème d'analyse")
+        theme_layout = QVBoxLayout()
 
-        self.radio_annees = QRadioButton("Analyse par années")
-        self.radio_punitions = QRadioButton("Analyse par punitions")
-        self.radio_fautes = QRadioButton("Analyse par fautes")
+        # Sélection du thème principal
+        theme_hlayout = QHBoxLayout()
+        theme_hlayout.addWidget(QLabel("Thème :"))
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems(ANALYSIS_THEMES.keys())
+        self.theme_combo.currentIndexChanged.connect(self.update_value_combo)
+        theme_hlayout.addWidget(self.theme_combo)
+        theme_layout.addLayout(theme_hlayout)
 
-        type_layout.addWidget(self.radio_annees)
-        type_layout.addWidget(self.radio_punitions)
-        type_layout.addWidget(self.radio_fautes)
+        # Sélection de la valeur spécifique
+        value_hlayout = QHBoxLayout()
+        value_hlayout.addWidget(QLabel("Valeur :"))
+        self.value_combo = QComboBox()
+        value_hlayout.addWidget(self.value_combo)
+        theme_layout.addLayout(value_hlayout)
 
-        type_group.setLayout(type_layout)
-        layout.addWidget(type_group)
+        theme_group.setLayout(theme_layout)
+        layout.addWidget(theme_group)
 
-        # Sélection détaillée
-        detail_layout = QHBoxLayout()
-        self.detail_label = QLabel("Sélectionner :")
-        self.detail_combo = QComboBox()
-        detail_layout.addWidget(self.detail_label)
-        detail_layout.addWidget(self.detail_combo)
-        layout.addLayout(detail_layout)
-
-        # Connexion des signaux
-        self.radio_annees.toggled.connect(lambda: self.update_detail_combo("annees"))
-        self.radio_punitions.toggled.connect(lambda: self.update_detail_combo("punitions"))
-        self.radio_fautes.toggled.connect(lambda: self.update_detail_combo("fautes"))
+        # Groupe pour les sous-thèmes disponibles
+        subtheme_group = QGroupBox("Sous-thèmes disponibles")
+        subtheme_layout = QVBoxLayout()
+        self.subtheme_label = QLabel()
+        subtheme_layout.addWidget(self.subtheme_label)
+        subtheme_group.setLayout(subtheme_layout)
+        layout.addWidget(subtheme_group)
 
         # Boutons standard
         buttons = QDialogButtonBox(
@@ -58,43 +68,61 @@ class SubjectDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-        # Sélection par défaut
-        self.radio_annees.setChecked(True)
+        # Initialisation des données
+        self.update_value_combo()
 
-    def update_detail_combo(self, type_analyse):
-        """Met à jour le combo en fonction du type d'analyse sélectionné."""
-        self.detail_combo.clear()
+    def update_value_combo(self):
+        """Met à jour le combo des valeurs en fonction du thème sélectionné."""
+        current_theme = self.theme_combo.currentText()
+        self.value_combo.clear()
 
-        try:
-            if type_analyse == "annees":
-                query = "SELECT DISTINCT annee_punition FROM sanctions ORDER BY annee_punition DESC"
-                results = self.db_manager.execute_query(query).fetchall()
-                self.detail_combo.addItems([str(r[0]) for r in results])
+        if current_theme in ANALYSIS_THEMES:
+            field = ANALYSIS_THEMES[current_theme]["field"]
+            # Ajouter l'option "Tous"
+            self.value_combo.addItem(f"Tous les {current_theme.lower()}")
 
-            elif type_analyse == "punitions":
-                query = "SELECT DISTINCT categorie FROM sanctions ORDER BY categorie"
-                results = self.db_manager.execute_query(query).fetchall()
-                self.detail_combo.addItems([str(r[0]) for r in results])
+            try:
+                with self.db_manager.get_connection() as conn:
+                    cursor = conn.cursor()
 
-            elif type_analyse == "fautes":
-                query = "SELECT DISTINCT faute_commise FROM sanctions ORDER BY faute_commise"
-                results = self.db_manager.execute_query(query).fetchall()
-                self.detail_combo.addItems([r[0] for r in results if r[0]])
+                    if current_theme == "Subdivision":
+                        # Utiliser les subdivisions prédéfinies
+                        for subdiv in SUBDIVISIONS:
+                            self.value_combo.addItem(subdiv)
 
-        except Exception as e:
-            print(f"Erreur lors de la mise à jour du combo: {str(e)}")
+                    elif current_theme == "Tranches années service":
+                        # Utiliser les tranches d'années prédéfinies
+                        for service_range in SERVICE_RANGES:
+                            self.value_combo.addItem(service_range)
+
+                    else:
+                        # Récupérer les valeurs de la base de données
+                        table = "gendarmes" if field in ["situation_matrimoniale", "annee_service"] else "sanctions"
+                        query = f"SELECT DISTINCT {field} FROM {table} WHERE {field} IS NOT NULL ORDER BY {field}"
+                        cursor.execute(query)
+                        values = cursor.fetchall()
+                        for value in values:
+                            if value[0]:  # Ignorer les valeurs NULL
+                                self.value_combo.addItem(str(value[0]))
+
+            except Exception as e:
+                print(f"Erreur lors de la récupération des valeurs : {str(e)}")
+
+            # Mise à jour des sous-thèmes disponibles
+            subthemes = ANALYSIS_THEMES[current_theme]["subfields"]
+            self.subtheme_label.setText("Sous-thèmes disponibles :\n• " + "\n• ".join(subthemes))
 
     def get_selection(self):
         """Retourne la sélection actuelle."""
-        type_analyse = ""
-        if self.radio_annees.isChecked():
-            type_analyse = "annees"
-        elif self.radio_punitions.isChecked():
-            type_analyse = "punitions"
-        elif self.radio_fautes.isChecked():
-            type_analyse = "fautes"
-
         return {
-            "type": type_analyse,
-            "valeur": self.detail_combo.currentText()
+            "theme": self.theme_combo.currentText(),
+            "value": self.value_combo.currentText(),
+            "field": ANALYSIS_THEMES[self.theme_combo.currentText()]["field"]
         }
+
+    def get_available_subthemes(self):
+        """Retourne la liste des sous-thèmes disponibles pour le thème sélectionné."""
+        current_theme = self.theme_combo.currentText()
+        if current_theme in ANALYSIS_THEMES:
+            return ANALYSIS_THEMES[current_theme]["subfields"]
+        return []

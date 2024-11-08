@@ -98,7 +98,6 @@ class DatabaseManager:
             cursor.execute("SELECT * FROM gendarmes ORDER BY nom_prenoms")
             return cursor.fetchall()
 
-
     def get_sanctions_by_gendarme_id(self, matricule):
         """Récupère toutes les sanctions d'un gendarme"""
         with self.get_connection() as conn:
@@ -132,7 +131,43 @@ class DatabaseManager:
 
             return stats
 
-# Exemple d'utilisation :
-# db_manager = DatabaseManager()
-# db_manager.create_tables()
-# db_manager.insert_gendarmes_from_excel("votre_fichier.xlsx")
+
+    def is_connected(self):
+        """Vérifie si la connexion à la base de données est active."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                return True
+        except Exception as e:
+            print(f"Erreur de connexion : {str(e)}")
+            return False
+
+
+    def table_exists(self, table_name):
+        """Vérifie si une table existe dans la base de données."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                       SELECT name FROM sqlite_master 
+                       WHERE type='table' AND name=?
+                   """, (table_name,))
+                result = cursor.fetchone()
+                return result is not None
+        except Exception as e:
+            print(f"Erreur lors de la vérification de la table {table_name}: {str(e)}")
+            return False
+
+
+    def count_records(self, table_name):
+        """Compte le nombre d'enregistrements dans une table."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+                result = cursor.fetchone()
+                return result[0] if result else 0
+        except Exception as e:
+            print(f"Erreur lors du comptage des enregistrements de {table_name}: {str(e)}")
+            return 0

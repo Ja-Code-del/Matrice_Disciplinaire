@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHeaderView, QDialog, QToolBar, QFileDialog, QDockWidget, QSizePolicy)
 
 from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QFont, QIcon, QPixmap
+from PyQt6.QtGui import QFont, QIcon, QPixmap, QAction
 from src.database.db_manager import DatabaseManager
 from src.ui.styles.styles import Styles
 from src.database.models import GendarmeRepository, SanctionRepository
@@ -20,22 +20,28 @@ from .handlers.stats_handler import StatsHandler
 class MainGendarmeApp(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        # Initialisation des attributs
         self.search_type = None
-        self.logo_label = QLabel()  # Ajouter pour le logo
-        # Autres initialisations
+        self.logo_label = QLabel()
         self.sanctions_table = None
         self.search_input = None
         self.toolbar = None
         self.theme_button = None
         self.info_labels = None
         self.is_dark_mode = False
+        self.info_group = None
+        self.sanctions_group = None
+
+        # Initialisation des gestionnaires de données
         self.db_manager = DatabaseManager()
         self.gendarme_repository = GendarmeRepository(self.db_manager)
         self.sanction_repository = SanctionRepository(self.db_manager)
-        self.info_group = None  # Correction : Attribut de classe pour info_group
-        self.sanctions_group = None  # Correction : Attribut de classe pour sanctions_group
 
-        # Définir info_fields comme attribut de classe
+        # Initialisation du gestionnaire de statistiques
+        self.stats_handler = StatsHandler(self)
+
+        # Définition des champs d'information
         self.info_fields = [
             ('numero_dossier', 'N° de dossier'),
             ('mle', 'Matricule'),
@@ -53,19 +59,8 @@ class MainGendarmeApp(QMainWindow):
             ('situation_matrimoniale', 'Situation matrimoniale'),
             ('nb_enfants', 'Nombre d\'enfants')
         ]
-        #pour sanction fields
-        # self.sanctions_fields = [
-        #     ('mle', 'Matricule'),
-        #     ('date_faits', 'Date des faits'),
-        #     ('faute_commise', 'Faute commise'),
-        #     ('statut', 'Statut'),
-        #     ('reference_statut', 'Référence du statut'),
-        #     ('taux_jar', 'Taux (JAR)'),
-        #     ('comite', 'Comité'),
-        #     ('annee_faits', 'Année des faits'),
-        #     ('numero_dossier', 'N° Dossier')
-        # ]
 
+        # Initialisation de l'interface
         self.init_ui()
 
     def init_ui(self):
@@ -353,8 +348,6 @@ class MainGendarmeApp(QMainWindow):
                 }}
             """)
 
-
-
     def edit_gendarme(self):
         dialog = SearchMatriculeDialog(self.db_manager, self)
         if dialog.exec():
@@ -428,18 +421,19 @@ class MainGendarmeApp(QMainWindow):
         Méthode appelée lors du clic sur le bouton statistiques.
         Délègue l'ouverture au gestionnaire de statistiques.
         """
+        print("Ouverture des statistiques...")  # Pour le débogage
         if hasattr(self, 'stats_handler') and self.stats_handler:
             self.stats_handler.open_statistics()
+        else:
+            print("Erreur: stats_handler non initialisé")  # Pour le débogage
 
     def closeEvent(self, event):
-        """
-        Surcharge de la méthode de fermeture pour nettoyer les ressources.
-        """
+        """Surcharge de la méthode de fermeture pour nettoyer les ressources."""
         # Nettoyage du gestionnaire de statistiques
         if hasattr(self, 'stats_handler') and self.stats_handler:
             self.stats_handler.cleanup()
 
-        # Appel de la méthode parente ou votre code existant
+        # Appel de la méthode parente ou votre code existant de fermeture
         super().closeEvent(event)
 
     def toggle_theme(self):

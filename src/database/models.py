@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List
+from typing import Dict, List, Any
 
 
 @dataclass
@@ -170,3 +171,135 @@ class SanctionRepository:
             stats['repartition_par_type'] = dict(cursor.fetchall())
 
             return stats
+
+
+@dataclass
+class StatisticsData:
+    """Classe pour stocker les données statistiques"""
+    title: str
+    data: Dict[str, Any]
+    type: str = "count"  # count, percentage, etc.
+
+
+class StatisticsRepository:
+    """Classe pour gérer les opérations statistiques dans la base de données"""
+
+    def __init__(self, db_manager):
+        self.db_manager = db_manager
+
+    def get_sanctions_by_period(self, year: int = None) -> StatisticsData:
+        """Récupère les statistiques des sanctions par période"""
+        with self.db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            query = """
+                SELECT strftime('%m', date_faits) as mois, COUNT(*) as nombre
+                FROM sanctions 
+                WHERE annee_faits = ?
+                GROUP BY mois
+                ORDER BY mois
+            """
+            cursor.execute(query, (year,))
+            results = dict(cursor.fetchall())
+            return StatisticsData(
+                title=f"Sanctions par mois en {year}",
+                data=results
+            )
+
+    def get_sanctions_by_grade(self) -> StatisticsData:
+        """Récupère les statistiques des sanctions par grade"""
+        with self.db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT g.grade, COUNT(*) as count
+                FROM sanctions s
+                JOIN gendarmes g ON CAST(s.matricule AS TEXT) = g.mle
+                GROUP BY g.grade
+                ORDER BY count DESC
+            """)
+            results = dict(cursor.fetchall())
+            return StatisticsData(
+                title="Répartition des sanctions par grade",
+                data=results
+            )
+
+    def get_sanctions_by_region(self) -> StatisticsData:
+        """Récupère les statistiques des sanctions par région"""
+        with self.db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT g.regions, COUNT(*) as count
+                FROM sanctions s
+                JOIN gendarmes g ON CAST(s.matricule AS TEXT) = g.mle
+                GROUP BY g.regions
+                ORDER BY count DESC
+            """)
+            results = dict(cursor.fetchall())
+            return StatisticsData(
+                title="Répartition des sanctions par région",
+                data=results
+            )
+
+    def get_sanctions_full_list(self, filters: Dict[str, Any] = None) -> List[tuple]:
+        """Récupère la liste complète des sanctions avec filtres optionnels"""
+        with self.db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            query = """
+                SELECT 
+                    s.matricule,
+                    g.nom_prenoms,
+                    g.grade,
+                    g.regions,
+                    s.date_faits,
+                    s.faute_commise,
+                    s.categorie,
+                    s.statut
+                FROM sanctions s
+                LEFT JOIN gendarmes g ON CAST(s.matricule AS TEXT) = g.mle
+                WHERE 1=1
+            """
+            params = []
+
+            if filters:
+                if filters.get('grade'):
+                    query += " AND g.grade = ?"
+                    params.append(filters['grade'])
+                if filters.get('region'):
+                    query += " AND g.regions = ?"
+                    params.append(filters['region'])
+                if filters.get('year'):
+                    query += " AND s.annee_punition = ?"
+                    params.append(filters['year'])
+                if filters.get('matricule'):
+                    query += " AND s.matricule LIKE ?"
+                    params.append(f"%{filters['matricule']}%")
+                if filters.get('categorie'):
+                    query += " AND s.categorie = ?"
+                    params.append(filters['categorie'])
+
+            query += " ORDER BY s.date_faits DESC"
+            cursor.execute(query, params)
+            return cursor.fetchall()
+
+    def get_available_filters(self) -> Dict[str, List[str]]:
+        """Récupère les valeurs disponibles pour les filtres"""
+        filters = {}
+        with self.db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Grades
+            cursor.execute("SELECT DISTINCT grade FROM gendarmes ORDER BY grade")
+            filters['grades'] = [row[0] for row in cursor.fetchall() if row[0]]
+
+            # Régions
+            cursor.execute("SELECT DISTINCT regions FROM gendarmes ORDER BY regions")
+            filters['regions'] = [row[0] for row in cursor.fetchall() if row[0]]
+
+            # Années
+            cursor.execute("SELECT DISTINCT annee_punition FROM sanctions ORDER BY annee_punition DESC")
+            filters['years'] = [row[0] for row in cursor.fetchall() if row[0]]
+
+            # Catégories de sanctions
+            cursor.execute("SELECT DISTINCT categorie FROM sanctions ORDER BY categorie")
+            filters['categories'] = [row[0] for row in cursor.fetchall() if row[0]]
+
+            return filters
