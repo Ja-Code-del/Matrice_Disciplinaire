@@ -1,6 +1,8 @@
 pandas==2.2.3
 PyQt6==6.7.1
-matplotlib
-openpyxl
-reportlab
-python-pptx
+matplotlib~=3.9.2
+openpyxl~=3.1.5
+reportlab~=4.2.5
+python-pptx~=1.0.2
+
+numpy~=2.1.2

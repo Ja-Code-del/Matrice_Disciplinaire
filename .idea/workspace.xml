@@ -4,19 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="going to work on stats now. first version of all files. We got many TODO. There is lot of job here believe me">
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="best config for stats data but not &quot;sexy&quot; enough">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/database/db_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/db_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/database/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/handlers/stats_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/handlers/stats_handler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/subject_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/subject_dialog.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/table_config_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/table_config_dialog.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -364,11 +354,18 @@
       <option name="project" value="LOCAL" />
       <updated>1730980536674</updated>
     </task>
-    <option name="localTasksCounter" value="34" />
+    <task id="LOCAL-00034" summary="best config for stats data but not &quot;sexy&quot; enough">
+      <option name="closed" value="true" />
+      <created>1731090448372</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1731090448373</updated>
+    </task>
+    <option name="localTasksCounter" value="35" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="new window for stats. added a new folder to organize all this stuff" />
     <MESSAGE value="Work on style of main_window principally" />
     <MESSAGE value="Work on style of main_window deleted old code put in comment" />
     <MESSAGE value="Main_window : date des faits no : date &#10;stats_window: worked on total list of punished&#10;and finally added the punis_list.py file to handle it" />
@@ -393,7 +390,8 @@
     <MESSAGE value="YOOOOOO Everyhting works we can now edit gendarme datas" />
     <MESSAGE value="OOk now we can modify the unit of a gendarme by just searching his unit" />
     <MESSAGE value="going to work on stats now. first version of all files. We got many TODO. There is lot of job here believe me" />
-    <option name="LAST_COMMIT_MESSAGE" value="going to work on stats now. first version of all files. We got many TODO. There is lot of job here believe me" />
+    <MESSAGE value="best config for stats data but not &quot;sexy&quot; enough" />
+    <option name="LAST_COMMIT_MESSAGE" value="best config for stats data but not &quot;sexy&quot; enough" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

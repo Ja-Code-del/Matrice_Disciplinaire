@@ -2,7 +2,10 @@
 import os
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (QFileDialog, QMessageBox, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel,
-                             QTableWidget, QPushButton, QTableWidgetItem)
+                             QTableWidget, QPushButton, QTableWidgetItem, QHeaderView, QSizePolicy)
+import numpy as np
+import matplotlib.pyplot as plt
+from PyQt6.QtGui import QColor
 #pour excel
 import pandas as pd
 #pour les pdf
@@ -192,18 +195,96 @@ class VisualizationWindow(QMainWindow):
             )
 
     def update_table(self, df):
-        """Met à jour le tableau avec les données."""
-        self.table.setRowCount(len(df))
-        self.table.setColumnCount(3)
-        self.table.setHorizontalHeaderLabels(['X', 'Y', 'Nombre'])
+        """Met à jour le tableau avec les données sous forme de tableau croisé."""
+        try:
+            # Création du tableau croisé dynamique
+            pivot_table = pd.pivot_table(
+                df,
+                values='count',
+                index='y_value',  # Grades en lignes (à gauche)
+                columns='x_value',  # Subdivisions en colonnes (en haut)
+                fill_value=0,  # Remplacer les NaN par 0
+                aggfunc='sum',  # Sommer les valeurs
+                margins=True,  # Ajouter les totaux
+                margins_name='TOTAL'  # Nom de la colonne/ligne des totaux
+            )
 
-        for i in range(len(df)):
-            for j, col in enumerate(['x_value', 'y_value', 'count']):
-                item = QTableWidgetItem(str(df.iloc[i][col]))
-                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.table.setItem(i, j, item)
+            # Configuration du tableau
+            self.table.clear()
+            self.table.setRowCount(len(pivot_table.index))
+            self.table.setColumnCount(len(pivot_table.columns))
 
-        self.table.resizeColumnsToContents()
+            # Style pour tout le tableau
+            self.table.setStyleSheet("""
+                QTableWidget {
+                    background-color: white;
+                    gridline-color: black;
+                    border: 1px solid black;
+                }
+                QTableWidget::item {
+                    padding: 5px;
+                }
+            """)
+
+            # En-têtes des colonnes (Subdivisions)
+            self.table.setHorizontalHeaderLabels(pivot_table.columns.astype(str))
+
+            # En-têtes des lignes (Grades)
+            self.table.setVerticalHeaderLabels(pivot_table.index.astype(str))
+
+            # Remplissage des données
+            for i in range(len(pivot_table.index)):
+                for j in range(len(pivot_table.columns)):
+                    value = pivot_table.iloc[i, j]
+                    item = QTableWidgetItem(str(int(value)))
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                    # Style pour les totaux
+                    if (pivot_table.index[i] == 'TOTAL' or
+                            pivot_table.columns[j] == 'TOTAL'):
+                        item.setBackground(QColor(128, 128, 128))  # Gris pour les totaux
+                        item.setForeground(QColor(255, 255, 255))  # Texte blanc pour les totaux
+                        font = item.font()
+                        font.setBold(True)
+                        item.setFont(font)
+                    else:
+                        item.setBackground(QColor(220, 220, 220))  # Gris clair pour les cellules normales
+
+                    self.table.setItem(i, j, item)
+
+            # Style des en-têtes
+            header_style = """
+                QHeaderView::section {
+                    background-color: rgb(0, 85, 127);
+                    color: white;
+                    padding: 6px;
+                    border: 1px solid #005580;
+                    font-weight: bold;
+                }
+            """
+            self.table.horizontalHeader().setStyleSheet(header_style)
+            self.table.verticalHeader().setStyleSheet(header_style)
+
+            # Ajustement des dimensions
+            self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+            # Paramètres supplémentaires pour l'apparence
+            self.table.setShowGrid(True)
+            self.table.setGridStyle(Qt.PenStyle.SolidLine)
+            self.table.verticalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.horizontalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            # Centrer le tableau dans son conteneur
+            self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        except Exception as e:
+            print(f"Erreur dans update_table: {str(e)}")
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                f"Erreur lors de la mise à jour du tableau: {str(e)}"
+            )
 
     def update_graph(self, df):
         """Met à jour le graphique avec les données."""
