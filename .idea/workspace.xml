@@ -4,7 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="best config for stats data but not &quot;sexy&quot; enough" />
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="YOOOOO MY STATS ARE ON FIRE">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -47,24 +51,24 @@
     <option name="showLibraryContents" value="true" />
     <option name="sortKey" value="BY_TIME_DESCENDING" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.gendarme-app-import-2.executor": "Run",
-    "Python.gendarme-app-import-5.executor": "Run",
-    "Python.gendarme-app-import.executor": "Run",
-    "Python.import_window.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.main_window.executor": "Run",
-    "Python.scratch.executor": "Run",
-    "Python.styles.executor": "Run",
-    "Python.test.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "/Users/bretwalda/PycharmProjects/Matrice_Disciplinaire/src/data/gendarmerie",
-    "run.code.analysis.last.selected.profile": "pProject Default",
-    "settings.editor.selected.configurable": "proofread"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.gendarme-app-import-2.executor&quot;: &quot;Run&quot;,
+    &quot;Python.gendarme-app-import-5.executor&quot;: &quot;Run&quot;,
+    &quot;Python.gendarme-app-import.executor&quot;: &quot;Run&quot;,
+    &quot;Python.import_window.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main_window.executor&quot;: &quot;Run&quot;,
+    &quot;Python.scratch.executor&quot;: &quot;Run&quot;,
+    &quot;Python.styles.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/bretwalda/PycharmProjects/Matrice_Disciplinaire/src/data/gendarmerie&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;proofread&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/data/gendarmerie" />
@@ -358,11 +362,18 @@
       <option name="project" value="LOCAL" />
       <updated>1731090448373</updated>
     </task>
-    <option name="localTasksCounter" value="35" />
+    <task id="LOCAL-00035" summary="YOOOOO MY STATS ARE ON FIRE">
+      <option name="closed" value="true" />
+      <created>1731093093743</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1731093093743</updated>
+    </task>
+    <option name="localTasksCounter" value="36" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Work on style of main_window principally" />
     <MESSAGE value="Work on style of main_window deleted old code put in comment" />
     <MESSAGE value="Main_window : date des faits no : date &#10;stats_window: worked on total list of punished&#10;and finally added the punis_list.py file to handle it" />
     <MESSAGE value="Main_window : update to handle new button : import Soff complete excel files. new button to write forms now diretcly into the app" />
@@ -387,7 +398,8 @@
     <MESSAGE value="OOk now we can modify the unit of a gendarme by just searching his unit" />
     <MESSAGE value="going to work on stats now. first version of all files. We got many TODO. There is lot of job here believe me" />
     <MESSAGE value="best config for stats data but not &quot;sexy&quot; enough" />
-    <option name="LAST_COMMIT_MESSAGE" value="best config for stats data but not &quot;sexy&quot; enough" />
+    <MESSAGE value="YOOOOO MY STATS ARE ON FIRE" />
+    <option name="LAST_COMMIT_MESSAGE" value="YOOOOO MY STATS ARE ON FIRE" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
