@@ -3,9 +3,14 @@ import os
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (QFileDialog, QMessageBox, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel,
                              QTableWidget, QPushButton, QTableWidgetItem, QHeaderView, QSizePolicy)
+from PyQt6.QtGui import QColor
+#pour les graphiques et les tableaux
 import numpy as np
 import matplotlib.pyplot as plt
-from PyQt6.QtGui import QColor
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import seaborn as sns
+
 #pour excel
 import pandas as pd
 #pour les pdf
@@ -20,24 +25,13 @@ from pptx.util import Inches, Pt
 from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
 from pptx.oxml import parse_xml
-#pour les graphiques et les tableaux
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+
+from src.data.gendarmerie.structure import SUBDIVISIONS, SERVICE_RANGES, ANALYSIS_THEMES
 
 from datetime import datetime
 
-from src.data.gendarmerie.structure import SUBDIVISIONS, SERVICE_RANGES, ANALYSIS_THEMES
-
-from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                             QPushButton, QTableWidget, QTableWidgetItem,
-                             QLabel, QFrame, QMessageBox)
-from PyQt6.QtCore import Qt, pyqtSignal
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
-import pandas as pd
-from src.data.gendarmerie.structure import SUBDIVISIONS, SERVICE_RANGES, ANALYSIS_THEMES
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font, PatternFill
 
 
 class VisualizationWindow(QMainWindow):
@@ -52,10 +46,15 @@ class VisualizationWindow(QMainWindow):
         self.setWindowTitle("Visualisation des statistiques")
         self.setMinimumSize(1000, 800)
 
+        # Configuration du style Seaborn
+        sns.set_style("whitegrid")
+        sns.set_palette("husl")
+
         self.setup_ui()
         self.load_data()
 
     def setup_ui(self):
+        """Configure l'interface utilisateur."""
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
@@ -77,6 +76,16 @@ class VisualizationWindow(QMainWindow):
         # Tableau de données
         self.table = QTableWidget()
         self.table.setAlternatingRowColors(True)
+        self.table.setStyleSheet("""
+            QTableWidget {
+                background-color: white;
+                gridline-color: black;
+                border: 1px solid black;
+            }
+            QTableWidget::item {
+                padding: 5px;
+            }
+        """)
         main_layout.addWidget(self.table)
 
         # Zone du graphique
@@ -137,7 +146,6 @@ class VisualizationWindow(QMainWindow):
             x_expr = get_field_expression(x_config)
             y_expr = get_field_expression(y_config)
 
-            # Construction de la requête
             query = f"""
             SELECT 
                 {x_expr} as x_value,
@@ -172,22 +180,21 @@ class VisualizationWindow(QMainWindow):
             ORDER BY x_value, y_value
             """
 
-            print(f"Executing query: {query}")  # Pour le débogage
-            print(f"With parameters: {params}")  # Pour le débogage
+            print(f"Executing query: {query}")  # Débogage
+            print(f"With parameters: {params}")  # Débogage
 
-            # Exécution de la requête
             with self.db_manager.get_connection() as conn:
                 df = pd.read_sql_query(query, conn, params=params)
 
-            print(f"Query results:\n{df}")  # Pour le débogage
+            print(f"Query results:\n{df}")  # Débogage
 
             # Mise à jour des composants visuels
             self.update_table(df)
-            self.update_graph(df)
+            self.update_graph(df, 'bar_stacked')  # Type de graphique par défaut
             self.update_info(df)
 
         except Exception as e:
-            print(f"Error in load_data: {str(e)}")  # Pour le débogage
+            print(f"Error in load_data: {str(e)}")
             QMessageBox.critical(
                 self,
                 "Erreur",
@@ -201,12 +208,11 @@ class VisualizationWindow(QMainWindow):
             pivot_table = pd.pivot_table(
                 df,
                 values='count',
-                index='y_value',  # Grades en lignes (à gauche)
-                columns='x_value',  # Subdivisions en colonnes (en haut)
-                fill_value=0,  # Remplacer les NaN par 0
-                aggfunc='sum',  # Sommer les valeurs
-                margins=True,  # Ajouter les totaux
-                margins_name='TOTAL'  # Nom de la colonne/ligne des totaux
+                index='y_value',
+                columns='x_value',
+                fill_value=0,
+                margins=True,
+                margins_name='TOTAL'
             )
 
             # Configuration du tableau
@@ -214,22 +220,8 @@ class VisualizationWindow(QMainWindow):
             self.table.setRowCount(len(pivot_table.index))
             self.table.setColumnCount(len(pivot_table.columns))
 
-            # Style pour tout le tableau
-            self.table.setStyleSheet("""
-                QTableWidget {
-                    background-color: white;
-                    gridline-color: black;
-                    border: 1px solid black;
-                }
-                QTableWidget::item {
-                    padding: 5px;
-                }
-            """)
-
-            # En-têtes des colonnes (Subdivisions)
+            # En-têtes
             self.table.setHorizontalHeaderLabels(pivot_table.columns.astype(str))
-
-            # En-têtes des lignes (Grades)
             self.table.setVerticalHeaderLabels(pivot_table.index.astype(str))
 
             # Remplissage des données
@@ -242,13 +234,13 @@ class VisualizationWindow(QMainWindow):
                     # Style pour les totaux
                     if (pivot_table.index[i] == 'TOTAL' or
                             pivot_table.columns[j] == 'TOTAL'):
-                        item.setBackground(QColor(128, 128, 128))  # Gris pour les totaux
-                        item.setForeground(QColor(255, 255, 255))  # Texte blanc pour les totaux
+                        item.setBackground(QColor(128, 128, 128))
+                        item.setForeground(QColor(255, 255, 255))
                         font = item.font()
                         font.setBold(True)
                         item.setFont(font)
                     else:
-                        item.setBackground(QColor(220, 220, 220))  # Gris clair pour les cellules normales
+                        item.setBackground(QColor(220, 220, 220))
 
                     self.table.setItem(i, j, item)
 
@@ -269,14 +261,8 @@ class VisualizationWindow(QMainWindow):
             self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
             self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
-            # Paramètres supplémentaires pour l'apparence
             self.table.setShowGrid(True)
             self.table.setGridStyle(Qt.PenStyle.SolidLine)
-            self.table.verticalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.table.horizontalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
-
-            # Centrer le tableau dans son conteneur
-            self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         except Exception as e:
             print(f"Erreur dans update_table: {str(e)}")
@@ -286,54 +272,57 @@ class VisualizationWindow(QMainWindow):
                 f"Erreur lors de la mise à jour du tableau: {str(e)}"
             )
 
-    def update_graph(self, df):
-        """Crée un graphique à barres empilées."""
+    def update_graph(self, df, chart_type='bar_stacked'):
+        """Met à jour le graphique selon le type choisi avec Seaborn."""
         try:
-            # Création du pivot pour le graphique
-            pivot_table = pd.pivot_table(
-                df,
-                values='count',
-                index='y_value',  # Grades en index
-                columns='x_value',  # Subdivisions en colonnes
-                fill_value=0
-            )
-
             # Nettoyage du graphique précédent
             self.figure.clear()
             ax = self.figure.add_subplot(111)
 
-            # Création du graphique à barres empilées
-            bottom = np.zeros(len(pivot_table.index))
-            colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
+            # Configuration du style Seaborn
+            sns.set_style("whitegrid")
+            sns.set_palette("husl")
 
-            # Pour chaque subdivision, créer une barre empilée
-            bars = []
-            labels = []
-            for i, column in enumerate(pivot_table.columns):
-                bar = ax.bar(pivot_table.index, pivot_table[column], bottom=bottom,
-                             color=colors[i % len(colors)])
-                bottom += pivot_table[column]
-                bars.append(bar)
-                labels.append(column)
+            # Création du pivot pour le graphique si nécessaire
+            pivot_table = pd.pivot_table(
+                df,
+                values='count',
+                index='y_value',
+                columns='x_value',
+                fill_value=0
+            )
 
-            # Personnalisation du graphique
-            ax.set_ylabel('Nombre')
-            ax.grid(True, axis='y', linestyle='--', alpha=0.7)
-
-            # Légende
-            ax.legend(bars, labels,
-                      loc='upper center',
-                      bbox_to_anchor=(0.5, -0.1),
-                      ncol=len(labels),
-                      frameon=False)
-
-            # Rotation des étiquettes de l'axe x
-            plt.xticks(rotation=0)
+            if chart_type == 'bar_stacked':
+                self._create_stacked_bar_sns(ax, pivot_table)
+            elif chart_type == 'bar_grouped':
+                self._create_grouped_bar_sns(ax, df)
+            elif chart_type == 'pie':
+                self._create_pie_chart_sns(ax, df)
+            elif chart_type == 'donut':
+                self._create_donut_chart_sns(ax, df)
+            elif chart_type == 'bar_stacked':
+                self._create_stacked_bar_sns(ax, pivot_table)
+            elif chart_type == 'line':
+                self._create_line_chart_sns(ax, pivot_table)
+            elif chart_type == 'heatmap':
+                self._create_heatmap_sns(ax, pivot_table)
+            elif chart_type == 'violin':
+                self._create_violin_plot_sns(ax, df)
+            elif chart_type == 'swarm':
+                self._create_swarm_plot_sns(ax, df)
+            elif chart_type == 'box':
+                self._create_box_plot_sns(ax, df)
+            elif chart_type == 'kde':
+                self._create_kde_plot_sns(ax, df)
+            elif chart_type == 'bar_count':
+                self._create_count_plot_sns(ax, df)
+            elif chart_type == 'strip':
+                self._create_strip_plot_sns(ax, df)
+            else:
+                self._create_stacked_bar_sns(ax, pivot_table)
 
             # Ajustement de la mise en page
-            self.figure.tight_layout(rect=[0, 0.1, 1, 1])  # Espace pour la légende
-
-            # Mise à jour du canvas
+            self.figure.tight_layout()
             self.canvas.draw()
 
         except Exception as e:
@@ -344,20 +333,165 @@ class VisualizationWindow(QMainWindow):
                 f"Erreur lors de la mise à jour du graphique: {str(e)}"
             )
 
+    # Méthodes de création des différents types de graphiques
+    def _create_stacked_bar_sns(self, ax, pivot_table):
+        """Crée un graphique à barres empilées avec Seaborn."""
+        pivot_table.plot(kind='bar', stacked=True, ax=ax)
+        ax.set_ylabel('Nombre')
+        ax.legend(title='Catégories', bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.xticks(rotation=45)
+
+    def _create_grouped_bar_sns(self, ax, df):
+        """Crée un graphique à barres groupées avec Seaborn."""
+        sns.barplot(data=df, x='x_value', y='count', hue='y_value', ax=ax)
+        ax.set_ylabel('Nombre')
+        ax.legend(title='Catégories', bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.xticks(rotation=45)
+
+    def _create_line_chart_sns(self, ax, pivot_table):
+        """Crée un graphique linéaire avec Seaborn."""
+        for column in pivot_table.columns:
+            sns.lineplot(data=pivot_table[column], marker='o', ax=ax)
+        ax.set_ylabel('Nombre')
+        ax.legend(title='Catégories', bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.xticks(rotation=45)
+
+    def _create_heatmap_sns(self, ax, pivot_table):
+        """Crée une heatmap avec Seaborn."""
+        sns.heatmap(pivot_table, annot=True, fmt='g', cmap='YlOrRd', ax=ax)
+        plt.xticks(rotation=45)
+        plt.yticks(rotation=0)
+
+    def _create_violin_plot_sns(self, ax, df):
+        """Crée un violin plot avec Seaborn."""
+        sns.violinplot(data=df, x='x_value', y='count', hue='y_value', ax=ax)
+        ax.set_ylabel('Distribution')
+        plt.xticks(rotation=45)
+
+    def _create_swarm_plot_sns(self, ax, df):
+        """Crée un swarm plot avec Seaborn."""
+        sns.swarmplot(data=df, x='x_value', y='count', hue='y_value', ax=ax)
+        ax.set_ylabel('Distribution')
+        plt.xticks(rotation=45)
+
+    def _create_box_plot_sns(self, ax, df):
+        """Crée une boîte à moustaches avec Seaborn."""
+        sns.boxplot(data=df, x='x_value', y='count', hue='y_value', ax=ax)
+        ax.set_ylabel('Distribution')
+        plt.xticks(rotation=45)
+
+    def _create_kde_plot_sns(self, ax, df):
+        """Crée un KDE plot avec Seaborn."""
+        for category in df['y_value'].unique():
+            subset = df[df['y_value'] == category]
+            sns.kdeplot(data=subset, x='count', label=category, ax=ax)
+        ax.set_ylabel('Densité')
+        ax.legend(title='Catégories', bbox_to_anchor=(1.05, 1), loc='upper left')
+
+    def _create_count_plot_sns(self, ax, df):
+        """Crée un count plot avec Seaborn."""
+        sns.countplot(data=df, x='x_value', hue='y_value', ax=ax)
+        ax.set_ylabel('Nombre')
+        plt.xticks(rotation=45)
+
+    def _create_strip_plot_sns(self, ax, df):
+        """Crée un strip plot avec Seaborn."""
+        sns.stripplot(data=df, x='x_value', y='count', hue='y_value', ax=ax, jitter=True)
+        ax.set_ylabel('Distribution')
+        plt.xticks(rotation=45)
+
+    def _create_pie_chart_sns(self, ax, df):
+        """Crée un graphique en camembert avec Seaborn."""
+        try:
+            # Calcul des totaux par catégorie
+            totals = df.groupby('x_value')['count'].sum()
+
+            # Configuration des couleurs
+            colors = sns.color_palette("husl", n_colors=len(totals))
+
+            # Création du camembert
+            wedges, texts, autotexts = ax.pie(
+                totals,
+                labels=totals.index,
+                colors=colors,
+                autopct='%1.1f%%',  # Affichage des pourcentages
+                pctdistance=0.85,
+                startangle=90
+            )
+
+            # Personnalisation du style
+            plt.setp(autotexts, size=8, weight="bold")
+            plt.setp(texts, size=9)
+
+            # Ajout du titre
+            ax.set_title(f"Répartition par {self.config['x_axis']['theme']}")
+
+            # Égaliser les axes pour obtenir un cercle parfait
+            ax.axis('equal')
+
+        except Exception as e:
+            print(f"Erreur dans _create_pie_chart_sns: {str(e)}")
+
+    def _create_donut_chart_sns(self, ax, df):
+        """Crée un graphique en anneau (donut) avec Seaborn."""
+        try:
+            # Calcul des totaux par catégorie
+            totals = df.groupby('x_value')['count'].sum()
+
+            # Configuration des couleurs
+            colors = sns.color_palette("husl", n_colors=len(totals))
+
+            # Création du donut
+            wedges, texts, autotexts = ax.pie(
+                totals,
+                labels=totals.index,
+                colors=colors,
+                autopct='%1.1f%%',
+                pctdistance=0.75,
+                startangle=90,
+                wedgeprops=dict(width=0.5)  # Cette propriété crée le trou au centre
+            )
+
+            # Personnalisation du style
+            plt.setp(autotexts, size=8, weight="bold")
+            plt.setp(texts, size=9)
+
+            # Ajout du titre
+            ax.set_title(f"Répartition par {self.config['x_axis']['theme']}")
+
+            # Égaliser les axes pour obtenir un cercle parfait
+            ax.axis('equal')
+
+            # Ajout du total au centre
+            centre_circle = plt.Circle((0, 0), 0.50, fc='white')
+            ax.add_artist(centre_circle)
+            total = totals.sum()
+            ax.text(0, 0, f'Total\n{total}',
+                    ha='center', va='center',
+                    fontsize=12, fontweight='bold')
+
+        except Exception as e:
+            print(f"Erreur dans _create_donut_chart_sns: {str(e)}")
+
     def update_info(self, df):
         """Met à jour les informations d'en-tête."""
         total = df['count'].sum()
+        moyenne = df['count'].mean()
+        maximum = df['count'].max()
+        minimum = df['count'].min()
+
         self.info_label.setText(
             f"Total: {total} | "
-            f"Moyenne: {df['count'].mean():.2f} | "
-            f"Maximum: {df['count'].max()} | "
-            f"Minimum: {df['count'].min()}"
+            f"Moyenne: {moyenne:.2f} | "
+            f"Maximum: {maximum} | "
+            f"Minimum: {minimum}"
         )
 
+    # Méthodes d'export
     def export_excel(self):
-        """Exporte les données vers Excel avec mise en forme."""
+        """Exporte les données vers Excel."""
         try:
-            # Demander à l'utilisateur où sauvegarder le fichier
+            # Nom du fichier par défaut
             default_name = f"statistiques_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
             file_path, _ = QFileDialog.getSaveFileName(
                 self,
@@ -369,40 +503,49 @@ class VisualizationWindow(QMainWindow):
             if not file_path:  # L'utilisateur a annulé
                 return
 
-            # Création d'un writer Excel avec le moteur XlsxWriter pour la prise en charge d'insert_image
-            with pd.ExcelWriter(file_path, engine='xlsxwriter') as writer:
+            # Création du writer Excel
+            with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
                 # Récupération des données du tableau
-                table_data = []
-                headers = [self.table.horizontalHeaderItem(j).text() for j in range(self.table.columnCount())]
+                data = []
+                headers = []
 
+                # En-têtes
+                for j in range(self.table.columnCount()):
+                    headers.append(self.table.horizontalHeaderItem(j).text())
+
+                # Données
                 for i in range(self.table.rowCount()):
-                    row = [self.table.item(i, j).text() if self.table.item(i, j) else "" for j in
-                           range(self.table.columnCount())]
-                    table_data.append(row)
+                    row = []
+                    for j in range(self.table.columnCount()):
+                        item = self.table.item(i, j)
+                        row.append(item.text() if item else "")
+                    data.append(row)
 
                 # Création du DataFrame
-                df = pd.DataFrame(table_data, columns=headers)
+                df = pd.DataFrame(data, columns=headers)
 
-                # Export du DataFrame vers Excel
+                # Export vers Excel avec mise en forme
                 df.to_excel(writer, sheet_name='Données', index=False)
-
-                # Sauvegarde temporaire du graphique en tant qu'image
-                self.figure.savefig('temp_chart.png')
-
-                # Accès à la feuille de calcul et insertion de l'image
                 worksheet = writer.sheets['Données']
-                worksheet.insert_image('A' + str(len(df) + 3), 'temp_chart.png')
 
-                # Ajustement de la largeur des colonnes
-                for i, col in enumerate(df.columns):
-                    max_length = max(df[col].astype(str).apply(len).max(), len(col))
-                    worksheet.set_column(i, i, max_length + 2)
+                # Ajustement des colonnes
+                for idx, col in enumerate(df.columns):
+                    max_length = max(
+                        df[col].astype(str).apply(len).max(),
+                        len(str(col))
+                    ) + 2
+                    # Convertir en largeur Excel
+                    worksheet.column_dimensions[get_column_letter(idx + 1)].width = max_length
 
-            # Suppression du fichier d'image temporaire
-            if os.path.exists('temp_chart.png'):
-                os.remove('temp_chart.png')
+                # Style pour les totaux
+                for row in worksheet.iter_rows():
+                    for cell in row:
+                        if 'TOTAL' in str(cell.value):
+                            cell.font = Font(bold=True)
+                            cell.fill = PatternFill(start_color="808080",
+                                                    end_color="808080",
+                                                    fill_type="solid")
 
-            # Message de succès
             QMessageBox.information(
                 self,
                 "Succès",
@@ -445,38 +588,48 @@ class VisualizationWindow(QMainWindow):
             elements = []
             styles = getSampleStyleSheet()
 
-            # Titre
+            # Titre du document
             title_style = ParagraphStyle(
                 'CustomTitle',
                 parent=styles['Heading1'],
                 fontSize=16,
-                spaceAfter=30
+                spaceAfter=30,
+                alignment=1  # Centre
             )
-            title = Paragraph(
-                "Rapport Statistique",
-                title_style
-            )
+            title = Paragraph("Rapport Statistique", title_style)
             elements.append(title)
 
-            # Sous-titre avec date et informations
-            subtitle_style = ParagraphStyle(
-                'CustomSubTitle',
+            # Date et informations
+            date_style = ParagraphStyle(
+                'DateStyle',
                 parent=styles['Normal'],
                 fontSize=12,
                 spaceAfter=20
             )
-            subtitle = Paragraph(
+            date_text = Paragraph(
                 f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}",
-                subtitle_style
+                date_style
             )
-            elements.append(subtitle)
+            elements.append(date_text)
 
-            # Informations sur les axes
-            info = Paragraph(
-                f"Analyse: {self.config['x_axis']} par {self.config['y_axis']}",
-                subtitle_style
+            # Informations de configuration
+            config_style = ParagraphStyle(
+                'ConfigStyle',
+                parent=styles['Normal'],
+                fontSize=12,
+                spaceAfter=20
             )
-            elements.append(info)
+            config_text = Paragraph(
+                f"Analyse: {self.config['x_axis']['theme']} par {self.config['y_axis']['theme']}",
+                config_style
+            )
+            elements.append(config_text)
+            elements.append(Spacer(1, 20))
+
+            # Statistiques globales
+            stats_text = self.info_label.text()
+            stats_para = Paragraph(stats_text, styles['Normal'])
+            elements.append(stats_para)
             elements.append(Spacer(1, 20))
 
             # Création des données du tableau
@@ -498,22 +651,27 @@ class VisualizationWindow(QMainWindow):
 
             # Style du tableau
             table_style = TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2C3E50')),
+                # En-têtes
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#005580')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, 0), 12),
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                # Corps du tableau
                 ('BACKGROUND', (0, 1), (-1, -1), colors.white),
                 ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
                 ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
                 ('FONTSIZE', (0, 1), (-1, -1), 10),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('ROWHEIGHT', (0, 0), (-1, -1), 25),
+                # Ligne totaux
+                ('BACKGROUND', (-1, -1), (-1, -1), colors.grey),
+                ('TEXTCOLOR', (-1, -1), (-1, -1), colors.whitesmoke),
+                ('FONTNAME', (-1, -1), (-1, -1), 'Helvetica-Bold'),
             ])
 
-            # Création et style du tableau
+            # Création du tableau PDF
             pdf_table = Table(table_data, repeatRows=1)
             pdf_table.setStyle(table_style)
             elements.append(pdf_table)
@@ -523,20 +681,16 @@ class VisualizationWindow(QMainWindow):
 
             # Sauvegarde temporaire du graphique
             graph_path = 'temp_graph.png'
-            self.figure.savefig(graph_path, format='png', dpi=300, bbox_inches='tight')
+            self.figure.savefig(graph_path, dpi=300, bbox_inches='tight')
 
-            # Ajout du graphique au PDF avec une taille maximale
-            max_width = 500
-            img = utils.ImageReader(graph_path)
-            img_width, img_height = img.getSize()
-            aspect = img_height / float(img_width)
-
-            elements.append(Image(graph_path, width=max_width, height=max_width * aspect))
+            # Ajout de l'image au PDF
+            img = Image(graph_path, width=500, height=300)
+            elements.append(img)
 
             # Construction du document
             doc.build(elements)
 
-            # Nettoyage
+            # Nettoyage du fichier temporaire
             if os.path.exists(graph_path):
                 os.remove(graph_path)
 
@@ -576,8 +730,8 @@ class VisualizationWindow(QMainWindow):
             prs.slide_height = Inches(7.5)
 
             # Slide de titre
-            title_slide_layout = prs.slide_layouts[0]
-            slide = prs.slides.add_slide(title_slide_layout)
+            slide_layout = prs.slide_layouts[0]
+            slide = prs.slides.add_slide(slide_layout)
             title = slide.shapes.title
             subtitle = slide.placeholders[1]
 
@@ -585,8 +739,7 @@ class VisualizationWindow(QMainWindow):
             subtitle.text = f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}"
 
             # Slide d'information
-            bullet_slide_layout = prs.slide_layouts[1]
-            slide = prs.slides.add_slide(bullet_slide_layout)
+            slide = prs.slides.add_slide(prs.slide_layouts[1])
             shapes = slide.shapes
 
             title_shape = shapes.title
@@ -595,67 +748,61 @@ class VisualizationWindow(QMainWindow):
             title_shape.text = "Informations de l'analyse"
 
             tf = body_shape.text_frame
-            tf.text = f"Analyse des données"
+            tf.text = f"Analyse: {self.config['x_axis']['theme']} par {self.config['y_axis']['theme']}"
 
             p = tf.add_paragraph()
-            p.text = f"Axe X: {str(self.config['x_axis'])}"
-            p.level = 1
+            p.text = self.info_label.text()
 
-            p = tf.add_paragraph()
-            p.text = f"Axe Y: {str(self.config['y_axis'])}"
-            p.level = 1
-
-            # Slide des données
+            # Slide avec le tableau
             slide = prs.slides.add_slide(prs.slide_layouts[5])
             shapes = slide.shapes
-
             title = shapes.title
             title.text = "Données"
 
-            # Ajout du tableau
-            rows = self.table.rowCount() + 1  # +1 pour l'en-tête
+            # Création du tableau
+            rows = self.table.rowCount()
             cols = self.table.columnCount()
 
-            left = Inches(1)
-            top = Inches(2)
-            width = prs.slide_width - Inches(2)
-            height = prs.slide_height - Inches(3)
+            left = Inches(0.5)
+            top = Inches(1.5)
+            width = prs.slide_width - Inches(1)
+            height = Inches(0.3 * rows)
 
             table = shapes.add_table(rows, cols, left, top, width, height).table
 
-            # Remplissage des en-têtes
-            for col in range(cols):
-                # S'assurer que l'en-tête existe et le convertir en string
-                header_item = self.table.horizontalHeaderItem(col)
-                header_text = str(header_item.text()) if header_item else f"Colonne {col + 1}"
+            # Style de l'en-tête
+            for i in range(cols):
+                cell = table.cell(0, i)
+                cell.text = self.table.horizontalHeaderItem(i).text()
 
-                cell = table.cell(0, col)
-                cell.text = header_text
-
-                # Style de l'en-tête
                 paragraph = cell.text_frame.paragraphs[0]
-                paragraph.font.size = Pt(11)
                 paragraph.font.bold = True
-                paragraph.font.color.rgb = RGBColor(255, 255, 255)
+                paragraph.font.size = Pt(11)
+                paragraph.alignment = PP_ALIGN.CENTER
+
                 cell.fill.solid()
-                cell.fill.fore_color.rgb = RGBColor(44, 62, 80)
+                cell.fill.fore_color.rgb = RGBColor(0, 85, 128)
+                paragraph.font.color.rgb = RGBColor(255, 255, 255)
 
             # Remplissage des données
-            for row in range(self.table.rowCount()):
-                for col in range(cols):
-                    # S'assurer que la cellule existe et convertir son contenu en string
-                    item = self.table.item(row, col)
-                    cell_text = str(item.text()) if item else ""
+            for i in range(1, rows):
+                for j in range(cols):
+                    cell = table.cell(i, j)
+                    item = self.table.item(i - 1, j)
+                    cell.text = item.text() if item else ""
 
-                    table_cell = table.cell(row + 1, col)
-                    table_cell.text = cell_text
-
-                    # Style des données
-                    paragraph = table_cell.text_frame.paragraphs[0]
+                    paragraph = cell.text_frame.paragraphs[0]
                     paragraph.font.size = Pt(10)
                     paragraph.alignment = PP_ALIGN.CENTER
 
-            # Slide du graphique
+                    # Style pour la ligne des totaux
+                    if i == rows - 1:
+                        paragraph.font.bold = True
+                        cell.fill.solid()
+                        cell.fill.fore_color.rgb = RGBColor(128, 128, 128)
+                        paragraph.font.color.rgb = RGBColor(255, 255, 255)
+
+            # Slide avec le graphique
             slide = prs.slides.add_slide(prs.slide_layouts[5])
             shapes = slide.shapes
             title = shapes.title
@@ -663,11 +810,11 @@ class VisualizationWindow(QMainWindow):
 
             # Sauvegarde temporaire du graphique
             graph_path = 'temp_graph.png'
-            self.figure.savefig(graph_path, format='png', dpi=300, bbox_inches='tight')
+            self.figure.savefig(graph_path, dpi=300, bbox_inches='tight')
 
             # Ajout du graphique
             left = Inches(1)
-            top = Inches(2)
+            top = Inches(1.5)
             pic = slide.shapes.add_picture(
                 graph_path,
                 left,
@@ -678,7 +825,7 @@ class VisualizationWindow(QMainWindow):
             # Sauvegarde de la présentation
             prs.save(file_path)
 
-            # Nettoyage
+            # Nettoyage du fichier temporaire
             if os.path.exists(graph_path):
                 os.remove(graph_path)
 
@@ -694,526 +841,3 @@ class VisualizationWindow(QMainWindow):
                 "Erreur",
                 f"Erreur lors de l'export PowerPoint:\n{str(e)}"
             )
-
-
-# class VisualizationWindow(QMainWindow):
-#     """Fenêtre de visualisation des données statistiques."""
-#
-#     # Ajout du signal
-#     closed = pyqtSignal()
-#
-#     def __init__(self, db_manager, config, parent=None):
-#         super().__init__(parent)
-#         self.db_manager = db_manager
-#         self.config = config
-#         self.setWindowTitle("Visualisation des statistiques")
-#         self.setMinimumSize(1000, 800)
-#
-#         self.setup_ui()
-#         self.load_data()
-#
-#     def setup_ui(self):
-#         central_widget = QWidget()
-#         self.setCentralWidget(central_widget)
-#         main_layout = QVBoxLayout(central_widget)
-#
-#         # En-tête avec informations
-#         header = QFrame()
-#         header.setFrameStyle(QFrame.Shape.StyledPanel)
-#         header_layout = QVBoxLayout(header)
-#
-#         self.title_label = QLabel("Analyse statistique")
-#         self.title_label.setStyleSheet("font-size: 16px; font-weight: bold;")
-#         header_layout.addWidget(self.title_label)
-#
-#         self.info_label = QLabel()
-#         header_layout.addWidget(self.info_label)
-#
-#         main_layout.addWidget(header)
-#
-#         # Tableau de données
-#         self.table = QTableWidget()
-#         self.table.setAlternatingRowColors(True)
-#         main_layout.addWidget(self.table)
-#
-#         # Zone du graphique
-#         self.figure = Figure(figsize=(8, 6))
-#         self.canvas = FigureCanvas(self.figure)
-#         main_layout.addWidget(self.canvas)
-#
-#         # Boutons d'export
-#         export_layout = QHBoxLayout()
-#
-#         self.btn_excel = QPushButton("Exporter Excel")
-#         self.btn_excel.clicked.connect(self.export_excel)
-#
-#         self.btn_pdf = QPushButton("Exporter PDF")
-#         self.btn_pdf.clicked.connect(self.export_pdf)
-#
-#         self.btn_pptx = QPushButton("Exporter PowerPoint")
-#         self.btn_pptx.clicked.connect(self.export_pptx)
-#
-#         export_layout.addWidget(self.btn_excel)
-#         export_layout.addWidget(self.btn_pdf)
-#         export_layout.addWidget(self.btn_pptx)
-#         export_layout.addStretch()
-#
-#         main_layout.addLayout(export_layout)
-#
-#     def load_data(self):
-#         """Charge et affiche les données selon la configuration."""
-#         try:
-#             x_config = self.config["x_axis"]
-#             y_config = self.config["y_axis"]
-#
-#             # Fonction pour construire la clause CASE pour les années de service
-#             def get_service_years_case():
-#                 return """
-#                 CASE
-#                     WHEN annee_service BETWEEN 0 AND 5 THEN '0-5 ANS'
-#                     WHEN annee_service BETWEEN 6 AND 10 THEN '6-10 ANS'
-#                     WHEN annee_service BETWEEN 11 AND 15 THEN '11-15 ANS'
-#                     WHEN annee_service BETWEEN 16 AND 20 THEN '16-20 ANS'
-#                     WHEN annee_service BETWEEN 21 AND 25 THEN '21-25 ANS'
-#                     WHEN annee_service BETWEEN 26 AND 30 THEN '26-30 ANS'
-#                     WHEN annee_service BETWEEN 31 AND 35 THEN '31-35 ANS'
-#                     WHEN annee_service BETWEEN 36 AND 40 THEN '36-40 ANS'
-#                 END
-#                 """
-#
-#             # Construction des champs pour la requête
-#             def get_field_expression(config):
-#                 field = config["field"]
-#                 if field == "annee_service":
-#                     return get_service_years_case()
-#                 return field
-#
-#             x_field = get_field_expression(x_config)
-#             y_field = get_field_expression(y_config)
-#
-#             # Déterminer la table source pour chaque champ
-#             x_table = "g" if x_config["field"] in ["grade", "subdiv", "annee_service",
-#                                                    "situation_matrimoniale"] else "s"
-#             y_table = "g" if y_config["field"] in ["grade", "subdiv", "annee_service",
-#                                                    "situation_matrimoniale"] else "s"
-#
-#             # Construction de la requête
-#             query = f"""
-#             SELECT
-#                 {x_table}.{x_field} as x_value,
-#                 {y_table}.{y_field} as y_value,
-#                 COUNT(*) as count
-#             FROM sanctions s
-#             LEFT JOIN gendarmes g ON CAST(s.matricule AS TEXT) = g.mle
-#             WHERE 1=1
-#             """
-#
-#             # Ajout des conditions de filtrage si nécessaire
-#             if x_config["value"] != f"Tous les {x_config['theme'].lower()}":
-#                 query += f" AND {x_table}.{x_config['field']} = ?"
-#                 params.append(x_config["value"])
-#
-#             if y_config["value"] != f"Tous les {y_config['theme'].lower()}":
-#                 query += f" AND {y_table}.{y_config['field']} = ?"
-#                 params.append(y_config["value"])
-#
-#             query += f"""
-#             GROUP BY x_value, y_value
-#             ORDER BY x_value, y_value
-#             """
-#
-#             with self.db_manager.get_connection() as conn:
-#                 df = pd.read_sql_query(query, conn, params=params)
-#
-#             self.update_table(df)
-#             self.update_graph(df)
-#             self.update_info(df)
-#
-#         except Exception as e:
-#             QMessageBox.critical(self, "Erreur",
-#                                  f"Erreur lors du chargement des données: {str(e)}")
-#
-#     def closeEvent(self, event):
-#         """Gère la fermeture de la fenêtre."""
-#         self.closed.emit()
-#         event.accept()
-#
-#     def update_table(self, df):
-#         """Met à jour le tableau avec les données."""
-#         # Configuration du tableau
-#         self.table.setRowCount(len(df))
-#         self.table.setColumnCount(len(df.columns))
-#         self.table.setHorizontalHeaderLabels(df.columns)
-#
-#         # Remplissage des données
-#         for i in range(len(df)):
-#             for j in range(len(df.columns)):
-#                 item = QTableWidgetItem(str(df.iloc[i, j]))
-#                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-#                 self.table.setItem(i, j, item)
-#
-#         self.table.resizeColumnsToContents()
-#
-#     def update_graph(self, df):
-#         """Met à jour le graphique avec les données."""
-#         self.figure.clear()
-#         ax = self.figure.add_subplot(111)
-#
-#         # Création du graphique (à adapter selon les données)
-#         if self.config.get("options", {}).get("cumulative"):
-#             df.plot(kind='line', ax=ax)
-#         else:
-#             df.plot(kind='bar', ax=ax)
-#
-#         ax.set_xlabel(self.config["x_axis"])
-#         ax.set_ylabel(self.config["y_axis"])
-#         ax.set_title("Analyse statistique")
-#
-#         self.figure.tight_layout()
-#         self.canvas.draw()
-#
-#     def update_info(self, df):
-#         """Met à jour les informations d'en-tête."""
-#         total = df['count'].sum()
-#         self.info_label.setText(f"Total des enregistrements : {total}")
-#
-#     def export_excel(self):
-#         """Exporte les données vers Excel avec mise en forme."""
-#         try:
-#             # Demander à l'utilisateur où sauvegarder le fichier
-#             default_name = f"statistiques_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-#             file_path, _ = QFileDialog.getSaveFileName(
-#                 self,
-#                 "Enregistrer le fichier Excel",
-#                 default_name,
-#                 "Excel Files (*.xlsx)"
-#             )
-#
-#             if not file_path:  # L'utilisateur a annulé
-#                 return
-#
-#             # Création d'un writer Excel avec le moteur XlsxWriter pour la prise en charge d'insert_image
-#             with pd.ExcelWriter(file_path, engine='xlsxwriter') as writer:
-#                 # Récupération des données du tableau
-#                 table_data = []
-#                 headers = [self.table.horizontalHeaderItem(j).text() for j in range(self.table.columnCount())]
-#
-#                 for i in range(self.table.rowCount()):
-#                     row = [self.table.item(i, j).text() if self.table.item(i, j) else "" for j in
-#                            range(self.table.columnCount())]
-#                     table_data.append(row)
-#
-#                 # Création du DataFrame
-#                 df = pd.DataFrame(table_data, columns=headers)
-#
-#                 # Export du DataFrame vers Excel
-#                 df.to_excel(writer, sheet_name='Données', index=False)
-#
-#                 # Sauvegarde temporaire du graphique en tant qu'image
-#                 self.figure.savefig('temp_chart.png')
-#
-#                 # Accès à la feuille de calcul et insertion de l'image
-#                 worksheet = writer.sheets['Données']
-#                 worksheet.insert_image('A' + str(len(df) + 3), 'temp_chart.png')
-#
-#                 # Ajustement de la largeur des colonnes
-#                 for i, col in enumerate(df.columns):
-#                     max_length = max(df[col].astype(str).apply(len).max(), len(col))
-#                     worksheet.set_column(i, i, max_length + 2)
-#
-#             # Suppression du fichier d'image temporaire
-#             if os.path.exists('temp_chart.png'):
-#                 os.remove('temp_chart.png')
-#
-#             # Message de succès
-#             QMessageBox.information(
-#                 self,
-#                 "Succès",
-#                 f"Les données ont été exportées vers:\n{file_path}"
-#             )
-#
-#         except Exception as e:
-#             QMessageBox.critical(
-#                 self,
-#                 "Erreur",
-#                 f"Erreur lors de l'export Excel:\n{str(e)}"
-#             )
-#
-#     def export_pdf(self):
-#         """Exporte les données vers PDF avec mise en forme."""
-#         try:
-#             # Demander à l'utilisateur où sauvegarder le fichier
-#             default_name = f"statistiques_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-#             file_path, _ = QFileDialog.getSaveFileName(
-#                 self,
-#                 "Enregistrer le fichier PDF",
-#                 default_name,
-#                 "PDF Files (*.pdf)"
-#             )
-#
-#             if not file_path:  # L'utilisateur a annulé
-#                 return
-#
-#             # Création du document PDF
-#             doc = SimpleDocTemplate(
-#                 file_path,
-#                 pagesize=landscape(letter),
-#                 rightMargin=30,
-#                 leftMargin=30,
-#                 topMargin=30,
-#                 bottomMargin=30
-#             )
-#
-#             # Liste des éléments à ajouter au PDF
-#             elements = []
-#             styles = getSampleStyleSheet()
-#
-#             # Titre
-#             title_style = ParagraphStyle(
-#                 'CustomTitle',
-#                 parent=styles['Heading1'],
-#                 fontSize=16,
-#                 spaceAfter=30
-#             )
-#             title = Paragraph(
-#                 "Rapport Statistique",
-#                 title_style
-#             )
-#             elements.append(title)
-#
-#             # Sous-titre avec date et informations
-#             subtitle_style = ParagraphStyle(
-#                 'CustomSubTitle',
-#                 parent=styles['Normal'],
-#                 fontSize=12,
-#                 spaceAfter=20
-#             )
-#             subtitle = Paragraph(
-#                 f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}",
-#                 subtitle_style
-#             )
-#             elements.append(subtitle)
-#
-#             # Informations sur les axes
-#             info = Paragraph(
-#                 f"Analyse: {self.config['x_axis']} par {self.config['y_axis']}",
-#                 subtitle_style
-#             )
-#             elements.append(info)
-#             elements.append(Spacer(1, 20))
-#
-#             # Création des données du tableau
-#             table_data = []
-#             headers = []
-#
-#             # En-têtes
-#             for j in range(self.table.columnCount()):
-#                 headers.append(self.table.horizontalHeaderItem(j).text())
-#             table_data.append(headers)
-#
-#             # Données
-#             for i in range(self.table.rowCount()):
-#                 row = []
-#                 for j in range(self.table.columnCount()):
-#                     item = self.table.item(i, j)
-#                     row.append(item.text() if item else "")
-#                 table_data.append(row)
-#
-#             # Style du tableau
-#             table_style = TableStyle([
-#                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2C3E50')),
-#                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-#                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-#                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-#                 ('FONTSIZE', (0, 0), (-1, 0), 12),
-#                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-#                 ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-#                 ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-#                 ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-#                 ('FONTSIZE', (0, 1), (-1, -1), 10),
-#                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-#                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
-#                 ('ROWHEIGHT', (0, 0), (-1, -1), 25),
-#             ])
-#
-#             # Création et style du tableau
-#             pdf_table = Table(table_data, repeatRows=1)
-#             pdf_table.setStyle(table_style)
-#             elements.append(pdf_table)
-#
-#             # Ajout du graphique
-#             elements.append(Spacer(1, 30))
-#
-#             # Sauvegarde temporaire du graphique
-#             graph_path = 'temp_graph.png'
-#             self.figure.savefig(graph_path, format='png', dpi=300, bbox_inches='tight')
-#
-#             # Ajout du graphique au PDF avec une taille maximale
-#             max_width = 500
-#             img = utils.ImageReader(graph_path)
-#             img_width, img_height = img.getSize()
-#             aspect = img_height / float(img_width)
-#
-#             elements.append(Image(graph_path, width=max_width, height=max_width * aspect))
-#
-#             # Construction du document
-#             doc.build(elements)
-#
-#             # Nettoyage
-#             if os.path.exists(graph_path):
-#                 os.remove(graph_path)
-#
-#             QMessageBox.information(
-#                 self,
-#                 "Succès",
-#                 f"Les données ont été exportées vers:\n{file_path}"
-#             )
-#
-#         except Exception as e:
-#             QMessageBox.critical(
-#                 self,
-#                 "Erreur",
-#                 f"Erreur lors de l'export PDF:\n{str(e)}"
-#             )
-#
-#     def export_pptx(self):
-#         """Exporte les données vers PowerPoint avec mise en forme."""
-#         try:
-#             # Demander à l'utilisateur où sauvegarder le fichier
-#             default_name = f"statistiques_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pptx"
-#             file_path, _ = QFileDialog.getSaveFileName(
-#                 self,
-#                 "Enregistrer la présentation PowerPoint",
-#                 default_name,
-#                 "PowerPoint Files (*.pptx)"
-#             )
-#
-#             if not file_path:  # L'utilisateur a annulé
-#                 return
-#
-#             # Création de la présentation
-#             prs = Presentation()
-#
-#             # Définir la taille des diapositives (16:9)
-#             prs.slide_width = Inches(13.333)
-#             prs.slide_height = Inches(7.5)
-#
-#             # Slide de titre
-#             title_slide_layout = prs.slide_layouts[0]
-#             slide = prs.slides.add_slide(title_slide_layout)
-#             title = slide.shapes.title
-#             subtitle = slide.placeholders[1]
-#
-#             title.text = "Rapport Statistique"
-#             subtitle.text = f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}"
-#
-#             # Slide d'information
-#             bullet_slide_layout = prs.slide_layouts[1]
-#             slide = prs.slides.add_slide(bullet_slide_layout)
-#             shapes = slide.shapes
-#
-#             title_shape = shapes.title
-#             body_shape = shapes.placeholders[1]
-#
-#             title_shape.text = "Informations de l'analyse"
-#
-#             tf = body_shape.text_frame
-#             tf.text = f"Analyse des données"
-#
-#             p = tf.add_paragraph()
-#             p.text = f"Axe X: {str(self.config['x_axis'])}"
-#             p.level = 1
-#
-#             p = tf.add_paragraph()
-#             p.text = f"Axe Y: {str(self.config['y_axis'])}"
-#             p.level = 1
-#
-#             # Slide des données
-#             slide = prs.slides.add_slide(prs.slide_layouts[5])
-#             shapes = slide.shapes
-#
-#             title = shapes.title
-#             title.text = "Données"
-#
-#             # Ajout du tableau
-#             rows = self.table.rowCount() + 1  # +1 pour l'en-tête
-#             cols = self.table.columnCount()
-#
-#             left = Inches(1)
-#             top = Inches(2)
-#             width = prs.slide_width - Inches(2)
-#             height = prs.slide_height - Inches(3)
-#
-#             table = shapes.add_table(rows, cols, left, top, width, height).table
-#
-#             # Remplissage des en-têtes
-#             for col in range(cols):
-#                 # S'assurer que l'en-tête existe et le convertir en string
-#                 header_item = self.table.horizontalHeaderItem(col)
-#                 header_text = str(header_item.text()) if header_item else f"Colonne {col + 1}"
-#
-#                 cell = table.cell(0, col)
-#                 cell.text = header_text
-#
-#                 # Style de l'en-tête
-#                 paragraph = cell.text_frame.paragraphs[0]
-#                 paragraph.font.size = Pt(11)
-#                 paragraph.font.bold = True
-#                 paragraph.font.color.rgb = RGBColor(255, 255, 255)
-#                 cell.fill.solid()
-#                 cell.fill.fore_color.rgb = RGBColor(44, 62, 80)
-#
-#             # Remplissage des données
-#             for row in range(self.table.rowCount()):
-#                 for col in range(cols):
-#                     # S'assurer que la cellule existe et convertir son contenu en string
-#                     item = self.table.item(row, col)
-#                     cell_text = str(item.text()) if item else ""
-#
-#                     table_cell = table.cell(row + 1, col)
-#                     table_cell.text = cell_text
-#
-#                     # Style des données
-#                     paragraph = table_cell.text_frame.paragraphs[0]
-#                     paragraph.font.size = Pt(10)
-#                     paragraph.alignment = PP_ALIGN.CENTER
-#
-#             # Slide du graphique
-#             slide = prs.slides.add_slide(prs.slide_layouts[5])
-#             shapes = slide.shapes
-#             title = shapes.title
-#             title.text = "Visualisation"
-#
-#             # Sauvegarde temporaire du graphique
-#             graph_path = 'temp_graph.png'
-#             self.figure.savefig(graph_path, format='png', dpi=300, bbox_inches='tight')
-#
-#             # Ajout du graphique
-#             left = Inches(1)
-#             top = Inches(2)
-#             pic = slide.shapes.add_picture(
-#                 graph_path,
-#                 left,
-#                 top,
-#                 width=prs.slide_width - Inches(2)
-#             )
-#
-#             # Sauvegarde de la présentation
-#             prs.save(file_path)
-#
-#             # Nettoyage
-#             if os.path.exists(graph_path):
-#                 os.remove(graph_path)
-#
-#             QMessageBox.information(
-#                 self,
-#                 "Succès",
-#                 f"Les données ont été exportées vers:\n{file_path}"
-#             )
-#
-#         except Exception as e:
-#             QMessageBox.critical(
-#                 self,
-#                 "Erreur",
-#                 f"Erreur lors de l'export PowerPoint:\n{str(e)}"
-#             )
