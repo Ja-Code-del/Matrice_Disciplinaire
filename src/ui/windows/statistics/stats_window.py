@@ -8,6 +8,7 @@ from .subject_dialog import SubjectDialog
 from .table_config_dialog import TableConfigDialog
 from .visualization_window import VisualizationWindow
 from .full_list_window import FullListWindow
+from .chart_selection_dialog import ChartSelectionDialog
 
 
 class StatistiquesWindow(QMainWindow):
@@ -113,39 +114,53 @@ class StatistiquesWindow(QMainWindow):
     def show_table_config(self):
         """Ouvre la fenêtre de configuration des tableaux."""
         try:
-            # Création et affichage du dialogue de configuration
+            # Ouverture de la boîte de dialogue de configuration
             dialog = TableConfigDialog(self.db_manager, self)
             if dialog.exec():
                 # Récupération de la configuration
                 config = dialog.get_configuration()
+                print("Configuration du tableau:", config)  # Debug
 
-                # Fermeture de la fenêtre de visualisation précédente si elle existe
-                if self.visualization_window:
-                    self.visualization_window.close()
+                # Ouverture de la boîte de dialogue de sélection du graphique
+                chart_dialog = ChartSelectionDialog(config, self)
+                if chart_dialog.exec():
+                    chart_config = chart_dialog.get_selected_chart()
+                    print("Configuration du graphique:", chart_config)  # Debug
 
-                # Création de la nouvelle fenêtre de visualisation
-                self.visualization_window = VisualizationWindow(
-                    self.db_manager,
-                    config,
-                    self
-                )
+                    # Fermeture de la fenêtre de visualisation précédente si elle existe
+                    if self.visualization_window:
+                        self.visualization_window.close()
 
-                # Positionnement de la fenêtre
-                if self.isVisible():
-                    # Positionnement relatif à la fenêtre principale
-                    geometry = self.geometry()
-                    self.visualization_window.move(
-                        geometry.x() + 50,
-                        geometry.y() + 50
+                    # Création de la nouvelle fenêtre de visualisation
+                    self.visualization_window = VisualizationWindow(
+                        self.db_manager,
+                        config,
+                        self
                     )
 
-                # Configuration des signaux
-                self.visualization_window.closed.connect(self.on_visualization_closed)
+                    # Positionnement de la fenêtre
+                    if self.isVisible():
+                        geometry = self.geometry()
+                        self.visualization_window.move(
+                            geometry.x() + 50,
+                            geometry.y() + 50
+                        )
 
-                # Affichage de la fenêtre
-                self.visualization_window.show()
+                    # Configuration des signaux
+                    self.visualization_window.closed.connect(self.on_visualization_closed)
+
+                    # Chargement des données et création du graphique
+                    self.visualization_window.load_data()
+                    self.visualization_window.update_graph(
+                        self.visualization_window.df,
+                        chart_config
+                    )
+
+                    # Affichage de la fenêtre
+                    self.visualization_window.show()
 
         except Exception as e:
+            print(f"Erreur dans show_table_config: {str(e)}")  # Debug
             QMessageBox.critical(
                 self,
                 "Erreur",

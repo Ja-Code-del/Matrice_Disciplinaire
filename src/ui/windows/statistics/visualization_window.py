@@ -27,7 +27,7 @@ from pptx.dml.color import RGBColor
 from pptx.oxml import parse_xml
 
 from src.data.gendarmerie.structure import SUBDIVISIONS, SERVICE_RANGES, ANALYSIS_THEMES
-
+from src.ui.windows.statistics.chart_selection_dialog import ChartSelectionDialog
 from datetime import datetime
 
 from openpyxl.utils import get_column_letter
@@ -41,6 +41,7 @@ class VisualizationWindow(QMainWindow):
 
     def __init__(self, db_manager, config, parent=None):
         super().__init__(parent)
+        self.df = None
         self.db_manager = db_manager
         self.config = config
         self.setWindowTitle("Visualisation des statistiques")
@@ -48,7 +49,7 @@ class VisualizationWindow(QMainWindow):
 
         # Configuration du style Seaborn
         sns.set_style("whitegrid")
-        sns.set_palette("husl")
+        sns.set_palette("cubehelix", n_colors=8)
 
         self.setup_ui()
         self.load_data()
@@ -150,7 +151,7 @@ class VisualizationWindow(QMainWindow):
             SELECT 
                 {x_expr} as x_value,
                 {y_expr} as y_value,
-                COUNT(*) as count
+                COUNT(DISTINCT s.id) as count 
             FROM sanctions s
             LEFT JOIN gendarmes g ON CAST(s.matricule AS TEXT) = g.mle
             WHERE 1=1
@@ -184,14 +185,14 @@ class VisualizationWindow(QMainWindow):
             print(f"With parameters: {params}")  # Débogage
 
             with self.db_manager.get_connection() as conn:
-                df = pd.read_sql_query(query, conn, params=params)
+                self.df = pd.read_sql_query(query, conn, params=params)
 
-            print(f"Query results:\n{df}")  # Débogage
+            print(f"Query results:\n{self.df}")  # Débogage
 
             # Mise à jour des composants visuels
-            self.update_table(df)
-            self.update_graph(df, 'bar_stacked')  # Type de graphique par défaut
-            self.update_info(df)
+            self.update_table(self.df)
+            self.update_graph(self.df, 'bar_stacked')  # Type de graphique par défaut
+            self.update_info(self.df)
 
         except Exception as e:
             print(f"Error in load_data: {str(e)}")
@@ -204,6 +205,8 @@ class VisualizationWindow(QMainWindow):
     def update_table(self, df):
         """Met à jour le tableau avec les données sous forme de tableau croisé."""
         try:
+            print("DataFrame avant pivot:", df)  # Debug
+
             # Création du tableau croisé dynamique
             pivot_table = pd.pivot_table(
                 df,
@@ -212,8 +215,12 @@ class VisualizationWindow(QMainWindow):
                 columns='x_value',
                 fill_value=0,
                 margins=True,
-                margins_name='TOTAL'
+                margins_name='TOTAL',
+                aggfunc='sum'  # Explicitement définir la fonction d'agrégation
             )
+
+            print("Tableau pivot:", pivot_table)  # Debug
+            print("Somme totale:", df['count'].sum())  # Debug
 
             # Configuration du tableau
             self.table.clear()
@@ -272,8 +279,8 @@ class VisualizationWindow(QMainWindow):
                 f"Erreur lors de la mise à jour du tableau: {str(e)}"
             )
 
-    def update_graph(self, df, chart_type='bar_stacked'):
-        """Met à jour le graphique selon le type choisi avec Seaborn."""
+    def update_graph(self, df, chart_config):
+        """Met à jour le graphique selon la configuration choisie."""
         try:
             # Nettoyage du graphique précédent
             self.figure.clear()
@@ -281,7 +288,7 @@ class VisualizationWindow(QMainWindow):
 
             # Configuration du style Seaborn
             sns.set_style("whitegrid")
-            sns.set_palette("husl")
+            sns.set_palette("cubehelix", n_colors=10)
 
             # Création du pivot pour le graphique si nécessaire
             pivot_table = pd.pivot_table(
@@ -292,33 +299,37 @@ class VisualizationWindow(QMainWindow):
                 fill_value=0
             )
 
-            if chart_type == 'bar_stacked':
-                self._create_stacked_bar_sns(ax, pivot_table)
-            elif chart_type == 'bar_grouped':
-                self._create_grouped_bar_sns(ax, df)
-            elif chart_type == 'pie':
-                self._create_pie_chart_sns(ax, df)
-            elif chart_type == 'donut':
-                self._create_donut_chart_sns(ax, df)
-            elif chart_type == 'bar_stacked':
-                self._create_stacked_bar_sns(ax, pivot_table)
-            elif chart_type == 'line':
-                self._create_line_chart_sns(ax, pivot_table)
-            elif chart_type == 'heatmap':
-                self._create_heatmap_sns(ax, pivot_table)
-            elif chart_type == 'violin':
-                self._create_violin_plot_sns(ax, df)
-            elif chart_type == 'swarm':
-                self._create_swarm_plot_sns(ax, df)
-            elif chart_type == 'box':
-                self._create_box_plot_sns(ax, df)
-            elif chart_type == 'kde':
-                self._create_kde_plot_sns(ax, df)
-            elif chart_type == 'bar_count':
-                self._create_count_plot_sns(ax, df)
-            elif chart_type == 'strip':
-                self._create_strip_plot_sns(ax, df)
+            if isinstance(chart_config, dict):
+                chart_type = chart_config.get('type')
+                axis = chart_config.get('axis', 'x')
+
+                if chart_type == 'bar_simple':
+                    self._create_simple_bar_sns(ax, df, axis)
+                elif chart_type == 'pie':
+                    self._create_pie_chart_sns(ax, df, axis)
+                elif chart_type == 'donut':
+                    self._create_donut_chart_sns(ax, df, axis)
+                elif chart_type == 'bar_stacked':
+                    self._create_stacked_bar_sns(ax, pivot_table)
+                elif chart_type == 'bar_grouped':
+                    self._create_grouped_bar_sns(ax, df)
+                elif chart_type == 'line':
+                    self._create_line_chart_sns(ax, pivot_table)
+                elif chart_type == 'heatmap':
+                    self._create_heatmap_sns(ax, pivot_table)
+                elif chart_type == 'violin':
+                    self._create_violin_plot_sns(ax, df)
+                elif chart_type == 'swarm':
+                    self._create_swarm_plot_sns(ax, df)
+                elif chart_type == 'box':
+                    self._create_box_plot_sns(ax, df)
+                elif chart_type == 'kde':
+                    self._create_kde_plot_sns(ax, df)
+                else:
+                    # Par défaut, graphique en barres empilées
+                    self._create_stacked_bar_sns(ax, pivot_table)
             else:
+                # Pour la rétrocompatibilité
                 self._create_stacked_bar_sns(ax, pivot_table)
 
             # Ajustement de la mise en page
@@ -334,144 +345,595 @@ class VisualizationWindow(QMainWindow):
             )
 
     # Méthodes de création des différents types de graphiques
-    def _create_stacked_bar_sns(self, ax, pivot_table):
-        """Crée un graphique à barres empilées avec Seaborn."""
-        pivot_table.plot(kind='bar', stacked=True, ax=ax)
-        ax.set_ylabel('Nombre')
-        ax.legend(title='Catégories', bbox_to_anchor=(1.05, 1), loc='upper left')
-        plt.xticks(rotation=45)
-
-    def _create_grouped_bar_sns(self, ax, df):
-        """Crée un graphique à barres groupées avec Seaborn."""
-        sns.barplot(data=df, x='x_value', y='count', hue='y_value', ax=ax)
-        ax.set_ylabel('Nombre')
-        ax.legend(title='Catégories', bbox_to_anchor=(1.05, 1), loc='upper left')
-        plt.xticks(rotation=45)
-
-    def _create_line_chart_sns(self, ax, pivot_table):
-        """Crée un graphique linéaire avec Seaborn."""
-        for column in pivot_table.columns:
-            sns.lineplot(data=pivot_table[column], marker='o', ax=ax)
-        ax.set_ylabel('Nombre')
-        ax.legend(title='Catégories', bbox_to_anchor=(1.05, 1), loc='upper left')
-        plt.xticks(rotation=45)
-
-    def _create_heatmap_sns(self, ax, pivot_table):
-        """Crée une heatmap avec Seaborn."""
-        sns.heatmap(pivot_table, annot=True, fmt='g', cmap='YlOrRd', ax=ax)
-        plt.xticks(rotation=45)
-        plt.yticks(rotation=0)
-
-    def _create_violin_plot_sns(self, ax, df):
-        """Crée un violin plot avec Seaborn."""
-        sns.violinplot(data=df, x='x_value', y='count', hue='y_value', ax=ax)
-        ax.set_ylabel('Distribution')
-        plt.xticks(rotation=45)
-
-    def _create_swarm_plot_sns(self, ax, df):
-        """Crée un swarm plot avec Seaborn."""
-        sns.swarmplot(data=df, x='x_value', y='count', hue='y_value', ax=ax)
-        ax.set_ylabel('Distribution')
-        plt.xticks(rotation=45)
-
-    def _create_box_plot_sns(self, ax, df):
-        """Crée une boîte à moustaches avec Seaborn."""
-        sns.boxplot(data=df, x='x_value', y='count', hue='y_value', ax=ax)
-        ax.set_ylabel('Distribution')
-        plt.xticks(rotation=45)
-
-    def _create_kde_plot_sns(self, ax, df):
-        """Crée un KDE plot avec Seaborn."""
-        for category in df['y_value'].unique():
-            subset = df[df['y_value'] == category]
-            sns.kdeplot(data=subset, x='count', label=category, ax=ax)
-        ax.set_ylabel('Densité')
-        ax.legend(title='Catégories', bbox_to_anchor=(1.05, 1), loc='upper left')
-
-    def _create_count_plot_sns(self, ax, df):
-        """Crée un count plot avec Seaborn."""
-        sns.countplot(data=df, x='x_value', hue='y_value', ax=ax)
-        ax.set_ylabel('Nombre')
-        plt.xticks(rotation=45)
-
-    def _create_strip_plot_sns(self, ax, df):
-        """Crée un strip plot avec Seaborn."""
-        sns.stripplot(data=df, x='x_value', y='count', hue='y_value', ax=ax, jitter=True)
-        ax.set_ylabel('Distribution')
-        plt.xticks(rotation=45)
-
-    def _create_pie_chart_sns(self, ax, df):
-        """Crée un graphique en camembert avec Seaborn."""
+    def _create_simple_bar_sns(self, ax, df, axis='x'):
+        """Crée un histogramme simple selon l'axe choisi."""
         try:
-            # Calcul des totaux par catégorie
-            totals = df.groupby('x_value')['count'].sum()
+            # Sélectionner la colonne appropriée selon l'axe choisi
+            value_col = 'x_value' if axis == 'x' else 'y_value'
+            title_theme = self.config[f'{axis}_axis']['theme']
 
-            # Configuration des couleurs
-            colors = sns.color_palette("husl", n_colors=len(totals))
+            # Préparation des données
+            data = df.groupby(value_col)['count'].sum().reset_index()
 
-            # Création du camembert
-            wedges, texts, autotexts = ax.pie(
-                totals,
-                labels=totals.index,
-                colors=colors,
-                autopct='%1.1f%%',  # Affichage des pourcentages
-                pctdistance=0.85,
-                startangle=90
+            # Création du graphique
+            sns.barplot(
+                data=data,
+                x=value_col,
+                y='count',
+                ax=ax,
+                palette=sns.color_palette("cubehelix", n_colors=10)
             )
 
-            # Personnalisation du style
-            plt.setp(autotexts, size=8, weight="bold")
-            plt.setp(texts, size=9)
+            # Style et étiquettes
+            ax.set_title(f"Distribution par {title_theme}")
+            ax.set_xlabel('')
+            ax.set_ylabel('Nombre')
 
-            # Ajout du titre
-            ax.set_title(f"Répartition par {self.config['x_axis']['theme']}")
+            # Rotation des étiquettes si nécessaire
+            plt.xticks(rotation=45, ha='right')
 
-            # Égaliser les axes pour obtenir un cercle parfait
-            ax.axis('equal')
+            # Ajout des valeurs sur les barres
+            for i, v in enumerate(data['count']):
+                ax.text(
+                    i, v, f'{int(v):,}',
+                    ha='center',
+                    va='bottom',
+                    fontweight='bold'
+                )
 
         except Exception as e:
-            print(f"Erreur dans _create_pie_chart_sns: {str(e)}")
+            print(f"Erreur dans _create_simple_bar_sns: {str(e)}")
+            raise
 
-    def _create_donut_chart_sns(self, ax, df):
-        """Crée un graphique en anneau (donut) avec Seaborn."""
+    def _create_stacked_bar_sns(self, ax, pivot_table):
+        """Crée un graphique à barres empilées avec Seaborn."""
         try:
-            # Calcul des totaux par catégorie
-            totals = df.groupby('x_value')['count'].sum()
+            # Création du graphique
+            pivot_table.plot(
+                kind='bar',
+                stacked=True,
+                ax=ax,
+                width=0.8,
+                colormap='cubehelix'
+            )
+
+            # Style et étiquettes
+            ax.set_title(f"Répartition {self.config['y_axis']['theme']} par {self.config['x_axis']['theme']}")
+            ax.set_xlabel('')
+            ax.set_ylabel('Effectif')
+
+            # Rotation des étiquettes
+            plt.xticks(rotation=45, ha='right')
+
+            # Ajout des totaux au-dessus des barres
+            totals = pivot_table.sum(axis=1)
+            for i, total in enumerate(totals):
+                ax.text(
+                    i, total, f'{int(total):,}',
+                    ha='center',
+                    va='bottom',
+                    fontweight='bold'
+                )
+
+            # Légende
+            ax.legend(
+                title=self.config['y_axis']['theme'],
+                bbox_to_anchor=(1.05, 1),
+                loc='upper left'
+            )
+
+        except Exception as e:
+            print(f"Erreur dans _create_stacked_bar_sns: {str(e)}")
+            raise
+
+    def _create_donut_chart_sns(self, ax, df, axis='x'):
+        """Crée un graphique en anneau avec Seaborn."""
+        try:
+            # Sélectionner la colonne appropriée selon l'axe choisi
+            value_col = 'x_value' if axis == 'x' else 'y_value'
+            title_theme = self.config[f'{axis}_axis']['theme']
+
+            # Calculer les totaux
+            data_to_plot = df.groupby(value_col)['count'].sum()
+            total = data_to_plot.sum()
 
             # Configuration des couleurs
-            colors = sns.color_palette("husl", n_colors=len(totals))
+            colors = sns.color_palette("cubehelix", n_colors=len(data_to_plot))
 
             # Création du donut
             wedges, texts, autotexts = ax.pie(
-                totals,
-                labels=totals.index,
+                data_to_plot.values,
+                labels=data_to_plot.index,
                 colors=colors,
                 autopct='%1.1f%%',
                 pctdistance=0.75,
-                startangle=90,
-                wedgeprops=dict(width=0.5)  # Cette propriété crée le trou au centre
+                wedgeprops=dict(width=0.5)  # Cette propriété crée l'anneau
             )
 
-            # Personnalisation du style
+            # Ajout d'info sur les valeurs absolues
+            labels = [f'{label}\n({int(val):,})' for label, val in zip(data_to_plot.index, data_to_plot.values)]
+
+            # Légende
+            ax.legend(
+                wedges, labels,
+                title=f"Répartition par {title_theme}",
+                loc="center left",
+                bbox_to_anchor=(1, 0, 0.5, 1)
+            )
+
+            # Style
             plt.setp(autotexts, size=8, weight="bold")
             plt.setp(texts, size=9)
-
-            # Ajout du titre
-            ax.set_title(f"Répartition par {self.config['x_axis']['theme']}")
-
-            # Égaliser les axes pour obtenir un cercle parfait
-            ax.axis('equal')
 
             # Ajout du total au centre
             centre_circle = plt.Circle((0, 0), 0.50, fc='white')
             ax.add_artist(centre_circle)
-            total = totals.sum()
-            ax.text(0, 0, f'Total\n{total}',
-                    ha='center', va='center',
-                    fontsize=12, fontweight='bold')
+            ax.text(
+                0, 0,
+                f'Total\n{int(total):,}',
+                ha='center',
+                va='center',
+                fontsize=12,
+                fontweight='bold'
+            )
+
+            # Titre
+            ax.set_title(f"Répartition par {title_theme}")
+
+            # Cercle parfait
+            ax.axis('equal')
 
         except Exception as e:
             print(f"Erreur dans _create_donut_chart_sns: {str(e)}")
+            raise
+
+    def _create_heatmap_sns(self, ax, pivot_table):
+        """Crée une heatmap avec Seaborn."""
+        try:
+            # Création de la heatmap
+            sns.heatmap(
+                pivot_table,
+                annot=True,
+                fmt=',d',
+                cmap='rocket',
+                ax=ax,
+                cbar_kws={'label': 'Nombre'}
+            )
+
+            # Style et étiquettes
+            ax.set_title(f"Distribution {self.config['y_axis']['theme']} vs {self.config['x_axis']['theme']}")
+            plt.xticks(rotation=45, ha='right')
+            plt.yticks(rotation=0)
+
+        except Exception as e:
+            print(f"Erreur dans _create_heatmap_sns: {str(e)}")
+            raise
+
+    def _create_pie_chart_sns(self, ax, df, axis='x'):
+        """Crée un graphique en camembert avec Seaborn."""
+        try:
+            # Sélectionner la colonne appropriée selon l'axe choisi
+            value_col = 'x_value' if axis == 'x' else 'y_value'
+            title_theme = self.config[f'{axis}_axis']['theme']
+
+            # Calculer les totaux
+            data_to_plot = df.groupby(value_col)['count'].sum()
+
+            # Configuration des couleurs
+            colors = sns.color_palette("cubehelix", n_colors=len(data_to_plot))
+
+            # Création du camembert
+            wedges, texts, autotexts = ax.pie(
+                data_to_plot.values,
+                labels=data_to_plot.index,
+                colors=colors,
+                autopct='%1.1f%%',
+                pctdistance=0.85,
+                startangle=90
+            )
+
+            # Ajout d'info sur les valeurs absolues
+            total = data_to_plot.sum()
+            labels = [f'{label}\n({int(val):,})' for label, val in zip(data_to_plot.index, data_to_plot.values)]
+
+            # Légende
+            ax.legend(wedges, labels,
+                      title=f"Répartition par {title_theme}",
+                      loc="center left",
+                      bbox_to_anchor=(1, 0, 0.5, 1))
+
+            # Style
+            plt.setp(autotexts, size=8, weight="bold")
+            plt.setp(texts, size=9)
+
+            # Titre
+            ax.set_title(f"Répartition par {title_theme}")
+
+            # Cercle parfait
+            ax.axis('equal')
+
+        except Exception as e:
+            print(f"Erreur dans _create_pie_chart_sns: {str(e)}")
+            raise
+
+    def _create_line_chart_sns(self, ax, pivot_table):
+        """Crée un graphique linéaire avec Seaborn."""
+        try:
+            # Réinitialisation de l'index pour utiliser les colonnes correctement
+            df_plot = pivot_table.reset_index()
+
+            # Création du graphique pour chaque colonne sauf l'index
+            for column in pivot_table.columns:
+                sns.lineplot(
+                    data=df_plot,
+                    x='y_value',
+                    y=column,
+                    marker='o',
+                    label=column,
+                    ax=ax,
+                    linewidth=2,
+                    markersize=8
+                )
+
+            # Style et étiquettes
+            ax.set_title(f"Évolution {self.config['y_axis']['theme']} par {self.config['x_axis']['theme']}")
+            ax.set_xlabel(self.config['y_axis']['theme'])
+            ax.set_ylabel('Nombre')
+
+            # Rotation des étiquettes
+            plt.xticks(rotation=45, ha='right')
+
+            # Légende
+            ax.legend(
+                title=self.config['x_axis']['theme'],
+                bbox_to_anchor=(1.05, 1),
+                loc='upper left'
+            )
+
+            # Grille
+            ax.grid(True, linestyle='--', alpha=0.7)
+
+            # Ajout des valeurs sur les points
+            for line in ax.lines:
+                for x, y in zip(line.get_xdata(), line.get_ydata()):
+                    if not np.isnan(y):
+                        ax.text(
+                            x, y,
+                            f'{int(y):,}',
+                            ha='center',
+                            va='bottom',
+                            fontweight='bold',
+                            fontsize=8
+                        )
+
+        except Exception as e:
+            print(f"Erreur dans _create_line_chart_sns: {str(e)}")
+            raise
+
+    def _create_bar_grouped_sns(self, ax, df):
+        """Crée un graphique à barres groupées avec Seaborn."""
+        try:
+            # Création du graphique
+            sns.barplot(
+                data=df,
+                x='x_value',
+                y='count',
+                hue='y_value',
+                ax=ax,
+                palette=sns.color_palette("cubehelix", n_colors=10)
+            )
+
+            # Style et étiquettes
+            ax.set_title(f"Comparaison {self.config['y_axis']['theme']} par {self.config['x_axis']['theme']}")
+            ax.set_xlabel('')
+            ax.set_ylabel('Nombre')
+
+            # Rotation des étiquettes
+            plt.xticks(rotation=45, ha='right')
+
+            # Légende
+            ax.legend(
+                title=self.config['y_axis']['theme'],
+                bbox_to_anchor=(1.05, 1),
+                loc='upper left'
+            )
+
+            # Ajout des valeurs sur les barres
+            for container in ax.containers:
+                ax.bar_label(
+                    container,
+                    fmt='%d',
+                    padding=3,
+                    fontweight='bold',
+                    fontsize=8
+                )
+
+        except Exception as e:
+            print(f"Erreur dans _create_bar_grouped_sns: {str(e)}")
+            raise
+
+    def _create_box_plot_sns(self, ax, df, axis='x'):
+        """Crée une boîte à moustaches avec Seaborn."""
+        try:
+            # Sélectionner la colonne appropriée selon l'axe choisi
+            group_col = 'x_value' if axis == 'x' else 'y_value'
+            title_theme = self.config[f'{axis}_axis']['theme']
+
+            # Création du graphique
+            sns.boxplot(
+                data=df,
+                x=group_col,
+                y='count',
+                ax=ax,
+                palette=sns.color_palette("cubehelix", n_colors=10)
+            )
+
+            # Style et étiquettes
+            ax.set_title(f"Distribution statistique par {title_theme}")
+            ax.set_xlabel('')
+            ax.set_ylabel('Nombre')
+
+            # Rotation des étiquettes
+            plt.xticks(rotation=45, ha='right')
+
+            # Ajout de la grille
+            ax.grid(True, linestyle='--', alpha=0.7)
+
+            # Ajout des statistiques sur chaque boîte
+            for i, artist in enumerate(ax.artists):
+                stats = df[df[group_col] == df[group_col].unique()[i]]['count'].describe()
+                ax.text(
+                    i, stats['max'],
+                    f'Max: {int(stats["max"]):,}\n'
+                    f'Méd: {int(stats["50%"]):,}\n'
+                    f'Min: {int(stats["min"]):,}',
+                    ha='center',
+                    va='bottom',
+                    fontsize=8,
+                    fontweight='bold'
+                )
+
+        except Exception as e:
+            print(f"Erreur dans _create_box_plot_sns: {str(e)}")
+            raise
+
+    def _create_violin_plot_sns(self, ax, df, axis='x'):
+        """Crée un violin plot avec Seaborn."""
+        try:
+            # Sélectionner la colonne appropriée selon l'axe choisi
+            group_col = 'x_value' if axis == 'x' else 'y_value'
+            title_theme = self.config[f'{axis}_axis']['theme']
+
+            # Création du graphique
+            sns.violinplot(
+                data=df,
+                x=group_col,
+                y='count',
+                ax=ax,
+                palette=sns.color_palette("cubehelix", n_colors=10),
+                inner='box'  # Affiche un boxplot à l'intérieur
+            )
+
+            # Style et étiquettes
+            ax.set_title(f"Distribution détaillée par {title_theme}")
+            ax.set_xlabel('')
+            ax.set_ylabel('Nombre')
+
+            # Rotation des étiquettes
+            plt.xticks(rotation=45, ha='right')
+
+            # Ajout de la grille
+            ax.grid(True, linestyle='--', alpha=0.7)
+
+            # Ajout des statistiques
+            for i, label in enumerate(df[group_col].unique()):
+                stats = df[df[group_col] == label]['count'].describe()
+                ax.text(
+                    i, stats['max'],
+                    f'Méd: {int(stats["50%"]):,}',
+                    ha='center',
+                    va='bottom',
+                    fontsize=8,
+                    fontweight='bold'
+                )
+
+        except Exception as e:
+            print(f"Erreur dans _create_violin_plot_sns: {str(e)}")
+            raise
+
+    def _create_kde_plot_sns(self, ax, df, axis='x'):
+        """Crée un KDE plot (estimation par noyau de la densité) avec Seaborn."""
+        try:
+            # Sélectionner la colonne appropriée selon l'axe choisi
+            group_col = 'x_value' if axis == 'x' else 'y_value'
+            title_theme = self.config[f'{axis}_axis']['theme']
+
+            # Création du graphique pour chaque catégorie
+            categories = df[group_col].unique()
+            palette = sns.color_palette("cubehelix", n_colors=len(categories))
+
+            for idx, category in enumerate(categories):
+                subset = df[df[group_col] == category]
+                sns.kdeplot(
+                    data=subset,
+                    x='count',
+                    label=category,
+                    ax=ax,
+                    color=palette[idx],
+                    fill=True,
+                    alpha=0.5
+                )
+
+            # Style et étiquettes
+            ax.set_title(f"Densité de distribution par {title_theme}")
+            ax.set_xlabel('Nombre')
+            ax.set_ylabel('Densité')
+
+            # Légende
+            ax.legend(
+                title=title_theme,
+                bbox_to_anchor=(1.05, 1),
+                loc='upper left'
+            )
+
+            # Grille
+            ax.grid(True, linestyle='--', alpha=0.7)
+
+        except Exception as e:
+            print(f"Erreur dans _create_kde_plot_sns: {str(e)}")
+            raise
+
+    def _create_swarm_plot_sns(self, ax, df, axis='x'):
+        """Crée un swarm plot (nuage de points) avec Seaborn."""
+        try:
+            # Sélectionner la colonne appropriée selon l'axe choisi
+            group_col = 'x_value' if axis == 'x' else 'y_value'
+            title_theme = self.config[f'{axis}_axis']['theme']
+
+            # Création du graphique
+            sns.swarmplot(
+                data=df,
+                x=group_col,
+                y='count',
+                ax=ax,
+                palette=sns.color_palette("cubehelix", n_colors=10),
+                size=8,
+                alpha=0.7
+            )
+
+            # Style et étiquettes
+            ax.set_title(f"Distribution détaillée par {title_theme}")
+            ax.set_xlabel('')
+            ax.set_ylabel('Nombre')
+
+            # Rotation des étiquettes
+            plt.xticks(rotation=45, ha='right')
+
+            # Ajout de la grille
+            ax.grid(True, linestyle='--', alpha=0.7)
+
+            # Ajout des statistiques pour chaque groupe
+            for i, label in enumerate(df[group_col].unique()):
+                stats = df[df[group_col] == label]['count'].describe()
+                ax.text(
+                    i, stats['max'],
+                    f'Moy: {int(stats["mean"]):,}\n'
+                    f'N: {int(stats["count"]):,}',
+                    ha='center',
+                    va='bottom',
+                    fontsize=8,
+                    fontweight='bold'
+                )
+
+        except Exception as e:
+            print(f"Erreur dans _create_swarm_plot_sns: {str(e)}")
+            raise
+
+    def _create_count_plot_sns(self, ax, df, axis='x'):
+        """Crée un count plot (histogramme de fréquences) avec Seaborn."""
+        try:
+            # Sélectionner la colonne appropriée selon l'axe choisi
+            group_col = 'x_value' if axis == 'x' else 'y_value'
+            title_theme = self.config[f'{axis}_axis']['theme']
+
+            # Création du graphique
+            sns.countplot(
+                data=df,
+                x=group_col,
+                ax=ax,
+                palette=sns.color_palette("cubehelix", n_colors=10),
+                order=df[group_col].value_counts().index
+            )
+
+            # Style et étiquettes
+            ax.set_title(f"Fréquence des occurrences par {title_theme}")
+            ax.set_xlabel('')
+            ax.set_ylabel('Nombre d\'occurrences')
+
+            # Rotation des étiquettes
+            plt.xticks(rotation=45, ha='right')
+
+            # Ajout de la grille
+            ax.grid(True, axis='y', linestyle='--', alpha=0.7)
+
+            # Ajout des valeurs sur les barres
+            for i, v in enumerate(df[group_col].value_counts()):
+                ax.text(
+                    i, v,
+                    f'{int(v):,}',
+                    ha='center',
+                    va='bottom',
+                    fontsize=8,
+                    fontweight='bold'
+                )
+
+        except Exception as e:
+            print(f"Erreur dans _create_count_plot_sns: {str(e)}")
+            raise
+
+    def _create_strip_plot_sns(self, ax, df, axis='x'):
+        """Crée un strip plot (nuage de points en ligne) avec Seaborn."""
+        try:
+            # Sélectionner la colonne appropriée selon l'axe choisi
+            group_col = 'x_value' if axis == 'x' else 'y_value'
+            title_theme = self.config[f'{axis}_axis']['theme']
+
+            # Création du graphique
+            sns.stripplot(
+                data=df,
+                x=group_col,
+                y='count',
+                ax=ax,
+                palette=sns.color_palette("cubehelix", n_colors=10),
+                size=8,
+                alpha=0.6,
+                jitter=True  # Ajoute un peu de bruit aléatoire pour éviter la superposition
+            )
+
+            # Style et étiquettes
+            ax.set_title(f"Distribution points par {title_theme}")
+            ax.set_xlabel('')
+            ax.set_ylabel('Nombre')
+
+            # Rotation des étiquettes
+            plt.xticks(rotation=45, ha='right')
+
+            # Ajout de la grille
+            ax.grid(True, linestyle='--', alpha=0.7)
+
+            # Ajout des statistiques pour chaque groupe
+            for i, label in enumerate(df[group_col].unique()):
+                stats = df[df[group_col] == label]['count'].describe()
+                ax.text(
+                    i, stats['max'],
+                    f'Moy: {int(stats["mean"]):,}\n'
+                    f'Méd: {int(stats["50%"]):,}',
+                    ha='center',
+                    va='bottom',
+                    fontsize=8,
+                    fontweight='bold'
+                )
+
+            # Ajout d'une ligne de moyenne pour chaque groupe
+            for i, label in enumerate(df[group_col].unique()):
+                mean_val = df[df[group_col] == label]['count'].mean()
+                ax.hlines(
+                    y=mean_val,
+                    xmin=i - 0.2,
+                    xmax=i + 0.2,
+                    color='red',
+                    linestyles='dashed',
+                    alpha=0.5,
+                    label='Moyenne' if i == 0 else ""
+                )
+
+            # Légende pour la ligne de moyenne
+            if len(df[group_col].unique()) > 0:
+                ax.legend(['Moyenne'], loc='upper right')
+
+        except Exception as e:
+            print(f"Erreur dans _create_strip_plot_sns: {str(e)}")
+            raise
 
     def update_info(self, df):
         """Met à jour les informations d'en-tête."""

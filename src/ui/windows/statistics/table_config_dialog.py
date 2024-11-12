@@ -7,10 +7,10 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 from src.data.gendarmerie.structure import SUBDIVISIONS, SERVICE_RANGES, ANALYSIS_THEMES
+from src.ui.windows.statistics.chart_selection_dialog import ChartSelectionDialog
 
 
 class TableConfigDialog(QDialog):
-
     THEMES = ANALYSIS_THEMES
 
     def __init__(self, db_manager, parent=None):
@@ -127,9 +127,19 @@ class TableConfigDialog(QDialog):
                         if value[0]:  # Ignorer les valeurs NULL
                             value_combo.addItem(str(value[0]))
 
+    def accept(self):
+        """Appelé quand l'utilisateur valide la configuration."""
+        config = self.get_configuration()
+
+        # Ouvrir la boîte de dialogue de sélection du graphique
+        chart_dialog = ChartSelectionDialog(config, self)
+        if chart_dialog.exec():
+            self.selected_chart = chart_dialog.get_selected_chart()
+            super().accept()
+
     def get_configuration(self):
         """Retourne la configuration actuelle."""
-        return {
+        config = {
             "x_axis": {
                 "theme": self.x_theme_combo.currentText(),
                 "field": self.THEMES[self.x_theme_combo.currentText()]["field"],
@@ -141,8 +151,10 @@ class TableConfigDialog(QDialog):
                 "value": self.y_value_combo.currentText()
             }
         }
+        if hasattr(self, 'chart_dialog') and self.chart_dialog:
+            config['chart_type'] = self.chart_dialog.get_selected_chart()
 
-
+        return config
 
 # class TableConfigDialog(QDialog):
 #     """Dialogue pour la configuration des tableaux statistiques."""
