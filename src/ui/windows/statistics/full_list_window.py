@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QColor
 import pandas as pd
 
 from datetime import datetime
@@ -254,7 +254,7 @@ class FullListWindow(QMainWindow):
             # Remplissage des données
             for i, sanction in enumerate(sanctions_results):
                 # Récupérer les infos du gendarme
-                gendarme_info = get_gendarme_info(sanction[2])  # matricule est à l'index 2
+                gendarme_info = get_gendarme_info(sanction[2])
 
                 # Création de la ligne complète
                 row_data = [
@@ -272,10 +272,15 @@ class FullListWindow(QMainWindow):
                     gendarme_info[3]  # Années de service
                 ]
 
-                # Remplissage de la ligne
+                # Remplissage de la ligne avec coloration
                 for j, value in enumerate(row_data):
                     item = QTableWidgetItem(str(value) if value is not None else "")
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                    # Coloration si le statut est "RADIE"
+                    if sanction[6] == "RADIE":  # sanction[6] est le statut
+                        item.setBackground(QColor(255, 200, 200))  # Rouge clair
+
                     self.table.setItem(i, j, item)
 
             # Ajustement des colonnes
