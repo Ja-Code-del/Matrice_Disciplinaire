@@ -12,6 +12,8 @@ import pandas as pd
 
 from datetime import datetime
 
+from seaborn.external.docscrape import header
+
 from src.data.gendarmerie.structure import SUBDIVISIONS, SERVICE_RANGES
 
 from reportlab.lib import colors
@@ -126,8 +128,9 @@ class FullListWindow(QMainWindow):
         self.table = QTableWidget()
         self.table.setAlternatingRowColors(True)
 
-        headers = ["Matricule", "Nom et Prénoms", "Grade", "Région",
-                   "Date des faits", "Faute commise", "Catégorie", "Statut", "N° Dossier"]  # Mise à jour des en-têtes
+        headers = ["ID", "Date d'enr", "Matricule", "Nom et Prénoms", "Grade", "Subdivision",
+                   "Date des faits", "Faute commise", "Catégorie", "Statut",
+                   "N° Dossier", "Années de service"]
         self.table.setHorizontalHeaderLabels(headers)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -191,79 +194,87 @@ class FullListWindow(QMainWindow):
     def load_data(self):
         """Charge les données filtrées dans le tableau."""
         try:
-            query = """
-            SELECT DISTINCT
+            # 1. Requête pour les sanctions (données principales)
+            sanctions_query = """
+            SELECT 
+                s.id,
+                s.date_enr,
                 s.matricule,
-                g.nom_prenoms,
-                g.grade,
-                g.subdiv,
                 s.date_faits,
                 s.faute_commise,
                 s.categorie,
                 s.statut,
-                s.numero_dossier,
-                g.annee_service
+                s.numero_dossier
             FROM sanctions s
-            LEFT JOIN gendarmes g ON CAST(s.matricule AS TEXT) = g.mle
             WHERE 1=1
             """
             params = []
 
-            # Application des filtres
-            if self.grade_combo.currentText() != "Tous les grades":
-                query += " AND g.grade = ?"
-                params.append(self.grade_combo.currentText())
-
-            if self.subdiv_combo.currentText() != "Toutes les subdivisions":
-                query += " AND g.subdiv = ?"
-                params.append(self.subdiv_combo.currentText())
-
+            # Application des filtres pour sanctions
             if self.annee_combo.currentText() != "Toutes les années":
-                query += " AND s.annee_punition = ?"
+                sanctions_query += " AND s.annee_punition = ?"
                 params.append(int(self.annee_combo.currentText()))
 
-            if self.matricule_edit.text():
-                query += " AND s.matricule LIKE ?"
-                params.append(f"%{self.matricule_edit.text()}%")
-
             if self.sanction_combo.currentText() != "Toutes les catégories":
-                query += " AND s.categorie = ?"
+                sanctions_query += " AND s.categorie = ?"
                 params.append(self.sanction_combo.currentText())
 
-            if self.service_combo.currentText() != "Toutes les tranches":
-                range_text = self.service_combo.currentText()
-                start, end = map(int, range_text.split("-")[0:2])
-                query += " AND g.annee_service BETWEEN ? AND ?"
-                params.extend([start, end])
+            # 2. Requête pour récupérer les infos des gendarmes
+            def get_gendarme_info(matricule):
+                gendarme_query = """
+                SELECT 
+                    nom_prenoms,
+                    grade,
+                    subdiv,
+                    annee_service
+                FROM gendarmes 
+                WHERE mle = ?
+                """
+                with self.db_manager.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(gendarme_query, (matricule,))
+                    result = cursor.fetchone()
+                    return result if result else ("", "", "", "")
 
-            query += " ORDER BY s.date_faits DESC"
-
-            # Exécution de la requête
+            # Exécution de la requête principale
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute(query, params)
-                results = cursor.fetchall()
+                cursor.execute(sanctions_query + " ORDER BY id DESC", params)
+                sanctions_results = cursor.fetchall()
 
             # Configuration du tableau
-            headers = ["Matricule", "Nom et Prénoms", "Grade", "Subdivision",
+            headers = ["ID", "Date d'enr", "Matricule", "Nom et Prénoms", "Grade", "Subdivision",
                        "Date des faits", "Faute commise", "Catégorie", "Statut",
                        "N° Dossier", "Années de service"]
 
-            self.table.setRowCount(len(results))
+            self.table.setRowCount(len(sanctions_results))
             self.table.setColumnCount(len(headers))
             self.table.setHorizontalHeaderLabels(headers)
 
             # Remplissage des données
-            for i, row in enumerate(results):
-                for j, value in enumerate(row):
-                    if j == 4:  # Formatage de la date
-                        try:
-                            date = datetime.strptime(value, "%Y-%m-%d")
-                            value = date.strftime("%d/%m/%Y")
-                        except:
-                            pass
+            for i, sanction in enumerate(sanctions_results):
+                # Récupérer les infos du gendarme
+                gendarme_info = get_gendarme_info(sanction[2])  # matricule est à l'index 2
 
-                    item = QTableWidgetItem(str(value) if value else "")
+                # Création de la ligne complète
+                row_data = [
+                    sanction[0],  # ID
+                    self.format_date(sanction[1]),  # Date d'enr
+                    sanction[2],  # Matricule
+                    gendarme_info[0],  # Nom et Prénoms
+                    gendarme_info[1],  # Grade
+                    gendarme_info[2],  # Subdivision
+                    self.format_date(sanction[3]),  # Date des faits
+                    sanction[4],  # Faute commise
+                    sanction[5],  # Catégorie
+                    sanction[6],  # Statut
+                    sanction[7],  # N° Dossier
+                    gendarme_info[3]  # Années de service
+                ]
+
+                # Remplissage de la ligne
+                for j, value in enumerate(row_data):
+                    item = QTableWidgetItem(str(value) if value is not None else "")
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     self.table.setItem(i, j, item)
 
@@ -273,11 +284,21 @@ class FullListWindow(QMainWindow):
             )
 
             # Mise à jour du label de résultats
-            self.result_label.setText(f"Nombre de résultats : {len(results)}")
+            self.result_label.setText(f"Nombre de résultats : {len(sanctions_results)}")
 
         except Exception as e:
             QMessageBox.critical(self, "Erreur",
                                  f"Erreur lors du chargement des données: {str(e)}")
+
+    def format_date(self, date_str):
+        """Formate une date en JJ/MM/AAAA."""
+        if date_str:
+            try:
+                date = datetime.strptime(str(date_str), "%Y-%m-%d")
+                return date.strftime("%d/%m/%Y")
+            except:
+                return str(date_str)
+        return ""
 
     def apply_filters(self):
         """Applique les filtres sélectionnés."""
@@ -305,7 +326,7 @@ class FullListWindow(QMainWindow):
                 "Excel Files (*.xlsx)"
             )
 
-            if not file_path:  # L'utilisateur a annulé
+            if not file_path:  # L'utilisateur a annulé.
                 return
 
             # Création d'un writer Excel
@@ -469,12 +490,12 @@ class FullListWindow(QMainWindow):
             elements.append(pdf_table)
 
             # Informations de pagination
-            def add_page_number(canvas, doc):
+            def add_page_number(canvas, mydoc):
                 page_num = canvas.getPageNumber()
                 text = f"Page {page_num}"
                 canvas.saveState()
                 canvas.setFont('Helvetica', 8)
-                canvas.drawRightString(doc.pagesize[0] - 30, 30, text)
+                canvas.drawRightString(mydoc.pagesize[0] - 30, 30, text)
                 canvas.restoreState()
 
             # Construction du document
@@ -617,5 +638,3 @@ class FullListWindow(QMainWindow):
                 "Erreur",
                 f"Erreur lors de l'export PowerPoint:\n{str(e)}"
             )
-
-

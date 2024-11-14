@@ -44,12 +44,13 @@ class VisualizationWindow(QMainWindow):
         self.df = None
         self.db_manager = db_manager
         self.config = config
+        self.current_chart_config = None
         self.setWindowTitle("Visualisation des statistiques")
         self.setMinimumSize(1000, 800)
 
         # Configuration du style Seaborn
         sns.set_style("whitegrid")
-        sns.set_palette("cubehelix", n_colors=8)
+        sns.set_palette("cubehelix", n_colors=10)
 
         self.setup_ui()
         self.load_data()
@@ -123,14 +124,14 @@ class VisualizationWindow(QMainWindow):
             def get_service_years_case():
                 return """
                 CASE 
-                    WHEN g.annee_service BETWEEN 0 AND 5 THEN '0-5 ANS'
-                    WHEN g.annee_service BETWEEN 6 AND 10 THEN '6-10 ANS'
-                    WHEN g.annee_service BETWEEN 11 AND 15 THEN '11-15 ANS'
-                    WHEN g.annee_service BETWEEN 16 AND 20 THEN '16-20 ANS'
-                    WHEN g.annee_service BETWEEN 21 AND 25 THEN '21-25 ANS'
-                    WHEN g.annee_service BETWEEN 26 AND 30 THEN '26-30 ANS'
-                    WHEN g.annee_service BETWEEN 31 AND 35 THEN '31-35 ANS'
-                    WHEN g.annee_service BETWEEN 36 AND 40 THEN '36-40 ANS'
+                    WHEN gendarmes.annee_service BETWEEN 0 AND 5 THEN '0-5 ANS'
+                    WHEN gendarmes.annee_service BETWEEN 6 AND 10 THEN '6-10 ANS'
+                    WHEN gendarmes.annee_service BETWEEN 11 AND 15 THEN '11-15 ANS'
+                    WHEN gendarmes.annee_service BETWEEN 16 AND 20 THEN '16-20 ANS'
+                    WHEN gendarmes.annee_service BETWEEN 21 AND 25 THEN '21-25 ANS'
+                    WHEN gendarmes.annee_service BETWEEN 26 AND 30 THEN '26-30 ANS'
+                    WHEN gendarmes.annee_service BETWEEN 31 AND 35 THEN '31-35 ANS'
+                    WHEN gendarmes.annee_service BETWEEN 36 AND 40 THEN '36-40 ANS'
                 END
                 """
 
@@ -140,7 +141,7 @@ class VisualizationWindow(QMainWindow):
                 if field == "annee_service":
                     return get_service_years_case()
                 elif field in ["grade", "situation_matrimoniale", "subdiv"]:
-                    return f"g.{field}"
+                    return f"gendarmes.{field}"
                 else:
                     return f"s.{field}"
 
@@ -148,14 +149,64 @@ class VisualizationWindow(QMainWindow):
             y_expr = get_field_expression(y_config)
 
             query = f"""
+            WITH unique_sanctions AS (
+                SELECT DISTINCT 
+                    numero_dossier,
+                    MIN(matricule) as matricule,
+                    MIN(date_enr) as date_enr,
+                    MIN(unite) as unite,
+                    MIN(subdivision) as subdivision
+                FROM sanctions
+                GROUP BY numero_dossier
+            ),
+            filtered_sanctions AS (
+                SELECT s.*
+                FROM sanctions s
+                INNER JOIN unique_sanctions us 
+                    ON s.numero_dossier = us.numero_dossier 
+                    AND s.matricule = us.matricule
+                    AND s.date_enr = us.date_enr
+                    AND s.unite = us.unite
+                    AND s.subdivision = us.subdivision
+            )
             SELECT 
                 {x_expr} as x_value,
                 {y_expr} as y_value,
-                COUNT(DISTINCT s.id) as count 
-            FROM sanctions s
-            LEFT JOIN gendarmes g ON CAST(s.matricule AS TEXT) = g.mle
-            WHERE 1=1
+                COUNT(DISTINCT fs.numero_dossier) as count
+            FROM filtered_sanctions fs
+            LEFT JOIN gendarmes g ON CAST(fs.matricule AS TEXT) = g.mle
+            GROUP BY x_value, y_value
+            ORDER BY x_value, y_value
             """
+
+            debug_query = """
+            WITH unique_sanctions AS (
+                SELECT DISTINCT 
+                    numero_dossier,
+                    MIN(matricule) as matricule,
+                    MIN(date_enr) as date_enr,
+                    MIN(unite) as unite,
+                    MIN(subdivision) as subdivision
+                FROM sanctions
+                GROUP BY numero_dossier
+            )
+            SELECT 
+                s.*
+            FROM sanctions s
+            INNER JOIN unique_sanctions us 
+                ON s.numero_dossier = us.numero_dossier 
+                AND s.matricule = us.matricule
+                AND s.date_enr = us.date_enr
+                AND s.unite = us.unite
+                AND s.subdivision = us.subdivision
+            WHERE s.matricule = '86472'
+            ORDER BY s.date_faits;
+            """
+
+            print("\nVérification des sanctions après déduplication:")
+            with self.db_manager.get_connection() as conn:
+                debug_df = pd.read_sql_query(debug_query, conn)
+                print(debug_df)
 
             params = []
 
@@ -166,10 +217,11 @@ class VisualizationWindow(QMainWindow):
                 if value and not value.startswith("Tous"):
                     if config["field"] == "annee_service":
                         start, end = map(int, value.split("-")[0:2])
-                        query += f" AND g.annee_service BETWEEN ? AND ?"
+                        query += f" AND gendarmes.annee_service BETWEEN ? AND ?"
                         params.extend([start, end])
                     else:
-                        table_prefix = "g" if config["field"] in ["grade", "situation_matrimoniale", "subdiv"] else "s"
+                        table_prefix = "gendarmes" if config["field"] in ["grade", "situation_matrimoniale",
+                                                                          "subdiv"] else "s"
                         query += f" AND {table_prefix}.{config['field']} = ?"
                         params.append(value)
 
@@ -181,18 +233,52 @@ class VisualizationWindow(QMainWindow):
             ORDER BY x_value, y_value
             """
 
-            print(f"Executing query: {query}")  # Débogage
-            print(f"With parameters: {params}")  # Débogage
+            print(f"Executing query: {query}")  # Debug
+            print(f"With parameters: {params}")  # Debug
 
             with self.db_manager.get_connection() as conn:
-                self.df = pd.read_sql_query(query, conn, params=params)
+                df = pd.read_sql_query(query, conn, params=params)
 
-            print(f"Query results:\n{self.df}")  # Débogage
+            # Debug des doublons
+            print("\nDébug des doublons:")
+            print("Nombre total de lignes:", len(df))
+            print("Nombre de sanctions uniques:", df['count'].sum())
 
-            # Mise à jour des composants visuels
-            self.update_table(self.df)
-            self.update_graph(self.df, 'bar_stacked')  # Type de graphique par défaut
-            self.update_info(self.df)
+            # Vérification supplémentaire avec la requête de base
+            verification_query = """
+            SELECT COUNT(DISTINCT numero_dossier) as total_sanctions
+            FROM sanctions
+            """
+            with self.db_manager.get_connection() as conn:
+                verification_df = pd.read_sql_query(verification_query, conn)
+                total_sanctions = verification_df['total_sanctions'].iloc[0]
+
+            print(f"Nombre total de sanctions dans la base: {total_sanctions}")
+            print(f"Différence: {abs(df['count'].sum() - total_sanctions)}")
+
+            # Si des différences sont trouvées, afficher les détails
+            if df['count'].sum() != total_sanctions:
+                print("\nAnalyse détaillée des sanctions:")
+                detailed_query = """
+                SELECT 
+                    numero_dossier,
+                    COUNT(*) as occurrences
+                FROM sanctions
+                GROUP BY numero_dossier
+                HAVING COUNT(*) > 1
+                ORDER BY occurrences DESC
+                """
+                with self.db_manager.get_connection() as conn:
+                    duplicates_df = pd.read_sql_query(detailed_query, conn)
+                    if not duplicates_df.empty:
+                        print("\nDoublons trouvés:")
+                        print(duplicates_df)
+
+            print(f"DataFrame final:\n{df}")  # Debug
+
+            self.df = df
+            self.update_table(df)
+            self.update_info(df)
 
         except Exception as e:
             print(f"Error in load_data: {str(e)}")
@@ -216,7 +302,7 @@ class VisualizationWindow(QMainWindow):
                 fill_value=0,
                 margins=True,
                 margins_name='TOTAL',
-                aggfunc='sum'  # Explicitement définir la fonction d'agrégation
+                aggfunc='sum'  # Utilise la somme pour éviter le double comptage
             )
 
             print("Tableau pivot:", pivot_table)  # Debug
@@ -282,13 +368,19 @@ class VisualizationWindow(QMainWindow):
     def update_graph(self, df, chart_config):
         """Met à jour le graphique selon la configuration choisie."""
         try:
+            # Vérifier si c'est la même configuration
+            if self.current_chart_config == chart_config:
+                return
+
+            self.current_chart_config = chart_config
+
             # Nettoyage du graphique précédent
             self.figure.clear()
             ax = self.figure.add_subplot(111)
 
             # Configuration du style Seaborn
-            sns.set_style("whitegrid")
-            sns.set_palette("cubehelix", n_colors=10)
+            # sns.set_style("whitegrid")
+            # sns.set_palette("cubehelix", n_colors=10)
 
             # Création du pivot pour le graphique si nécessaire
             pivot_table = pd.pivot_table(
@@ -948,6 +1040,13 @@ class VisualizationWindow(QMainWindow):
             f"Maximum: {maximum} | "
             f"Minimum: {minimum}"
         )
+
+    def closeEvent(self, event):
+        """Gère la fermeture propre de la fenêtre."""
+        if hasattr(self, 'figure'):
+            self.figure.clear()
+        self.closed.emit()
+        event.accept()
 
     # Méthodes d'export
     def export_excel(self):

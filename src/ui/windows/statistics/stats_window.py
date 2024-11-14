@@ -11,6 +11,8 @@ from .full_list_window import FullListWindow
 from .chart_selection_dialog import ChartSelectionDialog
 
 
+# ... (imports existants restent identiques)
+
 class StatistiquesWindow(QMainWindow):
     """Fenêtre principale des statistiques."""
 
@@ -26,6 +28,8 @@ class StatistiquesWindow(QMainWindow):
         self.subject_window = None
         self.visualization_window = None
         self.list_window = None
+        self.chart_dialog = None
+        self.config_dialog = None
 
         self.setup_ui()
 
@@ -102,8 +106,32 @@ class StatistiquesWindow(QMainWindow):
 
             main_layout.addWidget(button)
 
+        # Ajout du bouton de diagnostic
+        debug_button = QPushButton("Diagnostic des données")
+        debug_button.setStyleSheet(common_style)
+        debug_button.setSizePolicy(QSizePolicy.Policy.Expanding,
+                                 QSizePolicy.Policy.Fixed)
+        debug_button.clicked.connect(self.run_diagnostic)
+        main_layout.addWidget(debug_button)
+
         # Espacement en bas
         main_layout.addStretch()
+
+    def run_diagnostic(self):
+        """Lance le diagnostic des données."""
+        try:
+            self.db_manager.run_sanctions_diagnostic()
+            QMessageBox.information(
+                self,
+                "Diagnostic terminé",
+                "Le diagnostic a été effectué. Consultez la console pour les résultats."
+            )
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                f"Erreur lors du diagnostic : {str(e)}"
+            )
 
     def show_subject_analysis(self):
         """Ouvre la fenêtre d'analyse par sujet."""
@@ -114,24 +142,24 @@ class StatistiquesWindow(QMainWindow):
     def show_table_config(self):
         """Ouvre la fenêtre de configuration des tableaux."""
         try:
-            # Ouverture de la boîte de dialogue de configuration
-            dialog = TableConfigDialog(self.db_manager, self)
-            if dialog.exec():
-                # Récupération de la configuration
-                config = dialog.get_configuration()
-                print("Configuration du tableau:", config)  # Debug
+            # Ouverture unique de la boîte de dialogue de configuration
+            config_dialog = TableConfigDialog(self.db_manager, self)
+            if config_dialog.exec():
+                config = config_dialog.get_configuration()
 
-                # Ouverture de la boîte de dialogue de sélection du graphique
+                # Création d'une seule instance du sélecteur de graphiques
                 chart_dialog = ChartSelectionDialog(config, self)
-                if chart_dialog.exec():
+                result = chart_dialog.exec()
+
+                if result == QDialog.DialogCode.Accepted:
                     chart_config = chart_dialog.get_selected_chart()
-                    print("Configuration du graphique:", chart_config)  # Debug
 
-                    # Fermeture de la fenêtre de visualisation précédente si elle existe
-                    if self.visualization_window:
+                    # Fermeture de l'ancienne fenêtre de visualisation si elle existe
+                    if hasattr(self, 'visualization_window') and self.visualization_window:
                         self.visualization_window.close()
+                        self.visualization_window = None
 
-                    # Création de la nouvelle fenêtre de visualisation
+                    # Création d'une nouvelle fenêtre de visualisation
                     self.visualization_window = VisualizationWindow(
                         self.db_manager,
                         config,
@@ -146,18 +174,20 @@ class StatistiquesWindow(QMainWindow):
                             geometry.y() + 50
                         )
 
-                    # Configuration des signaux
-                    self.visualization_window.closed.connect(self.on_visualization_closed)
-
-                    # Chargement des données et création du graphique
+                    # Configuration et affichage
                     self.visualization_window.load_data()
-                    self.visualization_window.update_graph(
-                        self.visualization_window.df,
-                        chart_config
-                    )
-
-                    # Affichage de la fenêtre
-                    self.visualization_window.show()
+                    if hasattr(self.visualization_window, 'df') and self.visualization_window.df is not None:
+                        self.visualization_window.update_graph(
+                            self.visualization_window.df,
+                            chart_config
+                        )
+                        self.visualization_window.show()
+                    else:
+                        QMessageBox.critical(
+                            self,
+                            "Erreur",
+                            "Erreur lors du chargement des données"
+                        )
 
         except Exception as e:
             print(f"Erreur dans show_table_config: {str(e)}")  # Debug
@@ -194,13 +224,25 @@ class StatistiquesWindow(QMainWindow):
         event.accept()
 
     def load_global_stats(self):
-        """Charge les statistiques globales."""
         try:
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
 
-                # Total des sanctions
-                cursor.execute("SELECT COUNT(*) FROM sanctions")
+                # Requête modifiée pour éviter les doublons
+                cursor.execute("""
+                    WITH unique_sanctions AS (
+                        SELECT DISTINCT 
+                            numero_dossier,
+                            MIN(matricule) as matricule,
+                            MIN(date_enr) as date_enr,
+                            MIN(unite) as unite,
+                            MIN(subdivision) as subdivision
+                        FROM sanctions
+                        GROUP BY numero_dossier
+                    )
+                    SELECT COUNT(*) as total_sanctions
+                    FROM unique_sanctions
+                """)
                 total_sanctions = cursor.fetchone()[0]
 
                 # Total des gendarmes sanctionnés
@@ -210,7 +252,6 @@ class StatistiquesWindow(QMainWindow):
                 """)
                 total_gendarmes = cursor.fetchone()[0]
 
-                # Mise à jour des labels
                 self.update_stats_labels(total_sanctions, total_gendarmes)
 
         except Exception as e:

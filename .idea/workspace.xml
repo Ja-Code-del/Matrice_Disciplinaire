@@ -4,12 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="Diagrams improvements with seaborn">
-      <change afterPath="$PROJECT_DIR$/src/ui/windows/statistics/chart_selection_dialog.py" afterDir="false" />
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="improvements on charts selection. but computing is not accurate yet">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/matrice_last.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/matrice_last.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EtatSO.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/EtatSO.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/database/db_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/db_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/import_etat_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/import_etat_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/table_config_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/table_config_dialog.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -381,11 +382,18 @@
       <option name="project" value="LOCAL" />
       <updated>1731254872484</updated>
     </task>
-    <option name="localTasksCounter" value="37" />
+    <task id="LOCAL-00037" summary="improvements on charts selection. but computing is not accurate yet">
+      <option name="closed" value="true" />
+      <created>1731424161016</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1731424161016</updated>
+    </task>
+    <option name="localTasksCounter" value="38" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Main_window : date des faits no : date &#10;stats_window: worked on total list of punished&#10;and finally added the punis_list.py file to handle it" />
     <MESSAGE value="Main_window : update to handle new button : import Soff complete excel files. new button to write forms now diretcly into the app" />
     <MESSAGE value="new files to manage forms and complete gendarmes datas" />
     <MESSAGE value="first of form section done" />
@@ -410,7 +418,8 @@
     <MESSAGE value="best config for stats data but not &quot;sexy&quot; enough" />
     <MESSAGE value="YOOOOO MY STATS ARE ON FIRE" />
     <MESSAGE value="Diagrams improvements with seaborn" />
-    <option name="LAST_COMMIT_MESSAGE" value="Diagrams improvements with seaborn" />
+    <MESSAGE value="improvements on charts selection. but computing is not accurate yet" />
+    <option name="LAST_COMMIT_MESSAGE" value="improvements on charts selection. but computing is not accurate yet" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

@@ -131,7 +131,6 @@ class DatabaseManager:
 
             return stats
 
-
     def is_connected(self):
         """Vérifie si la connexion à la base de données est active."""
         try:
@@ -142,7 +141,6 @@ class DatabaseManager:
         except Exception as e:
             print(f"Erreur de connexion : {str(e)}")
             return False
-
 
     def table_exists(self, table_name):
         """Vérifie si une table existe dans la base de données."""
@@ -159,7 +157,6 @@ class DatabaseManager:
             print(f"Erreur lors de la vérification de la table {table_name}: {str(e)}")
             return False
 
-
     def count_records(self, table_name):
         """Compte le nombre d'enregistrements dans une table."""
         try:
@@ -171,3 +168,129 @@ class DatabaseManager:
         except Exception as e:
             print(f"Erreur lors du comptage des enregistrements de {table_name}: {str(e)}")
             return 0
+
+    def check_sanctions_duplicates(self):
+        """Vérifie la présence de doublons dans la table sanctions."""
+        try:
+            with self.get_connection() as conn:
+                query_check = """
+                SELECT 
+                    s.numero_dossier, 
+                    s.matricule,
+                    s.date_faits,
+                    s.faute_commise,
+                    COUNT(*) as occurrence_count
+                FROM sanctions s
+                GROUP BY s.numero_dossier, s.matricule, s.date_faits, s.faute_commise
+                HAVING COUNT(*) > 1
+                """
+                cursor = conn.cursor()
+                cursor.execute(query_check)
+                duplicates = cursor.fetchall()
+                return duplicates
+        except Exception as e:
+            print(f"Erreur lors de la vérification des doublons : {str(e)}")
+            return None
+
+    def run_sanctions_diagnostic(self):
+        """Exécute un diagnostic complet de la table sanctions."""
+        debug_queries = [
+            # 1. Total des dossiers uniques
+            """
+            SELECT COUNT(DISTINCT numero_dossier) as total_unique_dossiers 
+            FROM sanctions;
+            """,
+
+            # 2. Détail des doublons par numéro de dossier
+            """
+            SELECT 
+                numero_dossier,
+                COUNT(*) as occurrences,
+                GROUP_CONCAT(matricule) as matricules
+            FROM sanctions
+            GROUP BY numero_dossier
+            HAVING COUNT(*) > 1
+            ORDER BY occurrences DESC;
+            """,
+
+            # 3. Vérification des champs NULL ou vides
+            """
+            SELECT 
+                COUNT(*) as total,
+                COUNT(NULLIF(numero_dossier, '')) as dossiers_non_vides,
+                COUNT(NULLIF(matricule, '')) as matricules_non_vides
+            FROM sanctions;
+            """,
+
+            # 4. Les enregistrements qui posent problème
+            """
+            SELECT s1.*
+            FROM sanctions s1
+            WHERE EXISTS (
+                SELECT 1
+                FROM sanctions s2
+                WHERE s1.numero_dossier = s2.numero_dossier
+                AND s1.rowid != s2.rowid
+            )
+            ORDER BY numero_dossier;
+            """,
+
+            # Ajouter cette requête comme Diagnostic 5
+            """
+            SELECT 
+                s.numero_dossier,
+                s.matricule,
+                s.date_faits,
+                s.faute_commise
+            FROM sanctions s
+            ORDER BY s.date_faits DESC;
+            """
+        ]
+
+        results = {}
+        print("=== DIAGNOSTIC DES DONNÉES ===")
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+
+            for i, query in enumerate(debug_queries, 1):
+                try:
+                    print(f"\n--- Diagnostic {i} ---")
+                    cursor.execute(query)
+                    results = cursor.fetchall()
+
+                    if i == 1:  # Total des dossiers uniques
+                        print(f"Nombre total de dossiers uniques : {results[0][0]}")
+
+                    elif i == 2:  # Détail des doublons
+                        print("Doublons trouvés :")
+                        if not results:
+                            print("Aucun doublon trouvé")
+                        for row in results:
+                            print(f"Dossier: {row[0]}")
+                            print(f"Nombre d'occurrences: {row[1]}")
+                            print(f"Matricules concernés: {row[2]}\n")
+
+                    elif i == 3:  # Vérification des champs NULL
+                        row = results[0]
+                        print(f"Total des enregistrements : {row[0]}")
+                        print(f"Dossiers non vides : {row[1]}")
+                        print(f"Matricules non vides : {row[2]}")
+
+                    elif i == 4:  # Enregistrements problématiques
+                        print("Enregistrements avec même numéro de dossier :")
+                        if not results:
+                            print("Aucun enregistrement problématique trouvé")
+                        for row in results:
+                            print(f"Dossier: {row[0]}, Matricule: {row[1]}")
+
+                    elif i == 5:  # Liste détaillée des sanctions
+                        print("Détail des sanctions :")
+                        print("Num Dossier | Matricule | Date faits | Faute ")
+                        print("-" * 70)
+                        for row in results:
+                            print(f"{row[0]:<12} | {row[1]:<10} | {row[2]:<11} | {row[3]} ")
+                        print(f"\nNombre total d'enregistrements : {len(results)}")
+
+                except Exception as e:
+                    print(f"Erreur lors du diagnostic {i}: {str(e)}")
+                    continue
