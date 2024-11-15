@@ -1,4 +1,5 @@
 # src/ui/windows/statistics/full_list_window.py
+from csv import excel
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QFileDialog, QVBoxLayout, QHBoxLayout,
                              QPushButton, QTableWidget, QTableWidgetItem,
@@ -14,8 +15,6 @@ from datetime import datetime
 
 from seaborn.external.docscrape import header
 
-from src.data.gendarmerie.structure import SUBDIVISIONS, SERVICE_RANGES
-
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -28,6 +27,8 @@ from pptx.dml.color import RGBColor
 
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+
+from src.data.gendarmerie.structure import SUBDIVISIONS, SERVICE_RANGES
 
 
 class FullListWindow(QMainWindow):
@@ -195,12 +196,52 @@ class FullListWindow(QMainWindow):
         export_layout = QHBoxLayout()
 
         self.btn_excel = QPushButton("Exporter Excel")
+        self.btn_excel.setStyleSheet("""
+            QPushButton {
+                        background-color: #217346;
+                        color: white;
+                        padding: 8px 15px;
+                        border-radius: 15px;
+                        font-weight: bold;
+                    }
+                    QPushButton:hover {
+                        background-color: #154734;
+                    }
+                    """)
         self.btn_excel.clicked.connect(self.export_excel)
+        self.btn_excel.setIcon(QIcon("../resources/icons/excel_icon.svg"))
 
         self.btn_pdf = QPushButton("Exporter PDF")
+        self.btn_pdf.setStyleSheet("""
+                    QPushButton {
+                                background-color: #6C63FF;
+                                color: white;
+                                padding: 8px 15px;
+                                border-radius: 15px;
+                                font-weight: bold;
+                            }
+                            QPushButton:hover {
+                                background-color: #4B0082;
+                            }
+                            """)
+        self.btn_pdf.setIcon(QIcon("../resources/icons/pdf.svg"))
         self.btn_pdf.clicked.connect(self.export_pdf)
 
         self.btn_pptx = QPushButton("Exporter PowerPoint")
+        self.btn_pptx.setStyleSheet("""
+                    QPushButton {
+                                background-color: #D24726;
+                                color: white;
+                                padding: 8px 15px;
+                                border-radius: 15px;
+                                font-weight: bold;
+                            }
+                            QPushButton:hover {
+                                background-color: #B7472A;
+                            }
+                            """)
+
+        self.btn_pptx.setIcon(QIcon("../resources/icons/pptx.svg"))
         self.btn_pptx.clicked.connect(self.export_pptx)
 
         export_layout.addWidget(self.btn_excel)
@@ -212,44 +253,56 @@ class FullListWindow(QMainWindow):
 
     def get_gendarme_info(self, matricule):
         """Récupère les informations d'un gendarme à partir de son matricule."""
-        global start, end
-        gendarme_query = """
-        SELECT 
-            nom_prenoms,
-            grade,
-            subdiv,
-            annee_service,
-            situation_matrimoniale
-        FROM gendarmes 
-        WHERE mle = ?
-        """
-        # Ajout des filtres spécifiques aux gendarmes
-        if self.filters["grade"].currentText() != "Tous(tes)":
-            gendarme_query += " AND grade = ?"
-        if self.filters["subdiv"].currentText() != "Tous(tes)":
-            gendarme_query += " AND subdiv = ?"
-        if self.filters["situation"].currentText() != "Tous(tes)":
-            gendarme_query += " AND situation_matrimoniale = ?"
-        if self.filters["service"].currentText() != "Tous(tes)":
-            range_text = self.filters["service"].currentText()
-            start, end = map(int, range_text.split("-")[0:2])
-            gendarme_query += " AND annee_service BETWEEN ? AND ?"
+        try:
+            gendarme_query = """
+            SELECT 
+                nom_prenoms,
+                grade,
+                subdiv,
+                annee_service,
+                situation_matrimoniale
+            FROM gendarmes 
+            WHERE mle = ?
+            """
+            gendarme_params = [matricule]
 
-        gendarme_params = [matricule]
-        if self.filters["grade"].currentText() != "Tous(tes)":
-            gendarme_params.append(self.filters["grade"].currentText())
-        if self.filters["subdiv"].currentText() != "Tous(tes)":
-            gendarme_params.append(self.filters["subdiv"].currentText())
-        if self.filters["situation"].currentText() != "Tous(tes)":
-            gendarme_params.append(self.filters["situation"].currentText())
-        if self.filters["service"].currentText() != "Tous(tes)":
-            gendarme_params.extend([start, end])
+            # Ajout des filtres spécifiques aux gendarmes
+            if self.filters["grade"].currentText() != "Tous(tes)":
+                gendarme_query += " AND grade = ?"
+                gendarme_params.append(self.filters["grade"].currentText())
 
-        with self.db_manager.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(gendarme_query, gendarme_params)
-            result = cursor.fetchone()
-            return result if result else ("", "", "", "", "")
+            if self.filters["subdiv"].currentText() != "Tous(tes)":
+                gendarme_query += " AND subdiv = ?"
+                gendarme_params.append(self.filters["subdiv"].currentText())
+
+            if self.filters["situation"].currentText() != "Tous(tes)":
+                gendarme_query += " AND situation_matrimoniale = ?"
+                gendarme_params.append(self.filters["situation"].currentText())
+
+            if self.filters["service"].currentText() != "Tous(tes)":
+                service_text = self.filters["service"].currentText()
+                # Extraire juste le nombre du texte (par exemple "15" de "15 ANS")
+                try:
+                    if "ANS" in service_text:
+                        service_years = int(service_text.split()[0])
+                        gendarme_query += " AND annee_service = ?"
+                        gendarme_params.append(service_years)
+                    elif "-" in service_text:  # Pour les tranches comme "0-5"
+                        start, end = map(int, service_text.split("-"))
+                        gendarme_query += " AND annee_service BETWEEN ? AND ?"
+                        gendarme_params.extend([start, end])
+                except ValueError as e:
+                    print(f"Erreur de conversion de la tranche d'années: {e}")
+
+            with self.db_manager.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(gendarme_query, gendarme_params)
+                result = cursor.fetchone()
+                return result if result else ("", "", "", "", "")
+
+        except Exception as e:
+            print(f"Erreur dans get_gendarme_info: {str(e)}")
+            return ("", "", "", "", "")
 
     def dynamic_search(self, text):
         """Effectue la recherche dynamique."""
@@ -434,8 +487,9 @@ class FullListWindow(QMainWindow):
                 categories = cursor.fetchall()
                 self.filters["categorie"].addItems([str(c[0]) for c in categories if c[0]])
 
-                # Tranches d'années de service
-                self.filters["service"].addItems(SERVICE_RANGES)
+                # Tranches d'années de service avec formatage
+                formatted_ranges = [f"{range_text} ans" for range_text in SERVICE_RANGES]
+                self.filters["service"].addItems(formatted_ranges)
 
         except Exception as e:
             QMessageBox.critical(self, "Erreur",

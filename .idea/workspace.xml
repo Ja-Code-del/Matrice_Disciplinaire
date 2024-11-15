@@ -4,11 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="fired gendarmes info are now colored in red in 'liste exhaustive' Statistics menu">
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="NOW EVERYTHING IS OK WITH LIST_EXHAUSTIVE (next update : add tooltip on each line so that the reason of punishment would diplay">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -403,11 +404,18 @@
       <option name="project" value="LOCAL" />
       <updated>1731597831499</updated>
     </task>
-    <option name="localTasksCounter" value="40" />
+    <task id="LOCAL-00040" summary="NOW EVERYTHING IS OK WITH LIST_EXHAUSTIVE (next update : add tooltip on each line so that the reason of punishment would diplay">
+      <option name="closed" value="true" />
+      <created>1731667363667</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1731667363667</updated>
+    </task>
+    <option name="localTasksCounter" value="41" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="first of form section done" />
     <MESSAGE value="WORKED ON FIRST FORM SECTION NOW SATISFIED; The field was too short" />
     <MESSAGE value="Now we can provide informations about a gendarme into a form but it remains his fault info form. and some little style improvements" />
     <MESSAGE value="All the section of the form are operational. but we should make some changes on table sanction about N° dossier and everything would be great. A" />
@@ -432,7 +440,8 @@
     <MESSAGE value="improvements on charts selection. but computing is not accurate yet" />
     <MESSAGE value="Big bug on 'liste exhaustive' solved. I think Stats can work properly now" />
     <MESSAGE value="fired gendarmes info are now colored in red in 'liste exhaustive' Statistics menu" />
-    <option name="LAST_COMMIT_MESSAGE" value="fired gendarmes info are now colored in red in 'liste exhaustive' Statistics menu" />
+    <MESSAGE value="NOW EVERYTHING IS OK WITH LIST_EXHAUSTIVE (next update : add tooltip on each line so that the reason of punishment would diplay" />
+    <option name="LAST_COMMIT_MESSAGE" value="NOW EVERYTHING IS OK WITH LIST_EXHAUSTIVE (next update : add tooltip on each line so that the reason of punishment would diplay" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

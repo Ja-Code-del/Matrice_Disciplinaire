@@ -20,14 +20,14 @@ SUBDIVISIONS = [
 ]
 
 SERVICE_RANGES = [
-    "0-5 ANS",
-    "6-10 ANS",
-    "11-15 ANS",
-    "16-20 ANS",
-    "21-25 ANS",
-    "26-30 ANS",
-    "31-35 ANS",
-    "36-40 ANS"
+    "0-5",
+    "6-10",
+    "11-15",
+    "16-20",
+    "21-25",
+    "26-30",
+    "31-35",
+    "36-40"
 ]
 
 # Thèmes d'analyse statistique

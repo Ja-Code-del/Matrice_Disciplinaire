@@ -4,6 +4,6 @@ matplotlib~=3.9.2
 openpyxl~=3.1.5
 reportlab~=4.2.5
 python-pptx~=1.0.2
-
+lucide-qt
 numpy~=2.1.2
 seaborn

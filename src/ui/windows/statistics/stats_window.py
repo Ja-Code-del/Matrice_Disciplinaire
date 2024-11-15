@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (QMainWindow, QWidget, QDialog,QVBoxLayout, QPushButton,
+from PyQt6.QtWidgets import (QMainWindow, QWidget, QDialog, QVBoxLayout, QPushButton,
                              QHBoxLayout, QLabel, QSizePolicy, QMessageBox, QFrame, QTableWidget, QTableWidgetItem)
 from PyQt6.QtCore import pyqtSignal, Qt, QSize
 from PyQt6.QtGui import QIcon
@@ -106,32 +106,32 @@ class StatistiquesWindow(QMainWindow):
 
             main_layout.addWidget(button)
 
-        # Ajout du bouton de diagnostic
-        debug_button = QPushButton("Diagnostic des données")
-        debug_button.setStyleSheet(common_style)
-        debug_button.setSizePolicy(QSizePolicy.Policy.Expanding,
-                                 QSizePolicy.Policy.Fixed)
-        debug_button.clicked.connect(self.run_diagnostic)
-        main_layout.addWidget(debug_button)
-
-        # Espacement en bas
-        main_layout.addStretch()
-
-    def run_diagnostic(self):
-        """Lance le diagnostic des données."""
-        try:
-            self.db_manager.run_sanctions_diagnostic()
-            QMessageBox.information(
-                self,
-                "Diagnostic terminé",
-                "Le diagnostic a été effectué. Consultez la console pour les résultats."
-            )
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Erreur",
-                f"Erreur lors du diagnostic : {str(e)}"
-            )
+    #     # Ajout du bouton de diagnostic
+    #     debug_button = QPushButton("Diagnostic des données")
+    #     debug_button.setStyleSheet(common_style)
+    #     debug_button.setSizePolicy(QSizePolicy.Policy.Expanding,
+    #                              QSizePolicy.Policy.Fixed)
+    #     debug_button.clicked.connect(self.run_diagnostic)
+    #     main_layout.addWidget(debug_button)
+    #
+    #     # Espacement en bas
+    #     main_layout.addStretch()
+    #
+    # def run_diagnostic(self):
+    #     """Lance le diagnostic des données."""
+    #     try:
+    #         self.db_manager.run_sanctions_diagnostic()
+    #         QMessageBox.information(
+    #             self,
+    #             "Diagnostic terminé",
+    #             "Le diagnostic a été effectué. Consultez la console pour les résultats."
+    #         )
+    #     except Exception as e:
+    #         QMessageBox.critical(
+    #             self,
+    #             "Erreur",
+    #             f"Erreur lors du diagnostic : {str(e)}"
+    #         )
 
     def show_subject_analysis(self):
         """Ouvre la fenêtre d'analyse par sujet."""
