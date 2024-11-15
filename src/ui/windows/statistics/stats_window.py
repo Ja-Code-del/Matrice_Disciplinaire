@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QPushButton,
+from PyQt6.QtWidgets import (QMainWindow, QWidget, QDialog,QVBoxLayout, QPushButton,
                              QHBoxLayout, QLabel, QSizePolicy, QMessageBox, QFrame, QTableWidget, QTableWidgetItem)
 from PyQt6.QtCore import pyqtSignal, Qt, QSize
 from PyQt6.QtGui import QIcon

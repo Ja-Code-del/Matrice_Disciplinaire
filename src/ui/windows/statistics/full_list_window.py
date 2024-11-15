@@ -1,9 +1,9 @@
 # src/ui/windows/statistics/full_list_window.py
 
-from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+from PyQt6.QtWidgets import (QMainWindow, QWidget, QFileDialog, QVBoxLayout, QHBoxLayout,
                              QPushButton, QTableWidget, QTableWidgetItem,
                              QLabel, QComboBox, QLineEdit, QFrame,
-                             QHeaderView, QMessageBox)
+                             QHeaderView, QMessageBox, QGroupBox, QRadioButton, QButtonGroup, QGridLayout)
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt6.QtCore import Qt
@@ -35,6 +35,7 @@ class FullListWindow(QMainWindow):
 
     def __init__(self, db_manager, parent=None):
         super().__init__(parent)
+        self.result_label = None
         self.db_manager = db_manager
         self.setWindowTitle("Liste exhaustive des sanctionnés")
         self.setMinimumSize(1200, 800)
@@ -48,80 +49,134 @@ class FullListWindow(QMainWindow):
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
 
-        # Zone de filtres
-        filter_frame = QFrame()
-        filter_frame.setFrameStyle(QFrame.Shape.StyledPanel)
-        filter_layout = QVBoxLayout(filter_frame)
+        # Section Recherche
+        search_group = QGroupBox("Recherche")
+        search_layout = QVBoxLayout()
 
-        # Première ligne de filtres
-        filter_row1 = QHBoxLayout()
+        # Radio buttons pour le type de recherche
+        radio_layout = QHBoxLayout()
+        self.search_type_group = QButtonGroup()
 
-        # Filtre par grade
-        self.grade_combo = QComboBox()
-        grade_layout = QVBoxLayout()
-        grade_layout.addWidget(QLabel("Grade:"))
-        grade_layout.addWidget(self.grade_combo)
-        filter_row1.addLayout(grade_layout)
+        self.matricule_radio = QRadioButton("Par Matricule")
+        self.nom_radio = QRadioButton("Par Nom")
+        self.matricule_radio.setChecked(True)
 
-        # Filtre par subdivision (au lieu de région)
-        self.subdiv_combo = QComboBox()
-        subdiv_layout = QVBoxLayout()
-        subdiv_layout.addWidget(QLabel("Subdivision:"))
-        subdiv_layout.addWidget(self.subdiv_combo)
-        filter_row1.addLayout(subdiv_layout)
+        self.search_type_group.addButton(self.matricule_radio)
+        self.search_type_group.addButton(self.nom_radio)
 
-        # Filtre par année
-        self.annee_combo = QComboBox()
-        annee_layout = QVBoxLayout()
-        annee_layout.addWidget(QLabel("Année:"))
-        annee_layout.addWidget(self.annee_combo)
-        filter_row1.addLayout(annee_layout)
+        radio_layout.addWidget(self.matricule_radio)
+        radio_layout.addWidget(self.nom_radio)
+        radio_layout.addStretch()
 
-        filter_layout.addLayout(filter_row1)
+        search_layout.addLayout(radio_layout)
 
-        # Deuxième ligne de filtres
-        filter_row2 = QHBoxLayout()
+        # Champ de recherche unique
+        self.search_edit = QLineEdit()
+        self.search_edit.setMinimumHeight(40)
+        self.search_edit.setStyleSheet("""
+            QLineEdit{
+            border: 1px solid #fede77;
+            border-radius: 5px;
+            padding: 5px;
+            }
+            QLineEdit:focus{
+            border: 1px solid #0078D4;
+            }
+        """)
+        self.search_edit.setPlaceholderText("Entrez le matricule...")
+        # Connecter la recherche dynamique
+        self.search_edit.textChanged.connect(self.dynamic_search)
+        search_layout.addWidget(self.search_edit)
 
-        # Recherche par matricule
-        self.matricule_edit = QLineEdit()
-        self.matricule_edit.setPlaceholderText("Rechercher par matricule...")
-        matricule_layout = QVBoxLayout()
-        matricule_layout.addWidget(QLabel("Matricule:"))
-        matricule_layout.addWidget(self.matricule_edit)
-        filter_row2.addLayout(matricule_layout)
+        search_group.setLayout(search_layout)
+        main_layout.addWidget(search_group)
 
-        # Filtre par catégorie de sanction
-        self.sanction_combo = QComboBox()
-        sanction_layout = QVBoxLayout()
-        sanction_layout.addWidget(QLabel("Catégorie de sanction:"))
-        sanction_layout.addWidget(self.sanction_combo)
-        filter_row2.addLayout(sanction_layout)
+        # Section Filtres
+        filter_group = QGroupBox("Filtres")
+        filter_layout = QGridLayout()
 
-        # Filtre par tranches d'années de service
-        self.service_combo = QComboBox()
-        service_layout = QVBoxLayout()
-        service_layout.addWidget(QLabel("Années de service:"))
-        service_layout.addWidget(self.service_combo)
-        filter_row2.addLayout(service_layout)
+        # Configuration des filtres
+        filters_config = [
+            {"label": "Grade:", "widget": "combo", "name": "grade", "row": 0, "col": 0},
+            {"label": "Subdivision:", "widget": "combo", "name": "subdiv", "row": 0, "col": 1},
+            {"label": "Fautes commises:", "widget": "combo", "name": "faute", "row": 0, "col": 2},
+            {"label": "Situation matrimoniale:", "widget": "combo", "name": "situation", "row": 0, "col": 3},
+            {"label": "Tranche d'année de service:", "widget": "combo", "name": "service", "row": 1, "col": 0},
+            {"label": "Année:", "widget": "combo", "name": "annee", "row": 1, "col": 1},
+            {"label": "Statut:", "widget": "combo", "name": "statut", "row": 1, "col": 2},
+            {"label": "Catégorie de fautes:", "widget": "combo", "name": "categorie", "row": 1, "col": 3}
+        ]
 
-        filter_layout.addLayout(filter_row2)
+        # Création des filtres
+        self.filters = {}
+        for filter_config in filters_config:
+            # Layout vertical pour chaque filtre
+            layout = QVBoxLayout()
 
-        # Boutons d'application des filtres
-        btn_layout = QHBoxLayout()
+            # Label
+            label = QLabel(filter_config["label"])
+            layout.addWidget(label)
+
+            # ComboBox
+            combo = QComboBox()
+            combo.addItem(f"Tous(tes)")  # Option par défaut
+            self.filters[filter_config["name"]] = combo
+            layout.addWidget(combo)
+
+            # Ajout au layout grille
+            filter_layout.addLayout(layout, filter_config["row"], filter_config["col"])
+
+        filter_group.setLayout(filter_layout)
+        main_layout.addWidget(filter_group)
+
+        # Boutons d'action
+        button_layout = QHBoxLayout()
         self.apply_filter_btn = QPushButton("Appliquer les filtres")
-        self.apply_filter_btn.clicked.connect(self.apply_filters)
+        self.apply_filter_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #0A84FF;
+                    color: white;
+                    padding: 8px 15px;
+                    border-radius: 5px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #0066CC;
+                }
+            """)
+        self.apply_filter_btn.clicked.connect(self.apply_filters)  # Connexion ajoutée
+
         self.reset_filter_btn = QPushButton("Réinitialiser")
-        self.reset_filter_btn.clicked.connect(self.reset_filters)
+        self.reset_filter_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #6C757D;
+                    color: white;
+                    padding: 8px 15px;
+                    border-radius: 5px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #5A6268;
+                }
+            """)
+        self.reset_filter_btn.clicked.connect(self.reset_filters)  # Connexion ajoutée
 
-        btn_layout.addWidget(self.apply_filter_btn)
-        btn_layout.addWidget(self.reset_filter_btn)
-        btn_layout.addStretch()
+        button_layout.addWidget(self.apply_filter_btn)
+        button_layout.addWidget(self.reset_filter_btn)
+        button_layout.addStretch()
 
-        filter_layout.addLayout(btn_layout)
-        main_layout.addWidget(filter_frame)
+        main_layout.addLayout(button_layout)
 
         # Label pour le nombre de résultats
         self.result_label = QLabel()
+        self.result_label.setStyleSheet("""
+                QLabel {
+                    font-size: 14px;
+                    font-weight: bold;
+                    color: #333;
+                    padding: 5px;
+                }
+            """)
         main_layout.addWidget(self.result_label)
 
         # Tableau des données
@@ -130,7 +185,7 @@ class FullListWindow(QMainWindow):
 
         headers = ["ID", "Date d'enr", "Matricule", "Nom et Prénoms", "Grade", "Subdivision",
                    "Date des faits", "Faute commise", "Catégorie", "Statut",
-                   "N° Dossier", "Années de service"]
+                   "N° Dossier", "Années de service", "Situation matrimoniale"]
         self.table.setHorizontalHeaderLabels(headers)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -155,37 +210,232 @@ class FullListWindow(QMainWindow):
 
         main_layout.addLayout(export_layout)
 
+    def get_gendarme_info(self, matricule):
+        """Récupère les informations d'un gendarme à partir de son matricule."""
+        global start, end
+        gendarme_query = """
+        SELECT 
+            nom_prenoms,
+            grade,
+            subdiv,
+            annee_service,
+            situation_matrimoniale
+        FROM gendarmes 
+        WHERE mle = ?
+        """
+        # Ajout des filtres spécifiques aux gendarmes
+        if self.filters["grade"].currentText() != "Tous(tes)":
+            gendarme_query += " AND grade = ?"
+        if self.filters["subdiv"].currentText() != "Tous(tes)":
+            gendarme_query += " AND subdiv = ?"
+        if self.filters["situation"].currentText() != "Tous(tes)":
+            gendarme_query += " AND situation_matrimoniale = ?"
+        if self.filters["service"].currentText() != "Tous(tes)":
+            range_text = self.filters["service"].currentText()
+            start, end = map(int, range_text.split("-")[0:2])
+            gendarme_query += " AND annee_service BETWEEN ? AND ?"
+
+        gendarme_params = [matricule]
+        if self.filters["grade"].currentText() != "Tous(tes)":
+            gendarme_params.append(self.filters["grade"].currentText())
+        if self.filters["subdiv"].currentText() != "Tous(tes)":
+            gendarme_params.append(self.filters["subdiv"].currentText())
+        if self.filters["situation"].currentText() != "Tous(tes)":
+            gendarme_params.append(self.filters["situation"].currentText())
+        if self.filters["service"].currentText() != "Tous(tes)":
+            gendarme_params.extend([start, end])
+
+        with self.db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(gendarme_query, gendarme_params)
+            result = cursor.fetchone()
+            return result if result else ("", "", "", "", "")
+
+    def dynamic_search(self, text):
+        """Effectue la recherche dynamique."""
+        try:
+            search_type = "matricule" if self.matricule_radio.isChecked() else "nom"
+
+            # Si le champ est vide, afficher toutes les données
+            if not text:
+                self.load_data()
+                return
+
+            # Construction de la requête selon le type de recherche
+            if search_type == "matricule":
+                sanctions_query = """
+                SELECT 
+                    s.id,
+                    s.date_enr,
+                    s.matricule,
+                    s.date_faits,
+                    s.faute_commise,
+                    s.categorie,
+                    s.statut,
+                    s.numero_dossier
+                FROM sanctions s
+                WHERE s.matricule LIKE ?
+                ORDER BY s.id DESC
+                """
+                params = [f"%{text}%"]
+            else:
+                sanctions_query = """
+                SELECT 
+                    s.id,
+                    s.date_enr,
+                    s.matricule,
+                    s.date_faits,
+                    s.faute_commise,
+                    s.categorie,
+                    s.statut,
+                    s.numero_dossier
+                FROM sanctions s
+                WHERE s.matricule IN (
+                    SELECT mle FROM gendarmes 
+                    WHERE nom_prenoms LIKE ?
+                )
+                ORDER BY s.id DESC
+                """
+                params = [f"%{text}%"]
+
+            # Exécution de la requête
+            with self.db_manager.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(sanctions_query, params)
+                sanctions_results = cursor.fetchall()
+
+                # Mise à jour du tableau avec les résultats
+                self.table.setRowCount(len(sanctions_results))
+
+                filtered_count = 0
+                for i, sanction in enumerate(sanctions_results):
+                    # Récupérer les infos du gendarme
+                    gendarme_info = self.get_gendarme_info(sanction[2])  # matricule est à l'index 2
+
+                    # Création de la ligne complète
+                    row_data = [
+                        sanction[0],  # ID
+                        self.format_date(sanction[1]),  # Date d'enr
+                        sanction[2],  # Matricule
+                        gendarme_info[0],  # Nom et Prénoms
+                        gendarme_info[1],  # Grade
+                        gendarme_info[2],  # Subdivision
+                        self.format_date(sanction[3]),  # Date des faits
+                        sanction[4],  # Faute commise
+                        sanction[5],  # Catégorie
+                        sanction[6],  # Statut
+                        sanction[7],  # N° Dossier
+                        gendarme_info[3],  # Années de service
+                        gendarme_info[4]  # Situation Matrimoniale
+                    ]
+
+                    # Remplissage de la ligne
+                    for j, value in enumerate(row_data):
+                        item = QTableWidgetItem(str(value) if value is not None else "")
+
+                        # Alignement à gauche pour nom/prénoms, faute et n° dossier
+                        if j in [3, 7, 10]:
+                            item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                        else:
+                            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                        # Coloration si le statut est "RADIE"
+                        if sanction[6] == "RADIE":
+                            item.setBackground(QColor(255, 200, 200))
+
+                        self.table.setItem(filtered_count, j, item)
+
+                    filtered_count += 1
+
+                # Ajustement du nombre de lignes et mise à jour du label
+                self.table.setRowCount(filtered_count)
+                self.result_label.setText(f"Nombre de résultats : {filtered_count}")
+
+        except Exception as e:
+            print(f"Erreur dans la recherche dynamique : {str(e)}")  # Debug
+
+    def update_table_with_results(self, sanctions_results):
+        """Met à jour le tableau avec les résultats de la recherche."""
+        self.table.setRowCount(len(sanctions_results))
+
+        for i, sanction in enumerate(sanctions_results):
+            # Récupérer les infos du gendarme
+            gendarme_info = self.get_gendarme_info(sanction[1])  # matricule est à l'index 1
+
+            # Même logique de remplissage que dans load_data
+            row_data = [
+                sanction[0],  # ID
+                self.format_date(sanction[2]),  # Date d'enr
+                sanction[1],  # Matricule
+                gendarme_info[0],  # Nom et Prénoms
+                gendarme_info[1],  # Grade
+                gendarme_info[2],  # Subdivision
+                self.format_date(sanction[4]),  # Date des faits
+                sanction[3],  # Faute commise
+                sanction[5],  # Catégorie
+                sanction[6],  # Statut
+                sanction[7],  # N° Dossier
+                gendarme_info[3],  # Années de service
+                gendarme_info[4]  # Situation Matrimoniale
+            ]
+
+            for j, value in enumerate(row_data):
+                item = QTableWidgetItem(str(value) if value is not None else "")
+
+                # Conserver les alignements spécifiques
+                if j in [3, 7, 10]:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                else:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                # Conserver la coloration des radiés
+                if sanction[6] == "RADIE":
+                    item.setBackground(QColor(255, 200, 200))
+
+                self.table.setItem(i, j, item)
+
     def load_filters(self):
         """Charge les valeurs des filtres."""
         try:
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
-
+                print("\nDébug chargement des filtres:")
                 # Grades
                 cursor.execute("SELECT DISTINCT grade FROM gendarmes ORDER BY grade")
                 grades = cursor.fetchall()
-                self.grade_combo.addItem("Tous les grades")
-                self.grade_combo.addItems([g[0] for g in grades if g[0]])
+                self.filters["grade"].addItems([g[0] for g in grades if g[0]])
+                print(f"Grades chargés: {[g[0] for g in grades if g[0]]}")
 
                 # Subdivisions
-                self.subdiv_combo.addItem("Toutes les subdivisions")
-                self.subdiv_combo.addItems(SUBDIVISIONS)
+                self.filters["subdiv"].addItems(SUBDIVISIONS)
+
+                # Fautes commises
+                cursor.execute("SELECT DISTINCT faute_commise FROM sanctions ORDER BY faute_commise")
+                fautes = cursor.fetchall()
+                self.filters["faute"].addItems([f[0] for f in fautes if f[0]])
+
+                # Situation matrimoniale
+                cursor.execute("SELECT DISTINCT situation_matrimoniale FROM gendarmes ORDER BY situation_matrimoniale")
+                situations = cursor.fetchall()
+                self.filters["situation"].addItems([s[0] for s in situations if s[0]])
 
                 # Années
                 cursor.execute("SELECT DISTINCT annee_punition FROM sanctions ORDER BY annee_punition DESC")
                 annees = cursor.fetchall()
-                self.annee_combo.addItem("Toutes les années")
-                self.annee_combo.addItems([str(a[0]) for a in annees if a[0]])
+                self.filters["annee"].addItems([str(a[0]) for a in annees if a[0]])
 
-                # Catégories de sanctions
+                # Statuts
+                cursor.execute("SELECT DISTINCT statut FROM sanctions ORDER BY statut")
+                statuts = cursor.fetchall()
+                self.filters["statut"].addItems([s[0] for s in statuts if s[0]])
+
+                # Catégories
                 cursor.execute("SELECT DISTINCT categorie FROM sanctions ORDER BY categorie")
-                sanctions = cursor.fetchall()
-                self.sanction_combo.addItem("Toutes les catégories")
-                self.sanction_combo.addItems([str(s[0]) for s in sanctions if s[0]])
+                categories = cursor.fetchall()
+                self.filters["categorie"].addItems([str(c[0]) for c in categories if c[0]])
 
                 # Tranches d'années de service
-                self.service_combo.addItem("Toutes les tranches")
-                self.service_combo.addItems(SERVICE_RANGES)
+                self.filters["service"].addItems(SERVICE_RANGES)
 
         except Exception as e:
             QMessageBox.critical(self, "Erreur",
@@ -211,30 +461,21 @@ class FullListWindow(QMainWindow):
             params = []
 
             # Application des filtres pour sanctions
-            if self.annee_combo.currentText() != "Toutes les années":
+            if self.filters["faute"].currentText() != "Tous(tes)":
+                sanctions_query += " AND s.faute_commise = ?"
+                params.append(self.filters["faute"].currentText())
+
+            if self.filters["annee"].currentText() != "Tous(tes)":
                 sanctions_query += " AND s.annee_punition = ?"
-                params.append(int(self.annee_combo.currentText()))
+                params.append(int(self.filters["annee"].currentText()))
 
-            if self.sanction_combo.currentText() != "Toutes les catégories":
+            if self.filters["statut"].currentText() != "Tous(tes)":
+                sanctions_query += " AND s.statut = ?"
+                params.append(self.filters["statut"].currentText())
+
+            if self.filters["categorie"].currentText() != "Tous(tes)":
                 sanctions_query += " AND s.categorie = ?"
-                params.append(self.sanction_combo.currentText())
-
-            # 2. Requête pour récupérer les infos des gendarmes
-            def get_gendarme_info(matricule):
-                gendarme_query = """
-                SELECT 
-                    nom_prenoms,
-                    grade,
-                    subdiv,
-                    annee_service
-                FROM gendarmes 
-                WHERE mle = ?
-                """
-                with self.db_manager.get_connection() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute(gendarme_query, (matricule,))
-                    result = cursor.fetchone()
-                    return result if result else ("", "", "", "")
+                params.append(self.filters["categorie"].currentText())
 
             # Exécution de la requête principale
             with self.db_manager.get_connection() as conn:
@@ -245,16 +486,21 @@ class FullListWindow(QMainWindow):
             # Configuration du tableau
             headers = ["ID", "Date d'enr", "Matricule", "Nom et Prénoms", "Grade", "Subdivision",
                        "Date des faits", "Faute commise", "Catégorie", "Statut",
-                       "N° Dossier", "Années de service"]
+                       "N° Dossier", "Années de service", "Situation Matrimoniale"]
 
             self.table.setRowCount(len(sanctions_results))
             self.table.setColumnCount(len(headers))
             self.table.setHorizontalHeaderLabels(headers)
 
             # Remplissage des données
+            filtered_count = 0
             for i, sanction in enumerate(sanctions_results):
-                # Récupérer les infos du gendarme
-                gendarme_info = get_gendarme_info(sanction[2])
+                # Récupérer les infos du gendarme avec filtres
+                gendarme_info = self.get_gendarme_info(sanction[2])  # Utilisation de la méthode de classe
+
+                # Si les infos du gendarme sont vides à cause des filtres, continuer
+                if not any(gendarme_info):
+                    continue
 
                 # Création de la ligne complète
                 row_data = [
@@ -269,19 +515,30 @@ class FullListWindow(QMainWindow):
                     sanction[5],  # Catégorie
                     sanction[6],  # Statut
                     sanction[7],  # N° Dossier
-                    gendarme_info[3]  # Années de service
+                    gendarme_info[3],  # Années de service
+                    gendarme_info[4]  # Situation Matrimoniale
                 ]
 
-                # Remplissage de la ligne avec coloration
+                # Remplissage de la ligne avec alignements et coloration
                 for j, value in enumerate(row_data):
                     item = QTableWidgetItem(str(value) if value is not None else "")
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                    # Alignement à gauche pour nom/prénoms, faute et n° dossier
+                    if j in [3, 7, 10]:
+                        item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                    else:
+                        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
                     # Coloration si le statut est "RADIE"
-                    if sanction[6] == "RADIE":  # sanction[6] est le statut
-                        item.setBackground(QColor(255, 200, 200))  # Rouge clair
+                    if sanction[6] == "RADIE":
+                        item.setBackground(QColor(255, 200, 200))
 
-                    self.table.setItem(i, j, item)
+                    self.table.setItem(filtered_count, j, item)
+
+                filtered_count += 1
+
+            # Ajuster le nombre de lignes au nombre réel après filtrage
+            self.table.setRowCount(filtered_count)
 
             # Ajustement des colonnes
             self.table.horizontalHeader().setSectionResizeMode(
@@ -289,9 +546,10 @@ class FullListWindow(QMainWindow):
             )
 
             # Mise à jour du label de résultats
-            self.result_label.setText(f"Nombre de résultats : {len(sanctions_results)}")
+            self.result_label.setText(f"Nombre de résultats : {filtered_count}")
 
         except Exception as e:
+            print(f"Erreur dans load_data: {str(e)}")  # Pour le debug
             QMessageBox.critical(self, "Erreur",
                                  f"Erreur lors du chargement des données: {str(e)}")
 
@@ -307,16 +565,106 @@ class FullListWindow(QMainWindow):
 
     def apply_filters(self):
         """Applique les filtres sélectionnés."""
-        self.load_data()
+        print("\nDébug application des filtres:")
+        try:
+            # Debug: afficher les valeurs des filtres
+            print("Valeurs des filtres:")
+            for key, combo in self.filters.items():
+                print(f"{key}: {combo.currentText()}")
+
+            self.load_data()  # Cette méthode contient déjà la logique de filtrage
+
+        except Exception as e:
+            print(f"Erreur dans apply_filters: {str(e)}")
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                f"Erreur lors de l'application des filtres: {str(e)}"
+            )
+
+    def load_data_with_filters(self, query, params):
+        """Charge les données avec les filtres appliqués."""
+        try:
+            with self.db_manager.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query + " ORDER BY id DESC", params)
+                sanctions_results = cursor.fetchall()
+
+            # Configuration du tableau
+            headers = ["ID", "Date d'enr", "Matricule", "Nom et Prénoms", "Grade", "Subdivision",
+                       "Date des faits", "Faute commise", "Catégorie", "Statut",
+                       "N° Dossier", "Années de service", "Situation Matrimoniale"]
+
+            self.table.setRowCount(len(sanctions_results))
+            self.table.setColumnCount(len(headers))
+            self.table.setHorizontalHeaderLabels(headers)
+
+            # Remplissage des données
+            filtered_count = 0
+            for i, sanction in enumerate(sanctions_results):
+                gendarme_info = self.get_gendarme_info(sanction[2])
+
+                # Si les filtres sur gendarme excluent cet enregistrement, passer
+                if not any(gendarme_info):
+                    continue
+
+                row_data = [
+                    sanction[0],  # ID
+                    self.format_date(sanction[1]),  # Date d'enr
+                    sanction[2],  # Matricule
+                    gendarme_info[0],  # Nom et Prénoms
+                    gendarme_info[1],  # Grade
+                    gendarme_info[2],  # Subdivision
+                    self.format_date(sanction[3]),  # Date des faits
+                    sanction[4],  # Faute commise
+                    sanction[5],  # Catégorie
+                    sanction[6],  # Statut
+                    sanction[7],  # N° Dossier
+                    gendarme_info[3],  # Années de service
+                    gendarme_info[4]  # Situation Matrimoniale
+                ]
+
+                # Remplissage avec mise en forme
+                for j, value in enumerate(row_data):
+                    item = QTableWidgetItem(str(value) if value is not None else "")
+
+                    if j in [3, 7, 10]:
+                        item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                    else:
+                        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                    if sanction[6] == "RADIE":
+                        item.setBackground(QColor(255, 200, 200))
+
+                    self.table.setItem(filtered_count, j, item)
+
+                filtered_count += 1
+
+            # Ajuster la taille finale
+            self.table.setRowCount(filtered_count)
+
+            # Ajuster les colonnes
+            self.table.horizontalHeader().setSectionResizeMode(
+                QHeaderView.ResizeMode.ResizeToContents
+            )
+
+            # Mise à jour du compteur
+            self.result_label.setText(f"Nombre de résultats : {filtered_count}")
+
+        except Exception as e:
+            print(f"Erreur dans load_data_with_filters: {str(e)}")
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                f"Erreur lors du chargement des données filtrées: {str(e)}"
+            )
 
     def reset_filters(self):
         """Réinitialise tous les filtres."""
-        self.grade_combo.setCurrentIndex(0)
-        self.subdiv_combo.setCurrentIndex(0)
-        self.annee_combo.setCurrentIndex(0)
-        self.sanction_combo.setCurrentIndex(0)
-        self.service_combo.setCurrentIndex(0)
-        self.matricule_edit.clear()
+        print("\nRéinitialisation des filtres")
+        for combo in self.filters.values():
+            combo.setCurrentIndex(0)  # Remet à "Tous(tes)"
+        self.search_edit.clear()  # Efface aussi la recherche
         self.load_data()
 
     def export_excel(self):

@@ -1,7 +1,7 @@
 # src/ui/windows/statistics/visualization_window.py
 import os
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (QFileDialog, QMessageBox, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel,
+from PyQt6.QtWidgets import (QFileDialog, QDialog, QMessageBox, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel,
                              QTableWidget, QPushButton, QTableWidgetItem, QHeaderView, QSizePolicy)
 from PyQt6.QtGui import QColor
 #pour les graphiques et les tableaux
