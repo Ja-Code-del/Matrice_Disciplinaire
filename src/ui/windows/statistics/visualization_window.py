@@ -3,7 +3,7 @@ import os
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (QFileDialog, QDialog, QMessageBox, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel,
                              QTableWidget, QPushButton, QTableWidgetItem, QHeaderView, QSizePolicy)
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QIcon
 #pour les graphiques et les tableaux
 import numpy as np
 import matplotlib.pyplot as plt
@@ -41,19 +41,42 @@ class VisualizationWindow(QMainWindow):
 
     def __init__(self, db_manager, config, parent=None):
         super().__init__(parent)
+        self.pivot_df = None
         self.df = None
         self.db_manager = db_manager
         self.config = config
+        self.pivot_df = None
         self.current_chart_config = None
         self.setWindowTitle("Visualisation des statistiques")
         self.setMinimumSize(1000, 800)
 
         # Configuration du style Seaborn
         sns.set_style("whitegrid")
-        sns.set_palette("cubehelix", n_colors=10)
+        sns.set_palette("cubehelix", n_colors=8)
 
         self.setup_ui()
-        self.load_data()
+        #self.load_data()
+
+    def show(self):
+        """Surcharge de la méthode show pour charger les données avant l'affichage."""
+        try:
+            # Charger les données avant d'afficher la fenêtre
+            self.load_data()
+            if hasattr(self, 'df') and self.df is not None:
+                super().show()
+            else:
+                QMessageBox.critical(
+                    self,
+                    "Erreur",
+                    "Impossible de charger les données"
+                )
+        except Exception as e:
+            print(f"Erreur lors de l'affichage: {str(e)}")
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                f"Erreur lors du chargement des données: {str(e)}"
+            )
 
     def setup_ui(self):
         """Configure l'interface utilisateur."""
@@ -85,7 +108,7 @@ class VisualizationWindow(QMainWindow):
                 border: 1px solid black;
             }
             QTableWidget::item {
-                padding: 5px;
+                padding: 15px;
             }
         """)
         main_layout.addWidget(self.table)
@@ -99,12 +122,52 @@ class VisualizationWindow(QMainWindow):
         export_layout = QHBoxLayout()
 
         self.btn_excel = QPushButton("Exporter Excel")
+        self.btn_excel.setStyleSheet("""
+                    QPushButton {
+                                background-color: #217346;
+                                color: white;
+                                padding: 8px 15px;
+                                border-radius: 15px;
+                                font-weight: bold;
+                            }
+                            QPushButton:hover {
+                                background-color: #154734;
+                            }
+                            """)
+        self.btn_excel.setIcon(QIcon("../resources/icons/excel_icon.svg"))
         self.btn_excel.clicked.connect(self.export_excel)
 
         self.btn_pdf = QPushButton("Exporter PDF")
+        self.btn_pdf.setStyleSheet("""
+                            QPushButton {
+                                        background-color: #6C63FF;
+                                        color: white;
+                                        padding: 8px 15px;
+                                        border-radius: 15px;
+                                        font-weight: bold;
+                                    }
+                                    QPushButton:hover {
+                                        background-color: #4B0082;
+                                    }
+                                    """)
+        self.btn_pdf.setIcon(QIcon("../resources/icons/pdf.svg"))
         self.btn_pdf.clicked.connect(self.export_pdf)
 
         self.btn_pptx = QPushButton("Exporter PowerPoint")
+        self.btn_pptx.setStyleSheet("""
+                            QPushButton {
+                                        background-color: #D24726;
+                                        color: white;
+                                        padding: 8px 15px;
+                                        border-radius: 15px;
+                                        font-weight: bold;
+                                    }
+                                    QPushButton:hover {
+                                        background-color: #B7472A;
+                                    }
+                                    """)
+
+        self.btn_pptx.setIcon(QIcon("../resources/icons/pptx.svg"))
         self.btn_pptx.clicked.connect(self.export_pptx)
 
         export_layout.addWidget(self.btn_excel)
@@ -117,168 +180,150 @@ class VisualizationWindow(QMainWindow):
     def load_data(self):
         """Charge et affiche les données selon la configuration."""
         try:
-            x_config = self.config["x_axis"]
-            y_config = self.config["y_axis"]
+            with self.db_manager.get_connection() as conn:
+                x_config = self.config["x_axis"]
+                y_config = self.config["y_axis"]
 
-            # Fonction pour construire la clause CASE pour les années de service
-            def get_service_years_case():
-                return """
-                CASE 
-                    WHEN gendarmes.annee_service BETWEEN 0 AND 5 THEN '0-5 ANS'
-                    WHEN gendarmes.annee_service BETWEEN 6 AND 10 THEN '6-10 ANS'
-                    WHEN gendarmes.annee_service BETWEEN 11 AND 15 THEN '11-15 ANS'
-                    WHEN gendarmes.annee_service BETWEEN 16 AND 20 THEN '16-20 ANS'
-                    WHEN gendarmes.annee_service BETWEEN 21 AND 25 THEN '21-25 ANS'
-                    WHEN gendarmes.annee_service BETWEEN 26 AND 30 THEN '26-30 ANS'
-                    WHEN gendarmes.annee_service BETWEEN 31 AND 35 THEN '31-35 ANS'
-                    WHEN gendarmes.annee_service BETWEEN 36 AND 40 THEN '36-40 ANS'
-                END
-                """
+                # Construction des clauses WHERE pour les deux tables
+                sanctions_where = ""
+                gendarmes_where = ""
+                sanctions_params = []
+                gendarmes_params = []
 
-            # Construction des champs pour la requête
-            def get_field_expression(config):
-                field = config["field"]
-                if field == "annee_service":
-                    return get_service_years_case()
-                elif field in ["grade", "situation_matrimoniale", "subdiv"]:
-                    return f"gendarmes.{field}"
+                # Champs de la table sanctions
+                sanctions_fields = ['faute_commise', 'categorie', 'statut', 'annee_punition']
+                # Champs de la table gendarmes
+                gendarmes_fields = ['grade', 'subdiv', 'situation_matrimoniale']
+
+                # Vérifier les filtres pour X et Y
+                for config in [x_config, y_config]:
+                    if not config["value"].startswith("Tous"):
+                        field = config["field"]
+                        value = config["value"]
+
+                        if field in sanctions_fields:
+                            sanctions_where += f" AND s.{field} = ?"
+                            sanctions_params.append(value)
+                        elif field in gendarmes_fields:
+                            gendarmes_where += f" AND g.{field} = ?"
+                            gendarmes_params.append(value)
+                        elif field == "annee_service":
+                            # Traitement spécial pour les années de service
+                            start_year, end_year = map(int, value.split("-")[0:2])
+                            gendarmes_where += f" AND g.annee_service BETWEEN ? AND ?"
+                            gendarmes_params.extend([start_year, end_year])
+
+                # Requête principale avec filtres
+                sanctions_query = f"""
+                    WITH filtered_gendarmes AS (
+                        SELECT g.* 
+                        FROM gendarmes g 
+                        WHERE 1=1 {gendarmes_where}
+                    ),
+                    unique_sanctions AS (
+                        SELECT 
+                            MIN(s.id) as first_id,
+                            COALESCE(s.numero_dossier, 'SANS_NUMERO_' || MIN(s.id)) as unique_dossier
+                        FROM sanctions s
+                        LEFT JOIN filtered_gendarmes g ON CAST(s.matricule AS TEXT) = g.mle
+                        WHERE 1=1 {sanctions_where}
+                        GROUP BY COALESCE(s.numero_dossier, 'SANS_NUMERO_' || s.id)
+                    )
+                    SELECT s.* 
+                    FROM sanctions s
+                    INNER JOIN unique_sanctions us ON s.id = us.first_id
+                    WHERE 1=1 {sanctions_where}
+                    """
+
+                print("\nDébug des requêtes:")
+                print("Requête SQL:", sanctions_query)
+                print("Paramètres sanctions:", sanctions_params)
+                print("Paramètres gendarmes:", gendarmes_params)
+
+                # Exécuter la requête avec tous les paramètres
+                all_params = gendarmes_params + sanctions_params * 2
+                sanctions_df = pd.read_sql_query(sanctions_query, conn, params=all_params)
+                print(f"\nNombre de sanctions après filtrage: {len(sanctions_df)}")
+
+                # Récupérer les données des gendarmes filtrées
+                gendarmes_query = f"""
+                    SELECT 
+                        id, 
+                        mle,
+                        grade,
+                        subdiv,
+                        annee_service,
+                        situation_matrimoniale
+                    FROM gendarmes g
+                    WHERE 1=1 {gendarmes_where}
+                    """
+                gendarmes_df = pd.read_sql_query(gendarmes_query, conn, params=gendarmes_params)
+                print(f"Nombre de gendarmes après filtrage: {len(gendarmes_df)}")
+
+                # Convertir matricule en string pour la fusion
+                sanctions_df['matricule'] = sanctions_df['matricule'].astype(str)
+                gendarmes_df['mle'] = gendarmes_df['mle'].astype(str)
+
+                # Fusion des données en évitant les doublons
+                df = sanctions_df.merge(
+                    gendarmes_df,
+                    left_on='matricule',
+                    right_on='mle',
+                    how='left'
+                ).drop_duplicates(subset=['id_x'])
+
+                print(f"Nombre total après fusion et déduplication: {len(df)}")
+
+                if df is None:
+                    raise Exception("Erreur lors de la récupération des données de base")
+
+                x_config = self.config["x_axis"]
+                y_config = self.config["y_axis"]
+
+                # Traitement spécial pour les années de service
+                if x_config["field"] == "annee_service" or y_config["field"] == "annee_service":
+                    df['service_range'] = pd.cut(
+                        df['annee_service'],
+                        bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
+                        labels=['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
+                                '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS']
+                    )
+
+                # Préparation des données pour le tableau croisé
+                if x_config["field"] == "annee_service":
+                    x_values = df['service_range']
                 else:
-                    return f"s.{field}"
+                    x_values = df[x_config["field"]]
 
-            x_expr = get_field_expression(x_config)
-            y_expr = get_field_expression(y_config)
+                if y_config["field"] == "annee_service":
+                    y_values = df['service_range']
+                else:
+                    y_values = df[y_config["field"]]
 
-            query = f"""
-            WITH unique_sanctions AS (
-                SELECT DISTINCT 
-                    numero_dossier,
-                    MIN(matricule) as matricule,
-                    MIN(date_enr) as date_enr,
-                    MIN(unite) as unite,
-                    MIN(subdivision) as subdivision
-                FROM sanctions
-                GROUP BY numero_dossier
-            ),
-            filtered_sanctions AS (
-                SELECT s.*
-                FROM sanctions s
-                INNER JOIN unique_sanctions us 
-                    ON s.numero_dossier = us.numero_dossier 
-                    AND s.matricule = us.matricule
-                    AND s.date_enr = us.date_enr
-                    AND s.unite = us.unite
-                    AND s.subdivision = us.subdivision
-            )
-            SELECT 
-                {x_expr} as x_value,
-                {y_expr} as y_value,
-                COUNT(DISTINCT fs.numero_dossier) as count
-            FROM filtered_sanctions fs
-            LEFT JOIN gendarmes g ON CAST(fs.matricule AS TEXT) = g.mle
-            GROUP BY x_value, y_value
-            ORDER BY x_value, y_value
-            """
+                # Remplacer les valeurs NaN par "Non spécifié"
+                x_values = x_values.fillna("Non spécifié")
+                y_values = y_values.fillna("Non spécifié")
 
-            debug_query = """
-            WITH unique_sanctions AS (
-                SELECT DISTINCT 
-                    numero_dossier,
-                    MIN(matricule) as matricule,
-                    MIN(date_enr) as date_enr,
-                    MIN(unite) as unite,
-                    MIN(subdivision) as subdivision
-                FROM sanctions
-                GROUP BY numero_dossier
-            )
-            SELECT 
-                s.*
-            FROM sanctions s
-            INNER JOIN unique_sanctions us 
-                ON s.numero_dossier = us.numero_dossier 
-                AND s.matricule = us.matricule
-                AND s.date_enr = us.date_enr
-                AND s.unite = us.unite
-                AND s.subdivision = us.subdivision
-            WHERE s.matricule = '86472'
-            ORDER BY s.date_faits;
-            """
+                # Création du tableau croisé et des données pour le graphique
+                pivot_df = pd.crosstab(
+                    index=y_values,
+                    columns=x_values,
+                    dropna=True,
+                    margins=True,
+                    margins_name='TOTAL'
+                )
 
-            print("\nVérification des sanctions après déduplication:")
-            with self.db_manager.get_connection() as conn:
-                debug_df = pd.read_sql_query(debug_query, conn)
-                print(debug_df)
+                # Préparation des données pour les graphiques
+                graph_df = pd.DataFrame({
+                    'x_value': x_values,
+                    'y_value': y_values
+                })
+                graph_df = graph_df.groupby(['x_value', 'y_value']).size().reset_index(name='count')
 
-            params = []
-
-            # Ajout des conditions de filtrage
-            def add_filter_condition(config, expr):
-                nonlocal query, params
-                value = config.get("value", "")
-                if value and not value.startswith("Tous"):
-                    if config["field"] == "annee_service":
-                        start, end = map(int, value.split("-")[0:2])
-                        query += f" AND gendarmes.annee_service BETWEEN ? AND ?"
-                        params.extend([start, end])
-                    else:
-                        table_prefix = "gendarmes" if config["field"] in ["grade", "situation_matrimoniale",
-                                                                          "subdiv"] else "s"
-                        query += f" AND {table_prefix}.{config['field']} = ?"
-                        params.append(value)
-
-            add_filter_condition(x_config, x_expr)
-            add_filter_condition(y_config, y_expr)
-
-            query += """
-            GROUP BY x_value, y_value
-            ORDER BY x_value, y_value
-            """
-
-            print(f"Executing query: {query}")  # Debug
-            print(f"With parameters: {params}")  # Debug
-
-            with self.db_manager.get_connection() as conn:
-                df = pd.read_sql_query(query, conn, params=params)
-
-            # Debug des doublons
-            print("\nDébug des doublons:")
-            print("Nombre total de lignes:", len(df))
-            print("Nombre de sanctions uniques:", df['count'].sum())
-
-            # Vérification supplémentaire avec la requête de base
-            verification_query = """
-            SELECT COUNT(DISTINCT numero_dossier) as total_sanctions
-            FROM sanctions
-            """
-            with self.db_manager.get_connection() as conn:
-                verification_df = pd.read_sql_query(verification_query, conn)
-                total_sanctions = verification_df['total_sanctions'].iloc[0]
-
-            print(f"Nombre total de sanctions dans la base: {total_sanctions}")
-            print(f"Différence: {abs(df['count'].sum() - total_sanctions)}")
-
-            # Si des différences sont trouvées, afficher les détails
-            if df['count'].sum() != total_sanctions:
-                print("\nAnalyse détaillée des sanctions:")
-                detailed_query = """
-                SELECT 
-                    numero_dossier,
-                    COUNT(*) as occurrences
-                FROM sanctions
-                GROUP BY numero_dossier
-                HAVING COUNT(*) > 1
-                ORDER BY occurrences DESC
-                """
-                with self.db_manager.get_connection() as conn:
-                    duplicates_df = pd.read_sql_query(detailed_query, conn)
-                    if not duplicates_df.empty:
-                        print("\nDoublons trouvés:")
-                        print(duplicates_df)
-
-            print(f"DataFrame final:\n{df}")  # Debug
-
-            self.df = df
-            self.update_table(df)
-            self.update_info(df)
+                self.df = graph_df  # Pour les graphiques
+                self.pivot_df = pivot_df  # Pour le tableau
+                self.update_table(pivot_df)
+                self.update_info(df)
 
         except Exception as e:
             print(f"Error in load_data: {str(e)}")
@@ -288,45 +333,69 @@ class VisualizationWindow(QMainWindow):
                 f"Erreur lors du chargement des données: {str(e)}"
             )
 
-    def update_table(self, df):
+    def apply_filters(self, df):
+        """Applique les filtres de configuration au DataFrame."""
+        try:
+            filtered_df = df.copy()
+
+            # Application des filtres pour chaque axe
+            for config in [self.config["x_axis"], self.config["y_axis"]]:
+                value = config.get("value", "")
+                if value and not value.startswith("Tous"):
+                    if config["field"] == "annee_service":
+                        service_range = value
+                        start, end = map(int, service_range.split("-")[0:2])
+                        filtered_df = filtered_df[
+                            (filtered_df['annee_service'] >= start) &
+                            (filtered_df['annee_service'] <= end)
+                            ]
+                    else:
+                        field = config["field"]
+                        filtered_df = filtered_df[filtered_df[field] == value]
+
+            return filtered_df
+
+        except Exception as e:
+            print(f"Error in apply_filters: {str(e)}")
+            return df  # Retourner le DataFrame original en cas d'erreur
+
+    def update_table(self, pivot_df):
         """Met à jour le tableau avec les données sous forme de tableau croisé."""
         try:
-            print("DataFrame avant pivot:", df)  # Debug
+            print("Tableau pivot:", pivot_df)  # Debug
 
-            # Création du tableau croisé dynamique
-            pivot_table = pd.pivot_table(
-                df,
-                values='count',
-                index='y_value',
-                columns='x_value',
-                fill_value=0,
-                margins=True,
-                margins_name='TOTAL',
-                aggfunc='sum'  # Utilise la somme pour éviter le double comptage
-            )
-
-            print("Tableau pivot:", pivot_table)  # Debug
-            print("Somme totale:", df['count'].sum())  # Debug
+            # Vérifier si on a des données
+            if pivot_df is None:
+                return
 
             # Configuration du tableau
             self.table.clear()
-            self.table.setRowCount(len(pivot_table.index))
-            self.table.setColumnCount(len(pivot_table.columns))
+            self.table.setRowCount(len(pivot_df.index))
+            self.table.setColumnCount(len(pivot_df.columns))
 
             # En-têtes
-            self.table.setHorizontalHeaderLabels(pivot_table.columns.astype(str))
-            self.table.setVerticalHeaderLabels(pivot_table.index.astype(str))
+            self.table.setHorizontalHeaderLabels(pivot_df.columns.astype(str))
+            self.table.setVerticalHeaderLabels(pivot_df.index.astype(str))
 
             # Remplissage des données
-            for i in range(len(pivot_table.index)):
-                for j in range(len(pivot_table.columns)):
-                    value = pivot_table.iloc[i, j]
-                    item = QTableWidgetItem(str(int(value)))
+            for i in range(len(pivot_df.index)):
+                for j in range(len(pivot_df.columns)):
+                    try:
+                        value = pivot_df.iloc[i, j]
+                        # S'assurer que la valeur est numérique
+                        if pd.isna(value):
+                            str_value = "0"
+                        else:
+                            str_value = str(int(value))
+                    except:
+                        str_value = "0"
+
+                    item = QTableWidgetItem(str_value)
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
                     # Style pour les totaux
-                    if (pivot_table.index[i] == 'TOTAL' or
-                            pivot_table.columns[j] == 'TOTAL'):
+                    if (pivot_df.index[i] == 'TOTAL' or
+                            pivot_df.columns[j] == 'TOTAL'):
                         item.setBackground(QColor(128, 128, 128))
                         item.setForeground(QColor(255, 255, 255))
                         font = item.font()
@@ -354,9 +423,6 @@ class VisualizationWindow(QMainWindow):
             self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
             self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
-            self.table.setShowGrid(True)
-            self.table.setGridStyle(Qt.PenStyle.SolidLine)
-
         except Exception as e:
             print(f"Erreur dans update_table: {str(e)}")
             QMessageBox.critical(
@@ -368,61 +434,35 @@ class VisualizationWindow(QMainWindow):
     def update_graph(self, df, chart_config):
         """Met à jour le graphique selon la configuration choisie."""
         try:
+            # Vérifier si on a des données
+            if self.df is None or self.pivot_df is None:
+                return
+
             # Vérifier si c'est la même configuration
             if self.current_chart_config == chart_config:
                 return
 
             self.current_chart_config = chart_config
-
-            # Nettoyage du graphique précédent
             self.figure.clear()
             ax = self.figure.add_subplot(111)
-
-            # Configuration du style Seaborn
-            # sns.set_style("whitegrid")
-            # sns.set_palette("cubehelix", n_colors=10)
-
-            # Création du pivot pour le graphique si nécessaire
-            pivot_table = pd.pivot_table(
-                df,
-                values='count',
-                index='y_value',
-                columns='x_value',
-                fill_value=0
-            )
 
             if isinstance(chart_config, dict):
                 chart_type = chart_config.get('type')
                 axis = chart_config.get('axis', 'x')
 
                 if chart_type == 'bar_simple':
-                    self._create_simple_bar_sns(ax, df, axis)
+                    self._create_simple_bar_sns(ax, self.df, axis)
                 elif chart_type == 'pie':
-                    self._create_pie_chart_sns(ax, df, axis)
+                    self._create_pie_chart_sns(ax, self.df, axis)
                 elif chart_type == 'donut':
-                    self._create_donut_chart_sns(ax, df, axis)
+                    self._create_donut_chart_sns(ax, self.df, axis)
                 elif chart_type == 'bar_stacked':
-                    self._create_stacked_bar_sns(ax, pivot_table)
-                elif chart_type == 'bar_grouped':
-                    self._create_grouped_bar_sns(ax, df)
-                elif chart_type == 'line':
-                    self._create_line_chart_sns(ax, pivot_table)
+                    self._create_stacked_bar_sns(ax, self.pivot_df)
                 elif chart_type == 'heatmap':
-                    self._create_heatmap_sns(ax, pivot_table)
-                elif chart_type == 'violin':
-                    self._create_violin_plot_sns(ax, df)
-                elif chart_type == 'swarm':
-                    self._create_swarm_plot_sns(ax, df)
-                elif chart_type == 'box':
-                    self._create_box_plot_sns(ax, df)
-                elif chart_type == 'kde':
-                    self._create_kde_plot_sns(ax, df)
+                    self._create_heatmap_sns(ax, self.pivot_df)
                 else:
                     # Par défaut, graphique en barres empilées
-                    self._create_stacked_bar_sns(ax, pivot_table)
-            else:
-                # Pour la rétrocompatibilité
-                self._create_stacked_bar_sns(ax, pivot_table)
+                    self._create_stacked_bar_sns(ax, self.pivot_df)
 
             # Ajustement de la mise en page
             self.figure.tight_layout()
@@ -444,7 +484,7 @@ class VisualizationWindow(QMainWindow):
             value_col = 'x_value' if axis == 'x' else 'y_value'
             title_theme = self.config[f'{axis}_axis']['theme']
 
-            # Préparation des données
+            # Agrégation des données
             data = df.groupby(value_col)['count'].sum().reset_index()
 
             # Création du graphique
@@ -453,7 +493,7 @@ class VisualizationWindow(QMainWindow):
                 x=value_col,
                 y='count',
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=10)
+                palette=sns.color_palette("cubehelix", n_colors=8)
             )
 
             # Style et étiquettes
@@ -461,7 +501,7 @@ class VisualizationWindow(QMainWindow):
             ax.set_xlabel('')
             ax.set_ylabel('Nombre')
 
-            # Rotation des étiquettes si nécessaire
+            # Rotation des étiquettes
             plt.xticks(rotation=45, ha='right')
 
             # Ajout des valeurs sur les barres
@@ -712,7 +752,7 @@ class VisualizationWindow(QMainWindow):
                 y='count',
                 hue='y_value',
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=10)
+                palette=sns.color_palette("cubehelix", n_colors=8)
             )
 
             # Style et étiquettes
@@ -757,7 +797,7 @@ class VisualizationWindow(QMainWindow):
                 x=group_col,
                 y='count',
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=10)
+                palette=sns.color_palette("cubehelix", n_colors=8)
             )
 
             # Style et étiquettes
@@ -802,7 +842,7 @@ class VisualizationWindow(QMainWindow):
                 x=group_col,
                 y='count',
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=10),
+                palette=sns.color_palette("cubehelix", n_colors=8),
                 inner='box'  # Affiche un boxplot à l'intérieur
             )
 
@@ -888,7 +928,7 @@ class VisualizationWindow(QMainWindow):
                 x=group_col,
                 y='count',
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=10),
+                palette=sns.color_palette("cubehelix", n_colors=8),
                 size=8,
                 alpha=0.7
             )
@@ -933,7 +973,7 @@ class VisualizationWindow(QMainWindow):
                 data=df,
                 x=group_col,
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=10),
+                palette=sns.color_palette("cubehelix", n_colors=8),
                 order=df[group_col].value_counts().index
             )
 
@@ -976,7 +1016,7 @@ class VisualizationWindow(QMainWindow):
                 x=group_col,
                 y='count',
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=10),
+                palette=sns.color_palette("cubehelix", n_colors=8),
                 size=8,
                 alpha=0.6,
                 jitter=True  # Ajoute un peu de bruit aléatoire pour éviter la superposition
@@ -1029,17 +1069,24 @@ class VisualizationWindow(QMainWindow):
 
     def update_info(self, df):
         """Met à jour les informations d'en-tête."""
-        total = df['count'].sum()
-        moyenne = df['count'].mean()
-        maximum = df['count'].max()
-        minimum = df['count'].min()
+        try:
+            # Vérifier si on a des données
+            if df is None:
+                return
 
-        self.info_label.setText(
-            f"Total: {total} | "
-            f"Moyenne: {moyenne:.2f} | "
-            f"Maximum: {maximum} | "
-            f"Minimum: {minimum}"
-        )
+            total = len(df)
+            moyenne = df['annee_punition'].mean() if 'annee_punition' in df.columns else 0
+            maximum = df['annee_punition'].max() if 'annee_punition' in df.columns else 0
+            minimum = df['annee_punition'].min() if 'annee_punition' in df.columns else 0
+
+            self.info_label.setText(
+                f"Total: {total} | "
+                f"Moyenne: {moyenne:.2f} | "
+                f"Maximum: {maximum} | "
+                f"Minimum: {minimum}"
+            )
+        except Exception as e:
+            print(f"Erreur dans update_info: {str(e)}")
 
     def closeEvent(self, event):
         """Gère la fermeture propre de la fenêtre."""
@@ -1053,7 +1100,7 @@ class VisualizationWindow(QMainWindow):
         """Exporte les données vers Excel."""
         try:
             # Nom du fichier par défaut
-            default_name = f"statistiques_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            default_name = f"statistiques_excel_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
             file_path, _ = QFileDialog.getSaveFileName(
                 self,
                 "Enregistrer le fichier Excel",
@@ -1124,7 +1171,7 @@ class VisualizationWindow(QMainWindow):
         """Exporte les données vers PDF avec mise en forme."""
         try:
             # Demander à l'utilisateur où sauvegarder le fichier
-            default_name = f"statistiques_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            default_name = f"statistiques_pdf_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
             file_path, _ = QFileDialog.getSaveFileName(
                 self,
                 "Enregistrer le fichier PDF",
@@ -1272,7 +1319,7 @@ class VisualizationWindow(QMainWindow):
         """Exporte les données vers PowerPoint avec mise en forme."""
         try:
             # Demander à l'utilisateur où sauvegarder le fichier
-            default_name = f"statistiques_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pptx"
+            default_name = f"statistiques_pptx_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pptx"
             file_path, _ = QFileDialog.getSaveFileName(
                 self,
                 "Enregistrer la présentation PowerPoint",

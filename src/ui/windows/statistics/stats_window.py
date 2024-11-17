@@ -49,6 +49,22 @@ class StatistiquesWindow(QMainWindow):
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(title_label)
 
+        # Ajout du cadre des statistiques globales
+        stats_frame = QFrame()
+        stats_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        stats_layout = QVBoxLayout(stats_frame)
+
+        # Labels pour les statistiques
+        self.total_sanctions_label = QLabel()
+        self.total_sanctions_label.setStyleSheet("font-size: 16px;")
+        self.total_gendarmes_label = QLabel()
+        self.total_gendarmes_label.setStyleSheet("font-size: 16px;")
+
+        stats_layout.addWidget(self.total_sanctions_label)
+        stats_layout.addWidget(self.total_gendarmes_label)
+
+        main_layout.addWidget(stats_frame)
+
         # Boutons
         buttons_config = [
             {
@@ -155,16 +171,17 @@ class StatistiquesWindow(QMainWindow):
                     chart_config = chart_dialog.get_selected_chart()
 
                     # Fermeture de l'ancienne fenêtre de visualisation si elle existe
-                    if hasattr(self, 'visualization_window') and self.visualization_window:
+                    if self.visualization_window:
                         self.visualization_window.close()
-                        self.visualization_window = None
 
                     # Création d'une nouvelle fenêtre de visualisation
+                    # Configuration et affichage
                     self.visualization_window = VisualizationWindow(
                         self.db_manager,
                         config,
                         self
                     )
+                    self.visualization_window.show()  # Ceci appellera load_data() avant d'afficher
 
                     # Positionnement de la fenêtre
                     if self.isVisible():
@@ -224,35 +241,50 @@ class StatistiquesWindow(QMainWindow):
         event.accept()
 
     def load_global_stats(self):
+        """Charge les statistiques globales."""
         try:
-            with self.db_manager.get_connection() as conn:
-                cursor = conn.cursor()
+            # Utiliser la nouvelle méthode pour récupérer les données
+            df = self.get_statistics_data()
+            if df is not None:
+                stats = self.calculate_statistics()
 
-                # Requête modifiée pour éviter les doublons
-                cursor.execute("""
-                    WITH unique_sanctions AS (
-                        SELECT DISTINCT 
-                            numero_dossier,
-                            MIN(matricule) as matricule,
-                            MIN(date_enr) as date_enr,
-                            MIN(unite) as unite,
-                            MIN(subdivision) as subdivision
+                if stats:
+                    # Requête modifiée pour éviter les doublons en utilisant les données calculées
+                    total_sanctions = stats['total_sanctions']
+                    total_gendarmes = stats['unique_gendarmes']
+
+                    self.update_stats_labels(total_sanctions, total_gendarmes)
+
+            else:
+                # Fallback sur la méthode originale si get_statistics_data échoue
+                with self.db_manager.get_connection() as conn:
+                    cursor = conn.cursor()
+
+                    # Requête modifiée pour éviter les doublons
+                    cursor.execute("""
+                        WITH unique_sanctions AS (
+                            SELECT DISTINCT 
+                                numero_dossier,
+                                MIN(matricule) as matricule,
+                                MIN(date_enr) as date_enr,
+                                MIN(unite) as unite,
+                                MIN(subdivision) as subdivision
+                            FROM sanctions
+                            GROUP BY numero_dossier
+                        )
+                        SELECT COUNT(*) as total_sanctions
+                        FROM unique_sanctions
+                    """)
+                    total_sanctions = cursor.fetchone()[0]
+
+                    # Total des gendarmes sanctionnés
+                    cursor.execute("""
+                        SELECT COUNT(DISTINCT matricule)
                         FROM sanctions
-                        GROUP BY numero_dossier
-                    )
-                    SELECT COUNT(*) as total_sanctions
-                    FROM unique_sanctions
-                """)
-                total_sanctions = cursor.fetchone()[0]
+                    """)
+                    total_gendarmes = cursor.fetchone()[0]
 
-                # Total des gendarmes sanctionnés
-                cursor.execute("""
-                    SELECT COUNT(DISTINCT matricule)
-                    FROM sanctions
-                """)
-                total_gendarmes = cursor.fetchone()[0]
-
-                self.update_stats_labels(total_sanctions, total_gendarmes)
+                    self.update_stats_labels(total_sanctions, total_gendarmes)
 
         except Exception as e:
             QMessageBox.critical(
@@ -260,3 +292,91 @@ class StatistiquesWindow(QMainWindow):
                 "Erreur",
                 f"Erreur lors du chargement des statistiques: {str(e)}"
             )
+
+    def update_stats_labels(self, total_sanctions, total_gendarmes):
+        """Met à jour les labels des statistiques dans l'interface."""
+        try:
+            self.total_sanctions_label.setText(f"Nombre total de sanctions : {total_sanctions:,}")
+            self.total_gendarmes_label.setText(f"Nombre de gendarmes sanctionnés : {total_gendarmes:,}")
+        except Exception as e:
+            print(f"Erreur dans update_stats_labels: {str(e)}")
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                f"Erreur lors de la mise à jour des statistiques: {str(e)}"
+            )
+
+    def get_statistics_data(self):
+        """Récupère et organise les données pour les statistiques"""
+        try:
+            # Utiliser la même requête que la liste exhaustive
+            sanctions_query = """
+            SELECT 
+                s.id,
+                s.date_enr,
+                s.matricule,
+                s.date_faits,
+                s.faute_commise,
+                s.categorie,
+                s.statut,
+                s.numero_dossier,
+                s.annee_punition
+            FROM sanctions s
+            WHERE 1=1
+            """
+
+            with self.db_manager.get_connection() as conn:
+                # Récupérer les données des sanctions
+                sanctions_df = pd.read_sql_query(sanctions_query, conn)
+
+                # Récupérer les données des gendarmes pour chaque matricule unique
+                gendarmes_data = []
+                unique_matricules = sanctions_df['matricule'].unique()
+
+                for matricule in unique_matricules:
+                    gendarme_query = """
+                    SELECT 
+                        mle,
+                        nom_prenoms,
+                        grade,
+                        subdiv,
+                        annee_service,
+                        situation_matrimoniale
+                    FROM gendarmes 
+                    WHERE mle = ?
+                    """
+                    gendarme_df = pd.read_sql_query(gendarme_query, conn, params=[matricule])
+                    if not gendarme_df.empty:
+                        gendarmes_data.append(gendarme_df.iloc[0])
+
+                gendarmes_df = pd.DataFrame(gendarmes_data)
+
+                # Fusionner les données
+                stats_df = sanctions_df.merge(
+                    gendarmes_df,
+                    left_on='matricule',
+                    right_on='mle',
+                    how='left'
+                )
+
+                return stats_df
+
+        except Exception as e:
+            print(f"Erreur dans get_statistics_data: {str(e)}")
+            return None
+
+    def calculate_statistics(self):
+        """Calcule les différentes statistiques"""
+        df = self.get_statistics_data()
+        if df is not None:
+            stats = {
+                'total_sanctions': len(df),
+                'unique_gendarmes': df['matricule'].nunique(),
+                'par_categorie': df['categorie'].value_counts().to_dict(),
+                'par_grade': df['grade'].value_counts().to_dict(),
+                'par_subdivision': df['subdiv'].value_counts().to_dict(),
+                'par_annee': df['annee_punition'].value_counts().to_dict(),
+                'par_statut': df['statut'].value_counts().to_dict(),
+            }
+            return stats
+        return None

@@ -4,12 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="NOW EVERYTHING IS OK WITH LIST_EXHAUSTIVE (next update : add tooltip on each line so that the reason of punishment would diplay">
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="new icons">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/subject_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/subject_dialog.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/table_config_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/table_config_dialog.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,24 +54,25 @@
     <option name="showLibraryContents" value="true" />
     <option name="sortKey" value="BY_TIME_DESCENDING" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.gendarme-app-import-2.executor&quot;: &quot;Run&quot;,
-    &quot;Python.gendarme-app-import-5.executor&quot;: &quot;Run&quot;,
-    &quot;Python.gendarme-app-import.executor&quot;: &quot;Run&quot;,
-    &quot;Python.import_window.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main_window.executor&quot;: &quot;Run&quot;,
-    &quot;Python.scratch.executor&quot;: &quot;Run&quot;,
-    &quot;Python.styles.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/bretwalda/PycharmProjects/Matrice_Disciplinaire/src/data/gendarmerie&quot;,
-    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;proofread&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.gendarme-app-import-2.executor": "Run",
+    "Python.gendarme-app-import-5.executor": "Run",
+    "Python.gendarme-app-import.executor": "Run",
+    "Python.import_window.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.main_window.executor": "Run",
+    "Python.scratch.executor": "Run",
+    "Python.styles.executor": "Run",
+    "Python.test.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/Users/bretwalda/PycharmProjects/Matrice_Disciplinaire/src/data/gendarmerie",
+    "run.code.analysis.last.selected.profile": "pProject Default",
+    "settings.editor.selected.configurable": "proofread"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/data/gendarmerie" />
@@ -79,7 +81,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-d7ad00fb9fc3-c546a90a8094-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-242.23726.102" />
+        <option value="bundled-python-sdk-fb887030ada0-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.21565.199" />
       </set>
     </attachedChunks>
   </component>
@@ -412,14 +414,28 @@
       <option name="project" value="LOCAL" />
       <updated>1731667363667</updated>
     </task>
-    <option name="localTasksCounter" value="41" />
+    <task id="LOCAL-00041" summary="Liste exhaustive has now styled export button. tried to had animation but will make it after">
+      <option name="closed" value="true" />
+      <created>1731713872309</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1731713872310</updated>
+    </task>
+    <task id="LOCAL-00042" summary="new icons">
+      <option name="closed" value="true" />
+      <created>1731714072440</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1731714072440</updated>
+    </task>
+    <option name="localTasksCounter" value="43" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="WORKED ON FIRST FORM SECTION NOW SATISFIED; The field was too short" />
     <MESSAGE value="Now we can provide informations about a gendarme into a form but it remains his fault info form. and some little style improvements" />
     <MESSAGE value="All the section of the form are operational. but we should make some changes on table sanction about N° dossier and everything would be great. A" />
-    <MESSAGE value="new icons" />
     <MESSAGE value="Style and design : ok but bug to import Excel Tab" />
     <MESSAGE value="ERROR / name 'info_group' is not define" />
     <MESSAGE value="ALL SEEMS PERFECT" />
@@ -441,7 +457,9 @@
     <MESSAGE value="Big bug on 'liste exhaustive' solved. I think Stats can work properly now" />
     <MESSAGE value="fired gendarmes info are now colored in red in 'liste exhaustive' Statistics menu" />
     <MESSAGE value="NOW EVERYTHING IS OK WITH LIST_EXHAUSTIVE (next update : add tooltip on each line so that the reason of punishment would diplay" />
-    <option name="LAST_COMMIT_MESSAGE" value="NOW EVERYTHING IS OK WITH LIST_EXHAUSTIVE (next update : add tooltip on each line so that the reason of punishment would diplay" />
+    <MESSAGE value="Liste exhaustive has now styled export button. tried to had animation but will make it after" />
+    <MESSAGE value="new icons" />
+    <option name="LAST_COMMIT_MESSAGE" value="new icons" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
