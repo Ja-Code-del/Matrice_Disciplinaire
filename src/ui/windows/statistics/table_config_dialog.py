@@ -1,8 +1,8 @@
 # src/ui/windows/statistics/table_config_dialog.py
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
                              QComboBox, QPushButton, QGroupBox,
-                             QDialogButtonBox, QCheckBox, QWidget, QFrame, QTableWidget, QTableWidgetItem)
+                             QDialogButtonBox, QCheckBox, QWidget, QFrame, QTableWidget, QTableWidgetItem, QMessageBox)
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
@@ -19,10 +19,19 @@ class TableConfigDialog(QDialog):
         self.setWindowTitle("Configuration du tableau")
         self.setModal(True)
         self.setMinimumWidth(500)
+
+        # Récupérer le sujet sélectionné
+        self.current_subject = parent.current_subject
+
         self.setup_ui()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
+
+        # Afficher le sujet sélectionné
+        subject_info = QLabel(f"Sujet d'analyse: {self.current_subject['theme']} - {self.current_subject['value']}")
+        subject_info.setStyleSheet("font-weight: bold; color: #0066cc;")
+        layout.addWidget(subject_info)
 
         # Configuration des axes
         axes_group = QGroupBox("Configuration des axes")
@@ -82,10 +91,31 @@ class TableConfigDialog(QDialog):
         self.populate_theme_combos()
 
     def populate_theme_combos(self):
-        """Remplit les combos des thèmes."""
-        themes = list(self.THEMES.keys())
+        """Remplit les combos des thèmes en excluant le thème déjà sélectionné."""
+        themes = list(ANALYSIS_THEMES.keys())
+        # Retirer le thème déjà sélectionné des options
+        if self.current_subject['theme'] in themes:
+            themes.remove(self.current_subject['theme'])
+
         self.x_theme_combo.addItems(themes)
         self.y_theme_combo.addItems(themes)
+
+    def get_configuration(self):
+        """Retourne la configuration complète."""
+        config = {
+            "subject_selection": self.current_subject,
+            "x_axis": {
+                "theme": self.x_theme_combo.currentText(),
+                "field": self.THEMES[self.x_theme_combo.currentText()]["field"],
+                "value": self.x_value_combo.currentText()
+            },
+            "y_axis": {
+                "theme": self.y_theme_combo.currentText(),
+                "field": self.THEMES[self.y_theme_combo.currentText()]["field"],
+                "value": self.y_value_combo.currentText()
+            }
+        }
+        return config
 
     def update_value_combo(self, theme_combo, value_combo):
         """Met à jour le combo des valeurs en fonction du thème sélectionné."""
@@ -130,23 +160,4 @@ class TableConfigDialog(QDialog):
     def accept(self):
         """Appelé quand l'utilisateur valide la configuration."""
         super().accept()
-
-    def get_configuration(self):
-        """Retourne la configuration actuelle."""
-        config = {
-            "x_axis": {
-                "theme": self.x_theme_combo.currentText(),
-                "field": self.THEMES[self.x_theme_combo.currentText()]["field"],
-                "value": self.x_value_combo.currentText()
-            },
-            "y_axis": {
-                "theme": self.y_theme_combo.currentText(),
-                "field": self.THEMES[self.y_theme_combo.currentText()]["field"],
-                "value": self.y_value_combo.currentText()
-            }
-        }
-        # if hasattr(self, 'chart_dialog') and self.chart_dialog:
-        #     config['chart_type'] = self.chart_dialog.get_selected_chart()
-
-        return config
 

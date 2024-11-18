@@ -151,39 +151,59 @@ class StatistiquesWindow(QMainWindow):
 
     def show_subject_analysis(self):
         """Ouvre la fenêtre d'analyse par sujet."""
-        if not self.subject_window:
-            self.subject_window = SubjectDialog(self.db_manager)
-        self.subject_window.show()
+        try:
+            if not hasattr(self, 'subject_window') or not self.subject_window:
+                self.subject_window = SubjectDialog(self.db_manager, self)  # Passer self explicitement
 
+            self.subject_window.show()
+
+        except Exception as e:
+            print(f"Erreur dans show_subject_analysis: {str(e)}")
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                f"Erreur lors de l'ouverture de l'analyse par sujet: {str(e)}"
+            )
+
+    # Dans StatistiquesWindow
     def show_table_config(self):
         """Ouvre la fenêtre de configuration des tableaux."""
         try:
-            # Ouverture unique de la boîte de dialogue de configuration
+            # Vérifier si un sujet a été sélectionné
+            if not hasattr(self, 'current_subject'):
+                QMessageBox.warning(
+                    self,
+                    "Attention",
+                    "Veuillez d'abord sélectionner un sujet d'analyse."
+                )
+                return
+
+            # Créer et configurer la boîte de dialogue
             config_dialog = TableConfigDialog(self.db_manager, self)
-            if config_dialog.exec():
+
+            # Exécuter la boîte de dialogue
+            if config_dialog.exec() == QDialog.DialogCode.Accepted:
                 config = config_dialog.get_configuration()
+                config['subject_selection'] = self.current_subject
 
-                # Création d'une seule instance du sélecteur de graphiques
+                # Sélection du type de graphique
                 chart_dialog = ChartSelectionDialog(config, self)
-                result = chart_dialog.exec()
-
-                if result == QDialog.DialogCode.Accepted:
+                if chart_dialog.exec() == QDialog.DialogCode.Accepted:
                     chart_config = chart_dialog.get_selected_chart()
 
-                    # Fermeture de l'ancienne fenêtre de visualisation si elle existe
-                    if self.visualization_window:
+                    # Fermer l'ancienne fenêtre de visualisation si elle existe
+                    if hasattr(self, 'visualization_window') and self.visualization_window:
                         self.visualization_window.close()
+                        self.visualization_window = None
 
-                    # Création d'une nouvelle fenêtre de visualisation
-                    # Configuration et affichage
+                    # Créer la nouvelle fenêtre de visualisation
                     self.visualization_window = VisualizationWindow(
                         self.db_manager,
                         config,
                         self
                     )
-                    self.visualization_window.show()  # Ceci appellera load_data() avant d'afficher
 
-                    # Positionnement de la fenêtre
+                    # Positionner et afficher la fenêtre
                     if self.isVisible():
                         geometry = self.geometry()
                         self.visualization_window.move(
@@ -191,7 +211,7 @@ class StatistiquesWindow(QMainWindow):
                             geometry.y() + 50
                         )
 
-                    # Configuration et affichage
+                    # Charger et afficher les données
                     self.visualization_window.load_data()
                     if hasattr(self.visualization_window, 'df') and self.visualization_window.df is not None:
                         self.visualization_window.update_graph(
@@ -207,7 +227,7 @@ class StatistiquesWindow(QMainWindow):
                         )
 
         except Exception as e:
-            print(f"Erreur dans show_table_config: {str(e)}")  # Debug
+            print(f"Erreur dans show_table_config: {str(e)}")
             QMessageBox.critical(
                 self,
                 "Erreur",

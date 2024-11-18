@@ -1,15 +1,16 @@
 # src/ui/windows/statistics/subject_dialog.py
-
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
                              QComboBox, QPushButton, QGroupBox, QRadioButton,
                              QDialogButtonBox, QWidget, QFrame, QTableWidget, QTableWidgetItem,
                              QMessageBox, QHeaderView)
+from PyQt6.QtCore import QTimer
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt6.QtCore import Qt
 import pandas as pd
 
 from src.data.gendarmerie.structure import SUBDIVISIONS, SERVICE_RANGES, ANALYSIS_THEMES
+from src.ui.windows.statistics.visualization_window import VisualizationWindow
 
 
 class SubjectDialog(QDialog):
@@ -19,98 +20,61 @@ class SubjectDialog(QDialog):
         super().__init__(parent)
         self.graph_data = None
         self.db_manager = db_manager
+        self.stats_window = parent
+        print(f"Initialisation de SubjectDialog - Parent: {parent}")
+
         self.setWindowTitle("Analyse par sujet")
         self.setModal(True)
         self.setMinimumWidth(500)
         self.setup_ui()
         self.results_table = None
 
+    # Dans SubjectDialog
     def analyze_subject(self):
-        """Analyse le sujet sélectionné avec la nouvelle approche."""
-        selection = self.get_selection()
-
+        """Analyse le sujet sélectionné."""
         try:
-            with self.db_manager.get_connection() as conn:
-                # Requête pour obtenir les sanctions uniques
-                sanctions_query = """
-                WITH unique_sanctions AS (
-                    SELECT DISTINCT 
-                        COALESCE(numero_dossier, 'SANS_NUMERO_' || id) as numero_dossier,
-                        MIN(id) as id,
-                        MIN(date_enr) as date_enr
-                    FROM sanctions
-                    GROUP BY COALESCE(numero_dossier, 'SANS_NUMERO_' || id)
+            # Récupérer la sélection
+            selection = self.get_selection()
+            print(f"Sélection effectuée: {selection}")  # Debug
+
+            # Vérification de la sélection
+            if selection['value'].startswith('Tous'):
+                QMessageBox.warning(
+                    self,
+                    "Attention",
+                    "Veuillez sélectionner une valeur spécifique pour l'analyse."
                 )
-                SELECT s.*
-                FROM sanctions s
-                INNER JOIN unique_sanctions us 
-                    ON COALESCE(s.numero_dossier, 'SANS_NUMERO_' || s.id) = us.numero_dossier 
-                    AND s.id = us.id
-                    AND s.date_enr = us.date_enr
-                """
+                return
 
-                # Récupérer les données des sanctions
-                sanctions_df = pd.read_sql_query(sanctions_query, conn)
+            # Vérification de la référence à la fenêtre principale
+            if self.stats_window is None:
+                raise Exception("Fenêtre parente (StatistiquesWindow) non trouvée")
 
-                # Récupérer les données des gendarmes
-                gendarmes_query = """
-                SELECT 
-                    id, 
-                    grade,
-                    subdiv,
-                    annee_service,
-                    situation_matrimoniale
-                FROM gendarmes
-                """
-                gendarmes_df = pd.read_sql_query(gendarmes_query, conn)
+            # Stockage de la sélection
+            self.stats_window.current_subject = selection
 
-                # Fusion des données
-                df = sanctions_df.merge(
-                    gendarmes_df,
-                    left_on='id',
-                    right_on='id',
-                    how='left'
-                )
+            # Fermer cette fenêtre
+            self.close()  # Utiliser close() au lieu de accept()
 
-                # Traitement des années de service si nécessaire
-                if selection['field'] == 'annee_service':
-                    df['service_range'] = pd.cut(
-                        df['annee_service'],
-                        bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
-                        labels=['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
-                                '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS']
-                    )
-
-                # Filtrage selon la sélection
-                if not selection['value'].startswith('Tous'):
-                    if selection['field'] == 'annee_service':
-                        df = df[df['service_range'] == selection['value']]
-                    else:
-                        df = df[df[selection['field']] == selection['value']]
-
-                # Calculer les statistiques pour ce sujet
-                stats = {
-                    'total': len(df),
-                    'par_categorie': df['categorie'].value_counts().to_dict(),
-                    'par_annee': df['annee_punition'].value_counts().to_dict(),
-                    'par_statut': df['statut'].value_counts().to_dict(),
-                    'par_grade': df['grade'].value_counts().to_dict(),
-                    'par_subdivision': df['subdiv'].value_counts().to_dict()
-                }
-
-                # Créer les données pour les graphiques si nécessaire
-                self.graph_data = df
-
-                # Afficher les résultats
-                self.display_results(stats)
+            # Ouvrir directement la configuration des tableaux
+            self.stats_window.show_table_config()
 
         except Exception as e:
-            print(f"Erreur dans analyze_subject: {str(e)}")
+            error_msg = f"Erreur lors de l'analyse: {str(e)}"
+            print(f"Erreur dans analyze_subject: {error_msg}")
             QMessageBox.critical(
                 self,
                 "Erreur",
-                f"Erreur lors de l'analyse: {str(e)}"
+                error_msg
             )
+
+    def get_selection(self):
+        """Retourne la sélection actuelle."""
+        return {
+            "theme": self.theme_combo.currentText(),
+            "value": self.value_combo.currentText(),
+            "field": ANALYSIS_THEMES[self.theme_combo.currentText()]["field"]
+        }
 
     def display_results(self, stats):
         """Affiche les résultats de l'analyse."""
@@ -273,14 +237,6 @@ class SubjectDialog(QDialog):
             # Mise à jour des sous-thèmes disponibles
             subthemes = ANALYSIS_THEMES[current_theme]["subfields"]
             self.subtheme_label.setText("Sous-thèmes disponibles :\n• " + "\n• ".join(subthemes))
-
-    def get_selection(self):
-        """Retourne la sélection actuelle."""
-        return {
-            "theme": self.theme_combo.currentText(),
-            "value": self.value_combo.currentText(),
-            "field": ANALYSIS_THEMES[self.theme_combo.currentText()]["field"]
-        }
 
     def get_available_subthemes(self):
         """Retourne la liste des sous-thèmes disponibles pour le thème sélectionné."""

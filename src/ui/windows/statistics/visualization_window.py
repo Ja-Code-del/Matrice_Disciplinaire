@@ -181,107 +181,99 @@ class VisualizationWindow(QMainWindow):
         """Charge et affiche les données selon la configuration."""
         try:
             with self.db_manager.get_connection() as conn:
-                x_config = self.config["x_axis"]
-                y_config = self.config["y_axis"]
+                # Récupérer la configuration complète
+                subject_selection = self.config.get('subject_selection')
+                if not subject_selection:
+                    raise Exception("Aucun sujet d'analyse sélectionné")
 
-                # Construction des clauses WHERE pour les deux tables
-                sanctions_where = ""
-                gendarmes_where = ""
-                sanctions_params = []
-                gendarmes_params = []
+                print("\nConfiguration:", self.config)  # Debug
 
-                # Champs de la table sanctions
-                sanctions_fields = ['faute_commise', 'categorie', 'statut', 'annee_punition']
-                # Champs de la table gendarmes
-                gendarmes_fields = ['grade', 'subdiv', 'situation_matrimoniale']
-
-                # Vérifier les filtres pour X et Y
-                for config in [x_config, y_config]:
-                    if not config["value"].startswith("Tous"):
-                        field = config["field"]
-                        value = config["value"]
-
-                        if field in sanctions_fields:
-                            sanctions_where += f" AND s.{field} = ?"
-                            sanctions_params.append(value)
-                        elif field in gendarmes_fields:
-                            gendarmes_where += f" AND g.{field} = ?"
-                            gendarmes_params.append(value)
-                        elif field == "annee_service":
-                            # Traitement spécial pour les années de service
-                            start_year, end_year = map(int, value.split("-")[0:2])
-                            gendarmes_where += f" AND g.annee_service BETWEEN ? AND ?"
-                            gendarmes_params.extend([start_year, end_year])
-
-                # Requête principale avec filtres
-                sanctions_query = f"""
-                    WITH filtered_gendarmes AS (
-                        SELECT g.* 
-                        FROM gendarmes g 
-                        WHERE 1=1 {gendarmes_where}
-                    ),
-                    unique_sanctions AS (
-                        SELECT 
-                            MIN(s.id) as first_id,
-                            COALESCE(s.numero_dossier, 'SANS_NUMERO_' || MIN(s.id)) as unique_dossier
-                        FROM sanctions s
-                        LEFT JOIN filtered_gendarmes g ON CAST(s.matricule AS TEXT) = g.mle
-                        WHERE 1=1 {sanctions_where}
-                        GROUP BY COALESCE(s.numero_dossier, 'SANS_NUMERO_' || s.id)
-                    )
-                    SELECT s.* 
-                    FROM sanctions s
-                    INNER JOIN unique_sanctions us ON s.id = us.first_id
-                    WHERE 1=1 {sanctions_where}
-                    """
-
-                print("\nDébug des requêtes:")
-                print("Requête SQL:", sanctions_query)
-                print("Paramètres sanctions:", sanctions_params)
-                print("Paramètres gendarmes:", gendarmes_params)
-
-                # Exécuter la requête avec tous les paramètres
-                all_params = gendarmes_params + sanctions_params * 2
-                sanctions_df = pd.read_sql_query(sanctions_query, conn, params=all_params)
-                print(f"\nNombre de sanctions après filtrage: {len(sanctions_df)}")
-
-                # Récupérer les données des gendarmes filtrées
-                gendarmes_query = f"""
+                # Construction de la requête de base pour les sanctions uniques
+                sanctions_query = """
+                WITH unique_sanctions AS (
                     SELECT 
-                        id, 
-                        mle,
-                        grade,
-                        subdiv,
-                        annee_service,
-                        situation_matrimoniale
-                    FROM gendarmes g
-                    WHERE 1=1 {gendarmes_where}
+                        MIN(s.id) as first_id,
+                        COALESCE(s.numero_dossier, 'SANS_NUMERO_' || MIN(s.id)) as unique_dossier,
+                        s.matricule,
+                        s.date_enr,
+                        s.date_faits,
+                        s.faute_commise,
+                        s.categorie,
+                        s.statut,
+                        s.annee_punition,
+                        s.annee_faits,
+                        COUNT(*) as sanctions_count
+                    FROM sanctions s
                     """
-                gendarmes_df = pd.read_sql_query(gendarmes_query, conn, params=gendarmes_params)
-                print(f"Nombre de gendarmes après filtrage: {len(gendarmes_df)}")
 
-                # Convertir matricule en string pour la fusion
+                # Conditions WHERE
+                where_conditions = []
+                params = []
+
+                # Ajouter le filtre du sujet sélectionné
+                if not subject_selection['value'].startswith('Tous'):
+                    where_conditions.append(f"s.{subject_selection['field']} = ?")
+                    params.append(subject_selection['value'])
+
+                # Si des conditions existent, les ajouter à la requête
+                if where_conditions:
+                    sanctions_query += " WHERE " + " AND ".join(where_conditions)
+
+                # Grouper par les champs nécessaires
+                sanctions_query += """
+                GROUP BY COALESCE(s.numero_dossier, 'SANS_NUMERO_' || s.id),
+                         s.matricule,
+                         s.date_enr,
+                         s.date_faits,
+                         s.faute_commise,
+                         s.categorie,
+                         s.statut,
+                         s.annee_punition,
+                         s.annee_faits
+                )
+                SELECT * FROM unique_sanctions
+                """
+
+                print("\nRequête sanctions:", sanctions_query)  # Debug
+                print("Paramètres:", params)  # Debug
+
+                # Exécuter la requête
+                sanctions_df = pd.read_sql_query(sanctions_query, conn, params=params)
+                print(f"\nNombre de sanctions uniques: {len(sanctions_df)}")
+
+                # Récupérer les données des gendarmes
+                gendarmes_query = """
+                SELECT 
+                    mle,
+                    grade,
+                    subdiv,
+                    annee_service,
+                    situation_matrimoniale
+                FROM gendarmes
+                """
+                gendarmes_df = pd.read_sql_query(gendarmes_query, conn)
+                print(f"Nombre de gendarmes: {len(gendarmes_df)}")
+
+                # Convertir les colonnes pour la fusion
                 sanctions_df['matricule'] = sanctions_df['matricule'].astype(str)
                 gendarmes_df['mle'] = gendarmes_df['mle'].astype(str)
 
-                # Fusion des données en évitant les doublons
+                # Fusion des données
                 df = sanctions_df.merge(
                     gendarmes_df,
                     left_on='matricule',
                     right_on='mle',
                     how='left'
-                ).drop_duplicates(subset=['id_x'])
+                )
 
-                print(f"Nombre total après fusion et déduplication: {len(df)}")
+                print(f"Nombre total après fusion: {len(df)}")
 
-                if df is None:
-                    raise Exception("Erreur lors de la récupération des données de base")
+                if df is None or df.empty:
+                    raise Exception("Aucune donnée disponible")
 
-                x_config = self.config["x_axis"]
-                y_config = self.config["y_axis"]
-
-                # Traitement spécial pour les années de service
-                if x_config["field"] == "annee_service" or y_config["field"] == "annee_service":
+                # Traitement spécial pour les années de service si nécessaire
+                if any(config["field"] == "annee_service"
+                       for config in [self.config["x_axis"], self.config["y_axis"]]):
                     df['service_range'] = pd.cut(
                         df['annee_service'],
                         bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
@@ -289,7 +281,11 @@ class VisualizationWindow(QMainWindow):
                                 '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS']
                     )
 
-                # Préparation des données pour le tableau croisé
+                # Préparation des données pour les axes
+                x_config = self.config["x_axis"]
+                y_config = self.config["y_axis"]
+
+                # Déterminer les valeurs des axes
                 if x_config["field"] == "annee_service":
                     x_values = df['service_range']
                 else:
@@ -300,11 +296,11 @@ class VisualizationWindow(QMainWindow):
                 else:
                     y_values = df[y_config["field"]]
 
-                # Remplacer les valeurs NaN par "Non spécifié"
+                # Remplacer les valeurs NaN
                 x_values = x_values.fillna("Non spécifié")
                 y_values = y_values.fillna("Non spécifié")
 
-                # Création du tableau croisé et des données pour le graphique
+                # Création du tableau croisé
                 pivot_df = pd.crosstab(
                     index=y_values,
                     columns=x_values,
@@ -320,8 +316,8 @@ class VisualizationWindow(QMainWindow):
                 })
                 graph_df = graph_df.groupby(['x_value', 'y_value']).size().reset_index(name='count')
 
-                self.df = graph_df  # Pour les graphiques
-                self.pivot_df = pivot_df  # Pour le tableau
+                self.df = graph_df
+                self.pivot_df = pivot_df
                 self.update_table(pivot_df)
                 self.update_info(df)
 
@@ -434,37 +430,48 @@ class VisualizationWindow(QMainWindow):
     def update_graph(self, df, chart_config):
         """Met à jour le graphique selon la configuration choisie."""
         try:
-            # Vérifier si on a des données
+            # Vérifier les données et la configuration
             if self.df is None or self.pivot_df is None:
-                return
+                raise Exception("Aucune donnée disponible")
 
-            # Vérifier si c'est la même configuration
-            if self.current_chart_config == chart_config:
-                return
+            if not isinstance(chart_config, dict):
+                raise Exception("Configuration du graphique invalide")
 
-            self.current_chart_config = chart_config
+            # Nettoyage du graphique précédent
             self.figure.clear()
             ax = self.figure.add_subplot(111)
 
-            if isinstance(chart_config, dict):
-                chart_type = chart_config.get('type')
-                axis = chart_config.get('axis', 'x')
+            # Extraire les informations de configuration
+            chart_type = chart_config.get('type')
+            selected_axis = chart_config.get('axis', 'x')
 
-                if chart_type == 'bar_simple':
-                    self._create_simple_bar_sns(ax, self.df, axis)
-                elif chart_type == 'pie':
-                    self._create_pie_chart_sns(ax, self.df, axis)
-                elif chart_type == 'donut':
-                    self._create_donut_chart_sns(ax, self.df, axis)
-                elif chart_type == 'bar_stacked':
-                    self._create_stacked_bar_sns(ax, self.pivot_df)
-                elif chart_type == 'heatmap':
-                    self._create_heatmap_sns(ax, self.pivot_df)
+            # Configuration du titre
+            subject = self.config['subject_selection']
+            subject_title = f"{subject['theme']}: {subject['value']}"
+
+            # Choix du graphique selon le type
+            if chart_type == 'bar_simple':
+                if chart_config.get('orientation') == 'horizontal':
+                    self._create_simple_bar_horizontal_sns(ax, selected_axis, subject_title)
                 else:
-                    # Par défaut, graphique en barres empilées
-                    self._create_stacked_bar_sns(ax, self.pivot_df)
+                    self._create_simple_bar_sns(ax, selected_axis, subject_title)
+            elif chart_type == 'bar_grouped':
+                if chart_config.get('orientation') == 'horizontal':
+                    self._create_bar_grouped_horizontal_sns(ax, subject_title)
+                else:
+                    self._create_bar_grouped_sns(ax, subject_title)
+            elif chart_type == 'pie':
+                self._create_pie_chart_sns(ax, selected_axis, subject_title)
+            elif chart_type == 'donut':
+                self._create_donut_chart_sns(ax, selected_axis, subject_title)
+            elif chart_type == 'bar_stacked':
+                self._create_stacked_bar_sns(ax, subject_title)
+            elif chart_type == 'heatmap':
+                self._create_heatmap_sns(ax, subject_title)
+            else:
+                self._create_stacked_bar_sns(ax, subject_title)  # Par défaut
 
-            # Ajustement de la mise en page
+            # Ajustement final du graphique
             self.figure.tight_layout()
             self.canvas.draw()
 
@@ -476,16 +483,19 @@ class VisualizationWindow(QMainWindow):
                 f"Erreur lors de la mise à jour du graphique: {str(e)}"
             )
 
-    # Méthodes de création des différents types de graphiques
-    def _create_simple_bar_sns(self, ax, df, axis='x'):
+    #Methodes de créations des graphiques
+    def _create_simple_bar_sns(self, ax, selected_axis, subject_title):
         """Crée un histogramme simple selon l'axe choisi."""
         try:
-            # Sélectionner la colonne appropriée selon l'axe choisi
-            value_col = 'x_value' if axis == 'x' else 'y_value'
-            title_theme = self.config[f'{axis}_axis']['theme']
+            # Sélectionner les données selon l'axe
+            value_col = 'x_value' if selected_axis == 'x' else 'y_value'
+            config = self.config[f'{selected_axis}_axis']
 
-            # Agrégation des données
-            data = df.groupby(value_col)['count'].sum().reset_index()
+            # Agréger les données
+            data = self.df.groupby(value_col)['count'].sum().reset_index()
+
+            # Trier les données par valeur décroissante
+            data = data.sort_values('count', ascending=False)
 
             # Création du graphique
             sns.barplot(
@@ -493,13 +503,13 @@ class VisualizationWindow(QMainWindow):
                 x=value_col,
                 y='count',
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=8)
+                palette=sns.color_palette("cubehelix", n_colors=len(data))
             )
 
             # Style et étiquettes
-            ax.set_title(f"Distribution par {title_theme}")
-            ax.set_xlabel('')
-            ax.set_ylabel('Nombre')
+            ax.set_title(f"{subject_title}\nDistribution par {config['theme']}")
+            ax.set_xlabel(config['theme'])
+            ax.set_ylabel('Nombre de sanctions')
 
             # Rotation des étiquettes
             plt.xticks(rotation=45, ha='right')
@@ -507,7 +517,8 @@ class VisualizationWindow(QMainWindow):
             # Ajout des valeurs sur les barres
             for i, v in enumerate(data['count']):
                 ax.text(
-                    i, v, f'{int(v):,}',
+                    i, v + 0.5,
+                    str(int(v)),
                     ha='center',
                     va='bottom',
                     fontweight='bold'
@@ -517,31 +528,116 @@ class VisualizationWindow(QMainWindow):
             print(f"Erreur dans _create_simple_bar_sns: {str(e)}")
             raise
 
-    def _create_stacked_bar_sns(self, ax, pivot_table):
-        """Crée un graphique à barres empilées avec Seaborn."""
+    def _create_pie_chart_sns(self, ax, selected_axis, subject_title):
+        """Crée un graphique en camembert selon l'axe choisi."""
         try:
+            # Sélectionner les données selon l'axe
+            value_col = 'x_value' if selected_axis == 'x' else 'y_value'
+            config = self.config[f'{selected_axis}_axis']
+
+            # Agréger les données
+            data = self.df.groupby(value_col)['count'].sum()
+
+            # Calculer les pourcentages
+            total = data.sum()
+
             # Création du graphique
-            pivot_table.plot(
+            wedges, texts, autotexts = ax.pie(
+                data,
+                labels=[f"{x}\n({v:,} - {(v / total) * 100:.1f}%)" for x, v in data.items()],
+                autopct='',
+                colors=sns.color_palette("cubehelix", n_colors=len(data))
+            )
+
+            # Titre
+            ax.set_title(f"{subject_title}\nRépartition par {config['theme']}")
+
+            # Légende
+            ax.legend(
+                wedges,
+                [f"{x}" for x in data.index],
+                title=config['theme'],
+                loc="center left",
+                bbox_to_anchor=(1, 0, 0.5, 1)
+            )
+
+        except Exception as e:
+            print(f"Erreur dans _create_pie_chart_sns: {str(e)}")
+            raise
+
+    def _create_donut_chart_sns(self, ax, selected_axis, subject_title):
+        """Crée un graphique en anneau selon l'axe choisi."""
+        try:
+            # Sélectionner les données selon l'axe
+            value_col = 'x_value' if selected_axis == 'x' else 'y_value'
+            config = self.config[f'{selected_axis}_axis']
+
+            # Agréger les données
+            data = self.df.groupby(value_col)['count'].sum()
+
+            # Calculer les pourcentages et le total
+            total = data.sum()
+
+            # Création du graphique
+            wedges, texts, autotexts = ax.pie(
+                data,
+                labels=[f"{x}\n({v:,} - {(v / total) * 100:.1f}%)" for x, v in data.items()],
+                autopct='',
+                colors=sns.color_palette("cubehelix", n_colors=len(data)),
+                wedgeprops=dict(width=0.5)  # Crée l'effet donut
+            )
+
+            # Ajouter le total au centre
+            centre_circle = plt.Circle((0, 0), 0.70, fc='white')
+            ax.add_artist(centre_circle)
+            ax.text(0, 0, f'Total\n{total:,}', ha='center', va='center', fontsize=12, fontweight='bold')
+
+            # Titre
+            ax.set_title(f"{subject_title}\nRépartition par {config['theme']}")
+
+            # Légende
+            ax.legend(
+                wedges,
+                [f"{x}" for x in data.index],
+                title=config['theme'],
+                loc="center left",
+                bbox_to_anchor=(1, 0, 0.5, 1)
+            )
+
+        except Exception as e:
+            print(f"Erreur dans _create_donut_chart_sns: {str(e)}")
+            raise
+
+    def _create_stacked_bar_sns(self, ax, subject_title):
+        """Crée un graphique à barres empilées."""
+        try:
+            # Utilisation directe du pivot_df pour les barres empilées
+            # Retirer la ligne 'TOTAL' pour le graphique
+            plot_df = self.pivot_df.drop('TOTAL', axis=0).drop('TOTAL', axis=1)
+
+            # Création du graphique
+            plot_df.plot(
                 kind='bar',
                 stacked=True,
                 ax=ax,
-                width=0.8,
                 colormap='cubehelix'
             )
 
             # Style et étiquettes
-            ax.set_title(f"Répartition {self.config['y_axis']['theme']} par {self.config['x_axis']['theme']}")
-            ax.set_xlabel('')
-            ax.set_ylabel('Effectif')
+            ax.set_title(f"{subject_title}\n"
+                         f"Répartition {self.config['y_axis']['theme']} "
+                         f"par {self.config['x_axis']['theme']}")
+            ax.set_xlabel(self.config['x_axis']['theme'])
+            ax.set_ylabel('Nombre de sanctions')
 
             # Rotation des étiquettes
             plt.xticks(rotation=45, ha='right')
 
-            # Ajout des totaux au-dessus des barres
-            totals = pivot_table.sum(axis=1)
+            # Ajout des totaux au-dessus de chaque barre
+            totals = plot_df.sum(axis=1)
             for i, total in enumerate(totals):
                 ax.text(
-                    i, total, f'{int(total):,}',
+                    i, total, f'{int(total)}',
                     ha='center',
                     va='bottom',
                     fontweight='bold'
@@ -558,210 +654,72 @@ class VisualizationWindow(QMainWindow):
             print(f"Erreur dans _create_stacked_bar_sns: {str(e)}")
             raise
 
-    def _create_donut_chart_sns(self, ax, df, axis='x'):
-        """Crée un graphique en anneau avec Seaborn."""
+    def _create_heatmap_sns(self, ax, subject_title):
+        """Crée une heatmap des données."""
         try:
-            # Sélectionner la colonne appropriée selon l'axe choisi
-            value_col = 'x_value' if axis == 'x' else 'y_value'
-            title_theme = self.config[f'{axis}_axis']['theme']
+            # Utiliser le pivot_df sans les totaux
+            plot_df = self.pivot_df.drop('TOTAL', axis=0).drop('TOTAL', axis=1)
 
-            # Calculer les totaux
-            data_to_plot = df.groupby(value_col)['count'].sum()
-            total = data_to_plot.sum()
-
-            # Configuration des couleurs
-            colors = sns.color_palette("cubehelix", n_colors=len(data_to_plot))
-
-            # Création du donut
-            wedges, texts, autotexts = ax.pie(
-                data_to_plot.values,
-                labels=data_to_plot.index,
-                colors=colors,
-                autopct='%1.1f%%',
-                pctdistance=0.75,
-                wedgeprops=dict(width=0.5)  # Cette propriété crée l'anneau
-            )
-
-            # Ajout d'info sur les valeurs absolues
-            labels = [f'{label}\n({int(val):,})' for label, val in zip(data_to_plot.index, data_to_plot.values)]
-
-            # Légende
-            ax.legend(
-                wedges, labels,
-                title=f"Répartition par {title_theme}",
-                loc="center left",
-                bbox_to_anchor=(1, 0, 0.5, 1)
-            )
-
-            # Style
-            plt.setp(autotexts, size=8, weight="bold")
-            plt.setp(texts, size=9)
-
-            # Ajout du total au centre
-            centre_circle = plt.Circle((0, 0), 0.50, fc='white')
-            ax.add_artist(centre_circle)
-            ax.text(
-                0, 0,
-                f'Total\n{int(total):,}',
-                ha='center',
-                va='center',
-                fontsize=12,
-                fontweight='bold'
-            )
-
-            # Titre
-            ax.set_title(f"Répartition par {title_theme}")
-
-            # Cercle parfait
-            ax.axis('equal')
-
-        except Exception as e:
-            print(f"Erreur dans _create_donut_chart_sns: {str(e)}")
-            raise
-
-    def _create_heatmap_sns(self, ax, pivot_table):
-        """Crée une heatmap avec Seaborn."""
-        try:
             # Création de la heatmap
             sns.heatmap(
-                pivot_table,
+                plot_df,
                 annot=True,
-                fmt=',d',
-                cmap='rocket',
+                fmt='d',
+                cmap='YlOrRd',
                 ax=ax,
-                cbar_kws={'label': 'Nombre'}
+                cbar_kws={'label': 'Nombre de sanctions'}
             )
 
             # Style et étiquettes
-            ax.set_title(f"Distribution {self.config['y_axis']['theme']} vs {self.config['x_axis']['theme']}")
+            ax.set_title(f"{subject_title}\n"
+                         f"Distribution {self.config['y_axis']['theme']} "
+                         f"vs {self.config['x_axis']['theme']}")
+
+            # Rotation des étiquettes
             plt.xticks(rotation=45, ha='right')
             plt.yticks(rotation=0)
+
+            # Ajustement de la taille des étiquettes si nécessaire
+            ax.set_xticklabels(ax.get_xticklabels(), fontsize=8)
+            ax.set_yticklabels(ax.get_yticklabels(), fontsize=8)
 
         except Exception as e:
             print(f"Erreur dans _create_heatmap_sns: {str(e)}")
             raise
 
-    def _create_pie_chart_sns(self, ax, df, axis='x'):
-        """Crée un graphique en camembert avec Seaborn."""
+    def _create_bar_grouped_sns(self, ax, subject_title):
+        """Crée un graphique à barres groupées."""
         try:
-            # Sélectionner la colonne appropriée selon l'axe choisi
-            value_col = 'x_value' if axis == 'x' else 'y_value'
-            title_theme = self.config[f'{axis}_axis']['theme']
+            # Réorganiser les données pour le graphique groupé
+            df_melted = self.df.copy()
 
-            # Calculer les totaux
-            data_to_plot = df.groupby(value_col)['count'].sum()
 
-            # Configuration des couleurs
-            colors = sns.color_palette("cubehelix", n_colors=len(data_to_plot))
+            # Définition des couleurs spécifiques pour chaque catégorie
+            colors = {'CELIBATAIRE': '#0066cc', 'MARIE': '#ff9933'}  # Bleu et Orange
 
-            # Création du camembert
-            wedges, texts, autotexts = ax.pie(
-                data_to_plot.values,
-                labels=data_to_plot.index,
-                colors=colors,
-                autopct='%1.1f%%',
-                pctdistance=0.85,
-                startangle=90
-            )
-
-            # Ajout d'info sur les valeurs absolues
-            total = data_to_plot.sum()
-            labels = [f'{label}\n({int(val):,})' for label, val in zip(data_to_plot.index, data_to_plot.values)]
-
-            # Légende
-            ax.legend(wedges, labels,
-                      title=f"Répartition par {title_theme}",
-                      loc="center left",
-                      bbox_to_anchor=(1, 0, 0.5, 1))
-
-            # Style
-            plt.setp(autotexts, size=8, weight="bold")
-            plt.setp(texts, size=9)
-
-            # Titre
-            ax.set_title(f"Répartition par {title_theme}")
-
-            # Cercle parfait
-            ax.axis('equal')
-
-        except Exception as e:
-            print(f"Erreur dans _create_pie_chart_sns: {str(e)}")
-            raise
-
-    def _create_line_chart_sns(self, ax, pivot_table):
-        """Crée un graphique linéaire avec Seaborn."""
-        try:
-            # Réinitialisation de l'index pour utiliser les colonnes correctement
-            df_plot = pivot_table.reset_index()
-
-            # Création du graphique pour chaque colonne sauf l'index
-            for column in pivot_table.columns:
-                sns.lineplot(
-                    data=df_plot,
-                    x='y_value',
-                    y=column,
-                    marker='o',
-                    label=column,
-                    ax=ax,
-                    linewidth=2,
-                    markersize=8
-                )
-
-            # Style et étiquettes
-            ax.set_title(f"Évolution {self.config['y_axis']['theme']} par {self.config['x_axis']['theme']}")
-            ax.set_xlabel(self.config['y_axis']['theme'])
-            ax.set_ylabel('Nombre')
-
-            # Rotation des étiquettes
-            plt.xticks(rotation=45, ha='right')
-
-            # Légende
-            ax.legend(
-                title=self.config['x_axis']['theme'],
-                bbox_to_anchor=(1.05, 1),
-                loc='upper left'
-            )
-
-            # Grille
-            ax.grid(True, linestyle='--', alpha=0.7)
-
-            # Ajout des valeurs sur les points
-            for line in ax.lines:
-                for x, y in zip(line.get_xdata(), line.get_ydata()):
-                    if not np.isnan(y):
-                        ax.text(
-                            x, y,
-                            f'{int(y):,}',
-                            ha='center',
-                            va='bottom',
-                            fontweight='bold',
-                            fontsize=8
-                        )
-
-        except Exception as e:
-            print(f"Erreur dans _create_line_chart_sns: {str(e)}")
-            raise
-
-    def _create_bar_grouped_sns(self, ax, df):
-        """Crée un graphique à barres groupées avec Seaborn."""
-        try:
             # Création du graphique
             sns.barplot(
-                data=df,
+                data=df_melted,
                 x='x_value',
                 y='count',
                 hue='y_value',
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=8)
+                palette=colors
             )
 
             # Style et étiquettes
-            ax.set_title(f"Comparaison {self.config['y_axis']['theme']} par {self.config['x_axis']['theme']}")
-            ax.set_xlabel('')
-            ax.set_ylabel('Nombre')
+            ax.set_title(f"{subject_title}\n"
+                         f"Comparaison {self.config['y_axis']['theme']} "
+                         f"par {self.config['x_axis']['theme']}")
+            ax.set_xlabel(self.config['x_axis']['theme'])
+            ax.set_ylabel('Nombre de sanctions')
 
             # Rotation des étiquettes
             plt.xticks(rotation=45, ha='right')
+
+            # Ajout des valeurs sur les barres
+            for container in ax.containers:
+                ax.bar_label(container, padding=3)
 
             # Légende
             ax.legend(
@@ -770,18 +728,62 @@ class VisualizationWindow(QMainWindow):
                 loc='upper left'
             )
 
-            # Ajout des valeurs sur les barres
-            for container in ax.containers:
-                ax.bar_label(
-                    container,
-                    fmt='%d',
-                    padding=3,
-                    fontweight='bold',
-                    fontsize=8
-                )
+            # Ajustement de la figure pour éviter le chevauchement
+            plt.tight_layout()
 
         except Exception as e:
             print(f"Erreur dans _create_bar_grouped_sns: {str(e)}")
+            raise
+
+    def _create_line_chart_sns(self, ax, subject_title):
+        """Crée un graphique linéaire."""
+        try:
+            # Utiliser le pivot_df sans les totaux
+            plot_df = self.pivot_df.drop('TOTAL', axis=0).drop('TOTAL', axis=1)
+
+            # Tracer une ligne pour chaque colonne
+            for column in plot_df.columns:
+                ax.plot(
+                    plot_df.index,
+                    plot_df[column],
+                    marker='o',
+                    label=column,
+                    linewidth=2,
+                    markersize=8
+                )
+
+            # Style et étiquettes
+            ax.set_title(f"{subject_title}\n"
+                         f"Évolution {self.config['y_axis']['theme']} "
+                         f"par {self.config['x_axis']['theme']}")
+            ax.set_xlabel(self.config['x_axis']['theme'])
+            ax.set_ylabel('Nombre de sanctions')
+
+            # Rotation des étiquettes
+            plt.xticks(rotation=45, ha='right')
+
+            # Ajout des valeurs sur les points
+            for line in ax.lines:
+                for x, y in zip(range(len(line.get_xdata())), line.get_ydata()):
+                    ax.text(
+                        x, y,
+                        f'{int(y)}',
+                        ha='center',
+                        va='bottom'
+                    )
+
+            # Grille
+            ax.grid(True, linestyle='--', alpha=0.7)
+
+            # Légende
+            ax.legend(
+                title=self.config['y_axis']['theme'],
+                bbox_to_anchor=(1.05, 1),
+                loc='upper left'
+            )
+
+        except Exception as e:
+            print(f"Erreur dans _create_line_chart_sns: {str(e)}")
             raise
 
     def _create_box_plot_sns(self, ax, df, axis='x'):
@@ -1065,6 +1067,101 @@ class VisualizationWindow(QMainWindow):
 
         except Exception as e:
             print(f"Erreur dans _create_strip_plot_sns: {str(e)}")
+            raise
+
+    def _create_simple_bar_horizontal_sns(self, ax, selected_axis, subject_title):
+        """Crée un histogramme simple horizontal selon l'axe choisi."""
+        try:
+            # Sélectionner les données selon l'axe
+            value_col = 'x_value' if selected_axis == 'x' else 'y_value'
+            config = self.config[f'{selected_axis}_axis']
+
+            # Agréger les données
+            data = self.df.groupby(value_col)['count'].sum().reset_index()
+
+            # Trier les données par valeur décroissante
+            data = data.sort_values('count', ascending=True)  # Ascending True pour l'affichage horizontal
+
+            # Création du graphique
+            sns.barplot(
+                data=data,
+                y=value_col,  # Inverser x et y pour l'orientation horizontale
+                x='count',
+                ax=ax,
+                palette=sns.color_palette("cubehelix", n_colors=len(data)),
+                orient='h'  # Spécifier l'orientation horizontale
+            )
+
+            # Style et étiquettes
+            ax.set_title(f"{subject_title}\nDistribution par {config['theme']}")
+            ax.set_ylabel(config['theme'])
+            ax.set_xlabel('Nombre de sanctions')
+
+            # Pas besoin de rotation pour les étiquettes verticales
+            ax.tick_params(axis='y', labelrotation=0)
+
+            # Ajout des valeurs sur les barres
+            for i, v in enumerate(data['count']):
+                ax.text(
+                    v + 0.5,  # Décalage horizontal
+                    i,  # Position verticale
+                    str(int(v)),
+                    ha='left',
+                    va='center',
+                    fontweight='bold'
+                )
+
+        except Exception as e:
+            print(f"Erreur dans _create_simple_bar_horizontal_sns: {str(e)}")
+            raise
+
+    def _create_bar_grouped_horizontal_sns(self, ax, subject_title):
+        """Crée un graphique à barres groupées horizontal."""
+        try:
+            # Réorganiser les données pour le graphique groupé
+            df_melted = self.df.copy()
+
+            # Création du graphique
+            sns.barplot(
+                data=df_melted,
+                y='x_value',  # Inverser x et y pour l'orientation horizontale
+                x='count',
+                hue='y_value',
+                ax=ax,
+                palette='cubehelix',
+                orient='h'  # Spécifier l'orientation horizontale
+            )
+
+            # Style et étiquettes
+            ax.set_title(f"{subject_title}\n"
+                         f"Comparaison {self.config['y_axis']['theme']} "
+                         f"par {self.config['x_axis']['theme']}")
+            ax.set_ylabel(self.config['x_axis']['theme'])
+            ax.set_xlabel('Nombre de sanctions')
+
+            # Pas besoin de rotation pour les étiquettes verticales
+            ax.tick_params(axis='y', labelrotation=0)
+
+            # Ajout des valeurs sur les barres
+            for container in ax.containers:
+                ax.bar_label(
+                    container,
+                    padding=3,
+                    label_type='edge'  # Placer les labels à l'extrémité des barres
+                )
+
+            # Légende
+            ax.legend(
+                title=self.config['y_axis']['theme'],
+                bbox_to_anchor=(1.05, 1),
+                loc='upper left'
+            )
+
+            # Ajustement de la figure pour éviter le chevauchement
+            plt.tight_layout()
+
+        except Exception as e:
+            print(f"Erreur dans _create_bar_grouped_horizontal_sns: {str(e)}")
             raise
 
     def update_info(self, df):

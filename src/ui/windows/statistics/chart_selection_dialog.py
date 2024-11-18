@@ -104,9 +104,9 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QGroupBox, QRadioButton,
 #         return 'bar_stacked'  # Type par défaut
 
 class ChartSelectionDialog(QDialog):
-    def __init__(self, data_config, parent=None):
+    def __init__(self, config, parent=None):
         super().__init__(parent)
-        self.data_config = data_config
+        self.config = config
         self.setWindowTitle("Sélection du type de graphique")
         self.setModal(True)
         self.setup_ui()
@@ -115,43 +115,45 @@ class ChartSelectionDialog(QDialog):
         layout = QVBoxLayout(self)
 
         # Label explicatif
+        subject_info = QLabel(
+            f"Sujet d'analyse: {self.config['subject_selection']['theme']} - "
+            f"{self.config['subject_selection']['value']}"
+        )
+        subject_info.setStyleSheet("font-weight: bold; color: #0066cc;")
+        layout.addWidget(subject_info)
+
         layout.addWidget(QLabel("Choisissez le type de graphique adapté à votre analyse :"))
 
         # Groupe de graphiques disponibles
         self.chart_group = QGroupBox("Types de graphiques disponibles")
         chart_layout = QVBoxLayout()
 
-        # On détermine les graphiques pertinents selon la configuration
+        self.chart_buttons = {}
         available_charts = self.get_available_charts()
 
-        self.chart_buttons = {}
         for chart_id, chart_info in available_charts.items():
             radio = QRadioButton(chart_info['name'])
             radio.setToolTip(chart_info['description'])
             self.chart_buttons[chart_id] = radio
             chart_layout.addWidget(radio)
 
-            # Si c'est un histogramme simple ou un camembert, ajouter les options d'axe
+            # Ajouter les options d'axe pour les graphiques qui le nécessitent
             if chart_id in ['bar_simple', 'pie', 'donut']:
-                axis_group = QGroupBox(f"Choisir la répartition à afficher pour {chart_info['name']}")
+                axis_group = QGroupBox("Choisir l'axe à afficher")
                 axis_layout = QVBoxLayout()
 
-                self.x_axis_radio = QRadioButton(f"Par {self.data_config['x_axis']['theme']}")
-                self.y_axis_radio = QRadioButton(f"Par {self.data_config['y_axis']['theme']}")
+                self.x_axis_radio = QRadioButton(f"Axe X: {self.config['x_axis']['theme']}")
+                self.y_axis_radio = QRadioButton(f"Axe Y: {self.config['y_axis']['theme']}")
 
                 axis_layout.addWidget(self.x_axis_radio)
                 axis_layout.addWidget(self.y_axis_radio)
 
                 axis_group.setLayout(axis_layout)
-                # Masquer initialement le groupe d'options
-                axis_group.setVisible(False)
+                axis_group.setVisible(False)  # Caché par défaut
                 chart_layout.addWidget(axis_group)
 
                 # Connecter le signal pour afficher/masquer les options
                 radio.toggled.connect(lambda checked, g=axis_group: g.setVisible(checked))
-
-                # Sélectionner X par défaut
-                self.x_axis_radio.setChecked(True)
 
         self.chart_group.setLayout(chart_layout)
         layout.addWidget(self.chart_group)
@@ -194,6 +196,12 @@ class ChartSelectionDialog(QDialog):
         charts['heatmap'] = {
             'name': 'Carte de chaleur',
             'description': 'Visualisation de la densité des données'
+        }
+
+        #graphique à barres groupées
+        charts['bar_grouped'] = {
+            'name': 'Barres groupées',
+            'description': 'Graphique à barres groupées pour comparaison directe'
         }
 
         return charts
