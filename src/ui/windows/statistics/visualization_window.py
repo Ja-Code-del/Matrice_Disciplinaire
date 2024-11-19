@@ -189,21 +189,21 @@ class VisualizationWindow(QMainWindow):
 
                 # Construction de la requête de base pour les sanctions uniques
                 sanctions_query = """
-                    WITH unique_sanctions AS (
-                        SELECT 
-                            MIN(s.id) as first_id,
-                            COALESCE(s.numero_dossier, 'SANS_NUMERO_' || MIN(s.id)) as unique_dossier,
-                            s.matricule,
-                            s.date_enr,
-                            s.date_faits,
-                            s.faute_commise,
-                            s.categorie,
-                            s.statut,
-                            s.annee_punition,
-                            s.annee_faits,
-                            COUNT(*) as sanctions_count
-                        FROM sanctions s
-                        """
+                WITH unique_sanctions AS (
+                    SELECT 
+                        MIN(s.id) as first_id,
+                        COALESCE(s.numero_dossier, 'SANS_NUMERO_' || MIN(s.id)) as unique_dossier,
+                        s.matricule,
+                        s.date_enr,
+                        s.date_faits,
+                        s.faute_commise,
+                        s.categorie,
+                        s.statut,
+                        s.annee_punition,
+                        s.annee_faits,
+                        COUNT(*) as sanctions_count
+                    FROM sanctions s
+                    """
 
                 # Conditions WHERE
                 where_conditions = []
@@ -220,18 +220,18 @@ class VisualizationWindow(QMainWindow):
 
                 # Grouper par les champs nécessaires
                 sanctions_query += """
-                    GROUP BY COALESCE(s.numero_dossier, 'SANS_NUMERO_' || s.id),
-                             s.matricule,
-                             s.date_enr,
-                             s.date_faits,
-                             s.faute_commise,
-                             s.categorie,
-                             s.statut,
-                             s.annee_punition,
-                             s.annee_faits
-                    )
-                    SELECT * FROM unique_sanctions
-                    """
+                GROUP BY COALESCE(s.numero_dossier, 'SANS_NUMERO_' || s.id),
+                         s.matricule,
+                         s.date_enr,
+                         s.date_faits,
+                         s.faute_commise,
+                         s.categorie,
+                         s.statut,
+                         s.annee_punition,
+                         s.annee_faits
+                )
+                SELECT * FROM unique_sanctions
+                """
 
                 print("\nRequête sanctions:", sanctions_query)  # Debug
                 print("Paramètres:", params)  # Debug
@@ -242,21 +242,24 @@ class VisualizationWindow(QMainWindow):
 
                 # Récupérer les données des gendarmes
                 gendarmes_query = """
-                    SELECT 
-                        mle,
-                        grade,
-                        subdiv,
-                        annee_service,
-                        situation_matrimoniale
-                    FROM gendarmes
-                    """
+                SELECT 
+                    mle,
+                    grade,
+                    subdiv,
+                    annee_service,
+                    situation_matrimoniale
+                FROM gendarmes
+                """
                 gendarmes_df = pd.read_sql_query(gendarmes_query, conn)
                 print(f"Nombre de gendarmes: {len(gendarmes_df)}")
 
                 # Convertir les colonnes pour la fusion
                 sanctions_df['matricule'] = sanctions_df['matricule'].astype(str)
                 gendarmes_df['mle'] = gendarmes_df['mle'].astype(str)
-
+                print("\nDébug avant fusion:")
+                print(f"Nombre de sanctions uniques: {len(sanctions_df)}")
+                print(f"Colonnes sanctions: {sanctions_df.columns}")
+                print(f"Colonnes gendarmes: {gendarmes_df.columns}")
                 # Fusion des données
                 df = sanctions_df.merge(
                     gendarmes_df,
@@ -264,8 +267,16 @@ class VisualizationWindow(QMainWindow):
                     right_on='mle',
                     how='left'
                 )
+                # S'assurer de l'unicité des enregistrements après la fusion
+                df = df.drop_duplicates(subset=['first_id', 'unique_dossier'])
+                print("\nDébug après fusion et déduplication:")
+                print(f"Nombre total d'enregistrements: {len(df)}")
 
-                print(f"Nombre total après fusion: {len(df)}")
+                # Vérification des doublons éventuels
+                doublons = df[df.duplicated(['first_id', 'unique_dossier'], keep=False)]
+                if not doublons.empty:
+                    print("\nDoublons trouvés:")
+                    print(doublons[['first_id', 'unique_dossier', 'matricule', 'mle']])
 
                 if df is None or df.empty:
                     raise Exception("Aucune donnée disponible")
@@ -322,7 +333,7 @@ class VisualizationWindow(QMainWindow):
                 self.df = graph_df
                 self.pivot_df = pivot_df
                 self.update_table(pivot_df)
-                #self.update_info(df)
+                self.update_info(df)
 
         except Exception as e:
             print(f"Error in load_data: {str(e)}")
@@ -485,6 +496,27 @@ class VisualizationWindow(QMainWindow):
                 "Erreur",
                 f"Erreur lors de la mise à jour du graphique: {str(e)}"
             )
+
+    def update_info(self, df):
+        """Met à jour les informations d'en-tête."""
+        try:
+            # Vérifier si on a des données
+            if df is None:
+                return
+
+            total = len(df)
+            moyenne = df['annee_punition'].mean() if 'annee_punition' in df.columns else 0
+            maximum = df['annee_punition'].max() if 'annee_punition' in df.columns else 0
+            minimum = df['annee_punition'].min() if 'annee_punition' in df.columns else 0
+
+            self.info_label.setText(
+                f"Total: {total} | "
+                f"Moyenne: {moyenne:.2f} | "
+                f"Maximum: {maximum} | "
+                f"Minimum: {minimum}"
+            )
+        except Exception as e:
+            print(f"Erreur dans update_info: {str(e)}")
 
     #Methodes de créations des graphiques
     def _create_simple_bar_sns(self, ax, selected_axis, subject_title):
