@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="work on bar grouped with 'tranche annee_service/subdivisions' sujet: Non-respect des consignes">
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="Good SQL for Load_data">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/~$EtatSO.xlsx" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -451,11 +450,18 @@
       <option name="project" value="LOCAL" />
       <updated>1731977119997</updated>
     </task>
-    <option name="localTasksCounter" value="46" />
+    <task id="LOCAL-00046" summary="Good SQL for Load_data">
+      <option name="closed" value="true" />
+      <created>1732028669425</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1732028669426</updated>
+    </task>
+    <option name="localTasksCounter" value="47" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="ERROR / name 'info_group' is not define" />
     <MESSAGE value="ALL SEEMS PERFECT" />
     <MESSAGE value="sanctions import correct but need to import the gendarme info" />
     <MESSAGE value="The informations of gendarmes are dislayed but it misses the age and n° dossier and all sanctions informations" />
@@ -480,7 +486,8 @@
     <MESSAGE value="TOTAL was 175 rather than 171. now its fixed. and 'count' error is fixed. TODO: fix the subject choice error" />
     <MESSAGE value="Worked on grouped bar graphic. not achieved" />
     <MESSAGE value="work on bar grouped with 'tranche annee_service/subdivisions' sujet: Non-respect des consignes" />
-    <option name="LAST_COMMIT_MESSAGE" value="work on bar grouped with 'tranche annee_service/subdivisions' sujet: Non-respect des consignes" />
+    <MESSAGE value="Good SQL for Load_data" />
+    <option name="LAST_COMMIT_MESSAGE" value="Good SQL for Load_data" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

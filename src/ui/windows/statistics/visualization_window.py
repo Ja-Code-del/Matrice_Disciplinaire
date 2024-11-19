@@ -287,13 +287,29 @@ class VisualizationWindow(QMainWindow):
                     # S'assurer que annee_service est numérique
                     df['annee_service'] = pd.to_numeric(df['annee_service'], errors='coerce')
 
-                    df['service_range'] = pd.cut(
-                        df['annee_service'],
-                        bins=[-float('inf'), 0, 5, 10, 15, 20, 25, 30, 35, 40],  # Ajout de -float('inf')
-                        labels=['Non spécifié', '0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
-                                '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS'],
-                        include_lowest=True
-                    )
+                    # Créer d'abord un masque pour les valeurs nulles/invalides
+                    null_mask = df['annee_service'].isna()
+
+                    # Si aucune valeur nulle, pas besoin de catégorie "Non spécifié"
+                    if not null_mask.any():
+                        df['service_range'] = pd.cut(
+                            df['annee_service'],
+                            bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
+                            labels=['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
+                                    '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS'],
+                            include_lowest=True
+                        )
+                    else:
+                        # Créer les tranches pour les valeurs valides
+                        df.loc[~null_mask, 'service_range'] = pd.cut(
+                            df.loc[~null_mask, 'annee_service'],
+                            bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
+                            labels=['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
+                                    '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS'],
+                            include_lowest=True
+                        )
+                        # Attribuer "Non spécifié" aux valeurs nulles/invalides
+                        df.loc[null_mask, 'service_range'] = 'Non spécifié'
 
                 # Préparation des données pour les axes
                 x_config = self.config["x_axis"]
@@ -310,10 +326,6 @@ class VisualizationWindow(QMainWindow):
                 else:
                     y_values = df[y_config["field"]]
 
-                # Remplacer les valeurs NaN
-                x_values = x_values.fillna("Non spécifié")
-                y_values = y_values.fillna("Non spécifié")
-
                 # Création du tableau croisé
                 pivot_df = pd.crosstab(
                     index=y_values,
@@ -328,7 +340,7 @@ class VisualizationWindow(QMainWindow):
                     'x_value': x_values,
                     'y_value': y_values
                 })
-                graph_df = graph_df.groupby(['x_value', 'y_value']).size().reset_index(name='count')
+                graph_df = graph_df.groupby(['x_value', 'y_value'], observed=True).size().reset_index(name='count')
 
                 self.df = graph_df
                 self.pivot_df = pivot_df
@@ -528,6 +540,12 @@ class VisualizationWindow(QMainWindow):
 
             # Agréger les données
             data = self.df.groupby(value_col)['count'].sum().reset_index()
+
+            # Supprimer les lignes avec compte = 0 ou valeur = "Non spécifié"
+            data = data[
+                (data['count'] > 0) &
+                (data[value_col] != "Non spécifié")
+                ]
 
             # Trier les données par valeur décroissante
             data = data.sort_values('count', ascending=False)
