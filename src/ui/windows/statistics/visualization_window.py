@@ -1,7 +1,8 @@
 # src/ui/windows/statistics/visualization_window.py
 import os
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (QFileDialog, QDialog, QMessageBox, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel,
+from PyQt6.QtWidgets import (QFileDialog, QDialog, QMessageBox, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFrame,
+                             QLabel,
                              QTableWidget, QPushButton, QTableWidgetItem, QHeaderView, QSizePolicy)
 from PyQt6.QtGui import QColor, QIcon
 #pour les graphiques et les tableaux
@@ -41,7 +42,6 @@ class VisualizationWindow(QMainWindow):
 
     def __init__(self, db_manager, config, parent=None):
         super().__init__(parent)
-        self.pivot_df = None
         self.df = None
         self.db_manager = db_manager
         self.config = config
@@ -95,7 +95,6 @@ class VisualizationWindow(QMainWindow):
 
         self.info_label = QLabel()
         header_layout.addWidget(self.info_label)
-
         main_layout.addWidget(header)
 
         # Tableau de données
@@ -190,21 +189,21 @@ class VisualizationWindow(QMainWindow):
 
                 # Construction de la requête de base pour les sanctions uniques
                 sanctions_query = """
-                WITH unique_sanctions AS (
-                    SELECT 
-                        MIN(s.id) as first_id,
-                        COALESCE(s.numero_dossier, 'SANS_NUMERO_' || MIN(s.id)) as unique_dossier,
-                        s.matricule,
-                        s.date_enr,
-                        s.date_faits,
-                        s.faute_commise,
-                        s.categorie,
-                        s.statut,
-                        s.annee_punition,
-                        s.annee_faits,
-                        COUNT(*) as sanctions_count
-                    FROM sanctions s
-                    """
+                    WITH unique_sanctions AS (
+                        SELECT 
+                            MIN(s.id) as first_id,
+                            COALESCE(s.numero_dossier, 'SANS_NUMERO_' || MIN(s.id)) as unique_dossier,
+                            s.matricule,
+                            s.date_enr,
+                            s.date_faits,
+                            s.faute_commise,
+                            s.categorie,
+                            s.statut,
+                            s.annee_punition,
+                            s.annee_faits,
+                            COUNT(*) as sanctions_count
+                        FROM sanctions s
+                        """
 
                 # Conditions WHERE
                 where_conditions = []
@@ -221,18 +220,18 @@ class VisualizationWindow(QMainWindow):
 
                 # Grouper par les champs nécessaires
                 sanctions_query += """
-                GROUP BY COALESCE(s.numero_dossier, 'SANS_NUMERO_' || s.id),
-                         s.matricule,
-                         s.date_enr,
-                         s.date_faits,
-                         s.faute_commise,
-                         s.categorie,
-                         s.statut,
-                         s.annee_punition,
-                         s.annee_faits
-                )
-                SELECT * FROM unique_sanctions
-                """
+                    GROUP BY COALESCE(s.numero_dossier, 'SANS_NUMERO_' || s.id),
+                             s.matricule,
+                             s.date_enr,
+                             s.date_faits,
+                             s.faute_commise,
+                             s.categorie,
+                             s.statut,
+                             s.annee_punition,
+                             s.annee_faits
+                    )
+                    SELECT * FROM unique_sanctions
+                    """
 
                 print("\nRequête sanctions:", sanctions_query)  # Debug
                 print("Paramètres:", params)  # Debug
@@ -243,14 +242,14 @@ class VisualizationWindow(QMainWindow):
 
                 # Récupérer les données des gendarmes
                 gendarmes_query = """
-                SELECT 
-                    mle,
-                    grade,
-                    subdiv,
-                    annee_service,
-                    situation_matrimoniale
-                FROM gendarmes
-                """
+                    SELECT 
+                        mle,
+                        grade,
+                        subdiv,
+                        annee_service,
+                        situation_matrimoniale
+                    FROM gendarmes
+                    """
                 gendarmes_df = pd.read_sql_query(gendarmes_query, conn)
                 print(f"Nombre de gendarmes: {len(gendarmes_df)}")
 
@@ -274,11 +273,15 @@ class VisualizationWindow(QMainWindow):
                 # Traitement spécial pour les années de service si nécessaire
                 if any(config["field"] == "annee_service"
                        for config in [self.config["x_axis"], self.config["y_axis"]]):
+                    # S'assurer que annee_service est numérique
+                    df['annee_service'] = pd.to_numeric(df['annee_service'], errors='coerce')
+
                     df['service_range'] = pd.cut(
                         df['annee_service'],
-                        bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
-                        labels=['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
-                                '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS']
+                        bins=[-float('inf'), 0, 5, 10, 15, 20, 25, 30, 35, 40],  # Ajout de -float('inf')
+                        labels=['Non spécifié', '0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
+                                '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS'],
+                        include_lowest=True
                     )
 
                 # Préparation des données pour les axes
@@ -319,7 +322,7 @@ class VisualizationWindow(QMainWindow):
                 self.df = graph_df
                 self.pivot_df = pivot_df
                 self.update_table(pivot_df)
-                self.update_info(df)
+                #self.update_info(df)
 
         except Exception as e:
             print(f"Error in load_data: {str(e)}")
@@ -693,9 +696,20 @@ class VisualizationWindow(QMainWindow):
             # Réorganiser les données pour le graphique groupé
             df_melted = self.df.copy()
 
+            # Définition des couleurs selon le type de sous-thème
+            if self.config['y_axis']['theme'] == "Situation matrimoniale":
+                colors = {'CELIBATAIRE': '#0066cc', 'MARIE': '#ff9933'}
+            else:
+                # Générer une palette de couleurs selon le nombre de valeurs uniques
+                unique_values = df_melted['y_value'].unique()
+                n_colors = len(unique_values)
+                colors = {}
+                color_palette = sns.color_palette("husl", n_colors)  # Utiliser husl pour une meilleure distinction
+                for i, value in enumerate(unique_values):
+                    colors[value] = color_palette[i]
 
-            # Définition des couleurs spécifiques pour chaque catégorie
-            colors = {'CELIBATAIRE': '#0066cc', 'MARIE': '#ff9933'}  # Bleu et Orange
+            print("Valeurs uniques:", df_melted['y_value'].unique())  # Debug
+            print("Palette de couleurs:", colors)  # Debug
 
             # Création du graphique
             sns.barplot(
@@ -721,12 +735,20 @@ class VisualizationWindow(QMainWindow):
             for container in ax.containers:
                 ax.bar_label(container, padding=3)
 
-            # Légende
-            ax.legend(
-                title=self.config['y_axis']['theme'],
-                bbox_to_anchor=(1.05, 1),
-                loc='upper left'
-            )
+            # Ajuster la légende selon le nombre d'éléments
+            if len(unique_values) > 6:  # Si beaucoup de valeurs
+                ax.legend(
+                    title=self.config['y_axis']['theme'],
+                    bbox_to_anchor=(1.05, 1),
+                    loc='upper left',
+                    ncol=max(1, len(unique_values) // 8)  # Diviser en colonnes si nécessaire
+                )
+            else:
+                ax.legend(
+                    title=self.config['y_axis']['theme'],
+                    bbox_to_anchor=(1.05, 1),
+                    loc='upper left'
+                )
 
             # Ajustement de la figure pour éviter le chevauchement
             plt.tight_layout()
@@ -1163,27 +1185,6 @@ class VisualizationWindow(QMainWindow):
         except Exception as e:
             print(f"Erreur dans _create_bar_grouped_horizontal_sns: {str(e)}")
             raise
-
-    def update_info(self, df):
-        """Met à jour les informations d'en-tête."""
-        try:
-            # Vérifier si on a des données
-            if df is None:
-                return
-
-            total = len(df)
-            moyenne = df['annee_punition'].mean() if 'annee_punition' in df.columns else 0
-            maximum = df['annee_punition'].max() if 'annee_punition' in df.columns else 0
-            minimum = df['annee_punition'].min() if 'annee_punition' in df.columns else 0
-
-            self.info_label.setText(
-                f"Total: {total} | "
-                f"Moyenne: {moyenne:.2f} | "
-                f"Maximum: {maximum} | "
-                f"Minimum: {minimum}"
-            )
-        except Exception as e:
-            print(f"Erreur dans update_info: {str(e)}")
 
     def closeEvent(self, event):
         """Gère la fermeture propre de la fenêtre."""
