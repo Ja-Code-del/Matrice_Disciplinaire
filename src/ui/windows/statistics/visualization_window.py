@@ -97,6 +97,63 @@ class VisualizationWindow(QMainWindow):
         header_layout.addWidget(self.info_label)
         main_layout.addWidget(header)
 
+        # Container pour les tendances avec fond gris arrondi
+        trends_container = QFrame()
+        trends_container.setStyleSheet("""
+                QFrame {
+                    background-color: #E5E5E5;
+                    border-radius: 20px;
+                    padding: 15px;
+                }
+            """)
+        trends_layout = QGridLayout(trends_container)
+        trends_layout.setSpacing(15)
+
+        # Style commun pour toutes les cartes (sauf graphique)
+        card_style = """
+                QFrame {
+                    background-color: white;
+                    border-radius: 15px;
+                    padding: 15px;
+                }
+                QFrame:hover {
+                    border: 1px solid #6C63FF;
+                }
+                .value-label {
+                    font-size: 40px;
+                    font-weight: bold;
+                    color: #1C1C1E;
+                }
+                .description-label {
+                    font-size: 12px;
+                    color: #666666;
+                    margin-top: 5px;
+                }
+            """
+
+        # Création des cartes
+        self.total_card = self._create_trend_card(
+            "172", "Dossiers disciplinaires en 2024", card_style, large=True)
+        self.grade_card = self._create_trend_card(
+            "MDL", "Le grade enregistrant le plus\ngrand nombre de punis", card_style)
+        self.service_card = self._create_trend_card(
+            "11-15ans", "La tranche d'année de service majoritaire dans les fautes", card_style, large=True)
+        self.graph_card = self._create_graph_card()
+        self.subdiv_card = self._create_trend_card(
+            "GM", "La subdivision enregistrant le\nplus grand nombre de punis", card_style)
+        self.absence_card = self._create_trend_card(
+            "51", "Le nombre de dossiers d'absence\nirrégulière prolongée cette année", card_style)
+
+        # Placement des cartes dans le grid
+        trends_layout.addWidget(self.total_card, 0, 0)
+        trends_layout.addWidget(self.grade_card, 0, 1)
+        trends_layout.addWidget(self.service_card, 0, 2, 1, 2)
+        trends_layout.addWidget(self.graph_card, 1, 0, 1, 2)
+        trends_layout.addWidget(self.subdiv_card, 1, 2)
+        trends_layout.addWidget(self.absence_card, 1, 3)
+
+        main_layout.addWidget(trends_container)
+
         # Tableau de données
         self.table = QTableWidget()
         self.table.setAlternatingRowColors(True)
