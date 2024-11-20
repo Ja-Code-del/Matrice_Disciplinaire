@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="bug of 'non spéficié' column resolved">
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="TRENDS ARE THERE !!!!!!">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/chart_selection_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/chart_selection_dialog.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/matrice_last.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/matrice_last.xlsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -476,11 +475,18 @@
       <option name="project" value="LOCAL" />
       <updated>1732062053065</updated>
     </task>
-    <option name="localTasksCounter" value="49" />
+    <task id="LOCAL-00049" summary="TRENDS ARE THERE !!!!!!">
+      <option name="closed" value="true" />
+      <created>1732069019415</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1732069019417</updated>
+    </task>
+    <option name="localTasksCounter" value="50" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="The informations of gendarmes are dislayed but it misses the age and n° dossier and all sanctions informations" />
     <MESSAGE value="QtCharts installation" />
     <MESSAGE value="couldn't be able to merge but set modifications manually. thanks again bro ANT." />
     <MESSAGE value="BUGS BUSTED YOOOOOOOO!!!" />
@@ -505,7 +511,8 @@
     <MESSAGE value="Good SQL for Load_data" />
     <MESSAGE value="bug of 'non spéficié' column resolved" />
     <MESSAGE value="for the trends container" />
-    <option name="LAST_COMMIT_MESSAGE" value="for the trends container" />
+    <MESSAGE value="TRENDS ARE THERE !!!!!!" />
+    <option name="LAST_COMMIT_MESSAGE" value="TRENDS ARE THERE !!!!!!" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
