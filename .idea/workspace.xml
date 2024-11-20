@@ -4,8 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="Good SQL for Load_data">
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="bug of 'non spéficié' column resolved">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/chart_selection_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/chart_selection_dialog.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -458,12 +460,26 @@
       <option name="project" value="LOCAL" />
       <updated>1732028669426</updated>
     </task>
-    <option name="localTasksCounter" value="47" />
+    <task id="LOCAL-00047" summary="bug of 'non spéficié' column resolved">
+      <option name="closed" value="true" />
+      <created>1732058691383</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1732058691383</updated>
+    </task>
+    <task id="LOCAL-00048" summary="for the trends container">
+      <option name="closed" value="true" />
+      <created>1732062053065</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1732062053065</updated>
+    </task>
+    <option name="localTasksCounter" value="49" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="ALL SEEMS PERFECT" />
-    <MESSAGE value="sanctions import correct but need to import the gendarme info" />
     <MESSAGE value="The informations of gendarmes are dislayed but it misses the age and n° dossier and all sanctions informations" />
     <MESSAGE value="QtCharts installation" />
     <MESSAGE value="couldn't be able to merge but set modifications manually. thanks again bro ANT." />
@@ -487,7 +503,9 @@
     <MESSAGE value="Worked on grouped bar graphic. not achieved" />
     <MESSAGE value="work on bar grouped with 'tranche annee_service/subdivisions' sujet: Non-respect des consignes" />
     <MESSAGE value="Good SQL for Load_data" />
-    <option name="LAST_COMMIT_MESSAGE" value="Good SQL for Load_data" />
+    <MESSAGE value="bug of 'non spéficié' column resolved" />
+    <MESSAGE value="for the trends container" />
+    <option name="LAST_COMMIT_MESSAGE" value="for the trends container" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

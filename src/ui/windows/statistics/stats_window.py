@@ -1,17 +1,22 @@
-from PyQt6.QtWidgets import (QMainWindow, QWidget, QDialog, QVBoxLayout, QPushButton,
+from PyQt6.QtWidgets import (QMainWindow, QWidget, QDialog, QVBoxLayout, QPushButton, QGridLayout,
                              QHBoxLayout, QLabel, QSizePolicy, QMessageBox, QFrame, QTableWidget, QTableWidgetItem)
 from PyQt6.QtCore import pyqtSignal, Qt, QSize
 from PyQt6.QtGui import QIcon
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+
 from .subject_dialog import SubjectDialog
 from .table_config_dialog import TableConfigDialog
 from .visualization_window import VisualizationWindow
 from .full_list_window import FullListWindow
 from .chart_selection_dialog import ChartSelectionDialog
 
+from datetime import datetime
 
-# ... (imports existants restent identiques)
 
 class StatistiquesWindow(QMainWindow):
     """Fenêtre principale des statistiques."""
@@ -24,6 +29,33 @@ class StatistiquesWindow(QMainWindow):
         self.setWindowTitle("Statistiques")
         self.setMinimumSize(800, 600)
 
+        # Style commun pour les cartes
+        self.card_style = """
+                QFrame {
+                    background-color: white;
+                    border-radius: 15px;
+                    padding: 15px;
+                    color : black;
+                }
+                QFrame:hover {
+                    border: 1px solid #6C63FF;
+                    font-size: 43px;
+                }
+            """
+
+        # Création des cartes dès l'initialisation
+        self.total_card = self._create_trend_card(
+            "-", "Dossiers disciplinaires à ce jour", self.card_style, large=True)
+        self.grade_card = self._create_trend_card(
+            "-", "Le grade enregistrant le plus\ngrand nombre de sanctions", self.card_style)
+        self.service_card = self._create_trend_card(
+            "-", "La tranche d'année de service majoritaire dans les fautes", self.card_style, large=True)
+        self.graph_card = self._create_graph_card()
+        self.subdiv_card = self._create_trend_card(
+            "-", "La subdivision enregistrant le\nplus grand nombre de fautes", self.card_style)
+        self.absence_card = self._create_trend_card(
+            "-", "Le nombre de dossiers d'absence\nirrégulière prolongée cette année", self.card_style)
+
         # Stockage des fenêtres actives
         self.subject_window = None
         self.visualization_window = None
@@ -32,6 +64,76 @@ class StatistiquesWindow(QMainWindow):
         self.config_dialog = None
 
         self.setup_ui()
+
+    def _create_trend_card(self, initial_value, description, style, large=False):
+        """Crée une carte de tendance."""
+        card = QFrame()
+        card.setStyleSheet(style)
+
+        # Layout vertical pour la carte
+        layout = QVBoxLayout(card)
+        layout.setSpacing(5)
+
+        # Valeur principale
+        value_label = QLabel(initial_value)
+        value_label.setStyleSheet("""
+            font-size: 40px; 
+            font-weight: bold;
+            font-family: "Apple SD Gothic Neo", "Segoe UI", system-ui, -apple-system, sans-serif;
+        """
+            )
+        value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(value_label)
+
+        # Description
+        desc_label = QLabel(description)
+        desc_label.setStyleSheet("""
+            font-size: 12px; 
+            color: #666666;"
+            font-family: "Apple SD Gothic Neo", "Segoe UI", system-ui, -apple-system, sans-serif;
+        """
+        )
+        desc_label.setWordWrap(True)
+        desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(desc_label)
+
+        # Définir la taille minimale selon le type de carte
+        if large:
+            card.setMinimumSize(300, 150)
+        else:
+            card.setMinimumSize(200, 150)
+
+        # Garder une référence aux labels pour les mises à jour
+        card.value_label = value_label
+        card.desc_label = desc_label
+
+        return card
+
+    def _create_graph_card(self):
+        """Crée la carte avec le graphique."""
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background-color: #1C1C1E;
+                border-radius: 15px;
+                padding: 15px;
+            }
+        """)
+
+        layout = QVBoxLayout(card)
+
+        # Création du graphique
+        figure = Figure(figsize=(6, 3), facecolor='#1C1C1E')
+        canvas = FigureCanvas(figure)
+        canvas.setStyleSheet("background-color: #1C1C1E;")
+        layout.addWidget(canvas)
+
+        # Garder les références pour les mises à jour
+        card.figure = figure
+        card.canvas = canvas
+
+        card.setMinimumSize(400, 200)
+        return card
 
     def setup_ui(self):
         """Configure l'interface utilisateur."""
@@ -49,21 +151,27 @@ class StatistiquesWindow(QMainWindow):
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(title_label)
 
-        # Ajout du cadre des statistiques globales
-        stats_frame = QFrame()
-        stats_frame.setFrameStyle(QFrame.Shape.StyledPanel)
-        stats_layout = QVBoxLayout(stats_frame)
+        # Container pour les tendances
+        trends_container = QFrame()
+        trends_container.setStyleSheet("""
+                   QFrame {
+                       background-color: #E5E5E5;
+                       border-radius: 20px;
+                       padding: 15px;
+                   }
+               """)
+        trends_layout = QGridLayout(trends_container)
+        trends_layout.setSpacing(15)
 
-        # Labels pour les statistiques
-        self.total_sanctions_label = QLabel()
-        self.total_sanctions_label.setStyleSheet("font-size: 16px;")
-        self.total_gendarmes_label = QLabel()
-        self.total_gendarmes_label.setStyleSheet("font-size: 16px;")
+        # Placement des cartes déjà créées
+        trends_layout.addWidget(self.total_card, 0, 0)
+        trends_layout.addWidget(self.grade_card, 0, 1)
+        trends_layout.addWidget(self.service_card, 0, 2, 1, 2)
+        trends_layout.addWidget(self.graph_card, 1, 0, 1, 2)
+        trends_layout.addWidget(self.subdiv_card, 1, 2)
+        trends_layout.addWidget(self.absence_card, 1, 3)
 
-        stats_layout.addWidget(self.total_sanctions_label)
-        stats_layout.addWidget(self.total_gendarmes_label)
-
-        main_layout.addWidget(stats_frame)
+        main_layout.addWidget(trends_container)
 
         # Boutons
         buttons_config = [
@@ -122,6 +230,159 @@ class StatistiquesWindow(QMainWindow):
 
             main_layout.addWidget(button)
 
+    def update_trends(self):
+        """Met à jour toutes les tendances avec les données actuelles."""
+        try:
+            with self.db_manager.get_connection() as conn:
+                current_year = datetime.now().year
+
+                # 1. Total des dossiers de l'année
+                total_query = """
+                    SELECT COUNT(DISTINCT numero_dossier) 
+                    FROM sanctions 
+                    WHERE strftime('%Y', date_enr) = ?
+                """
+                cursor = conn.cursor()
+                cursor.execute(total_query, (str(current_year),))
+                total = cursor.fetchone()[0]
+                self.total_card.value_label.setText(str(total))
+
+                # 2. Grade le plus sanctionné
+                grade_query = """
+                    SELECT g.grade, COUNT(DISTINCT s.numero_dossier) as count
+                    FROM sanctions s
+                    JOIN gendarmes g ON s.matricule = g.mle
+                    WHERE strftime('%Y', s.date_enr) = ?
+                    GROUP BY g.grade
+                    ORDER BY count DESC
+                    LIMIT 1
+                """
+                cursor.execute(grade_query, (str(current_year),))
+                grade_result = cursor.fetchone()
+                if grade_result:
+                    self.grade_card.value_label.setText(grade_result[0])
+
+                # 3. Tranche d'années de service la plus fréquente
+                service_query = """
+                    WITH service_ranges AS (
+                        SELECT 
+                            CASE 
+                                WHEN g.annee_service BETWEEN 0 AND 5 THEN '0-5ans'
+                                WHEN g.annee_service BETWEEN 6 AND 10 THEN '6-10ans'
+                                WHEN g.annee_service BETWEEN 11 AND 15 THEN '11-15ans'
+                                WHEN g.annee_service BETWEEN 16 AND 20 THEN '16-20ans'
+                                WHEN g.annee_service BETWEEN 21 AND 25 THEN '21-25ans'
+                                WHEN g.annee_service > 25 THEN '25+ans'
+                            END as range,
+                            COUNT(DISTINCT s.numero_dossier) as count
+                        FROM sanctions s
+                        JOIN gendarmes g ON s.matricule = g.mle
+                        WHERE strftime('%Y', s.date_enr) = ?
+                        GROUP BY range
+                    )
+                    SELECT range, count
+                    FROM service_ranges
+                    WHERE range IS NOT NULL
+                    ORDER BY count DESC
+                    LIMIT 1
+                """
+                cursor.execute(service_query, (str(current_year),))
+                service_result = cursor.fetchone()
+                if service_result:
+                    self.service_card.value_label.setText(service_result[0])
+
+                # 4. Subdivision la plus sanctionnée
+                subdiv_query = """
+                    SELECT g.subdiv, COUNT(DISTINCT s.numero_dossier) as count
+                    FROM sanctions s
+                    JOIN gendarmes g ON s.matricule = g.mle
+                    WHERE strftime('%Y', s.date_enr) = ?
+                    GROUP BY g.subdiv
+                    ORDER BY count DESC
+                    LIMIT 1
+                """
+                cursor.execute(subdiv_query, (str(current_year),))
+                subdiv_result = cursor.fetchone()
+                if subdiv_result:
+                    self.subdiv_card.value_label.setText(subdiv_result[0])
+
+                # 5. Nombre de dossiers d'absence irrégulière prolongée
+                absence_query = """
+                    SELECT COUNT(DISTINCT numero_dossier)
+                    FROM sanctions 
+                    WHERE strftime('%Y', date_enr) = ?
+                    AND faute_commise = 'ABSENCE IRREGULIERE PROLONGEE'
+                """
+                cursor.execute(absence_query, (str(current_year),))
+                absence_count = cursor.fetchone()[0]
+                print(f"Absence irrégulière prolongée count: {absence_count}")  # Pour debug
+                self.absence_card.value_label.setText(str(absence_count))
+
+                # 6. Graphique d'évolution
+                evolution_query = """
+                    SELECT 
+                        strftime('%m', date_enr) as mois,
+                        CASE strftime('%m', date_enr)
+                            WHEN '01' THEN 'Janvier'
+                            WHEN '02' THEN 'Février'
+                            WHEN '03' THEN 'Mars'
+                            WHEN '04' THEN 'Avril'
+                            WHEN '05' THEN 'Mai'
+                            WHEN '06' THEN 'Juin'
+                            WHEN '07' THEN 'Juillet'
+                            WHEN '08' THEN 'Août'
+                            WHEN '09' THEN 'Septembre'
+                            WHEN '10' THEN 'Octobre'
+                            WHEN '11' THEN 'Novembre'
+                            WHEN '12' THEN 'Décembre'
+                        END as mois_nom,
+                        COUNT(DISTINCT numero_dossier) as count
+                    FROM sanctions
+                    WHERE strftime('%Y', date_enr) = ?
+                    GROUP BY mois
+                    ORDER BY mois
+                """
+                evolution_df = pd.read_sql_query(evolution_query, conn, params=(str(current_year),))
+
+                # Mise à jour du graphique
+                self.graph_card.figure.clear()
+                ax = self.graph_card.figure.add_subplot(111)
+
+                # Configuration du style du graphique
+                ax.set_facecolor('#1C1C1E')
+                ax.spines['bottom'].set_color('#666666')
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.spines['left'].set_color('#666666')
+                ax.tick_params(colors='#666666')
+
+                # Tracer la ligne avec zone d'ombre
+                line = ax.plot(evolution_df['mois_nom'], evolution_df['count'],
+                               color='#6C63FF', linewidth=2, marker='o')
+
+                # Ajouter l'ombre sous la courbe
+                ax.fill_between(evolution_df['mois_nom'], evolution_df['count'],
+                                color='#6C63FF', alpha=0.2)
+
+                # Limiter aux mois jusqu'au mois actuel
+                current_month = datetime.now().month
+                ax.set_xlim(-0.5, current_month - 0.5)
+
+                # Rotation des labels de mois pour meilleure lisibilité
+                plt.xticks(rotation=45, ha='right')
+
+                # Personnalisation finale
+                ax.grid(True, linestyle='--', alpha=0.1)
+                self.graph_card.canvas.draw()
+
+        except Exception as e:
+            print(f"Erreur dans update_trends: {str(e)}")
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                f"Erreur lors de la mise à jour des tendances : {str(e)}"
+            )
+
     #     # Ajout du bouton de diagnostic
     #     debug_button = QPushButton("Diagnostic des données")
     #     debug_button.setStyleSheet(common_style)
@@ -148,6 +409,11 @@ class StatistiquesWindow(QMainWindow):
     #             "Erreur",
     #             f"Erreur lors du diagnostic : {str(e)}"
     #         )
+
+    def showEvent(self, event):
+        """Surcharge de l'événement d'affichage pour mettre à jour les tendances."""
+        super().showEvent(event)
+        self.update_trends()  # Met à jour les tendances à chaque affichage
 
     def show_subject_analysis(self):
         """Ouvre la fenêtre d'analyse par sujet."""
@@ -400,3 +666,4 @@ class StatistiquesWindow(QMainWindow):
             }
             return stats
         return None
+
