@@ -137,9 +137,9 @@ class Styles:
 
             'DATE_EDIT': f"""
                 QDateEdit {{
-                    padding: 11px 20px;
-                    border: 2px solid {colors['border']};
-                    border-radius: 5px;
+                    padding: 11px 22px;
+                    border: 1px solid {colors['border']};
+                    border-radius: 8px;
                     background: {colors['surface']};
                     color: {colors['text']};
                 }}
@@ -147,11 +147,15 @@ class Styles:
                     border: none;
                     width: 20px;
                     padding-right: 20px;
+                    border-radius: 0px 8px 8px 0px;
                 }}
                 QDateEdit::down-arrow {{
                     image: url(../resources/icons/calendar.png);
                     width: 18px;
                     height: 18px;
+                }}
+                QDateEdit:hover {{
+                    border: 1px solid #a4b3c9;
                 }}
             """,
 

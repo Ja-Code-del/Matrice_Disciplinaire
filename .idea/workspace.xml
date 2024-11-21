@@ -4,10 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="TRENDS ARE THERE !!!!!!">
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="bug on choice of analyze subject from gendarmes table resolved">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/matrice_last.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/matrice_last.xlsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/styles/styles.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/styles/styles.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -90,14 +91,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1727455479936</updated>
-    </task>
-    <task id="LOCAL-00001" summary="Everything is working wit the test but the app is not displaying sancions info">
-      <option name="closed" value="true" />
-      <created>1729798692089</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1729798692089</updated>
     </task>
     <task id="LOCAL-00002" summary="Everything works properly. In test. Am going to launch now. Added button to change theme.">
       <option name="closed" value="true" />
@@ -483,11 +476,18 @@
       <option name="project" value="LOCAL" />
       <updated>1732069019417</updated>
     </task>
-    <option name="localTasksCounter" value="50" />
+    <task id="LOCAL-00050" summary="bug on choice of analyze subject from gendarmes table resolved">
+      <option name="closed" value="true" />
+      <created>1732104757481</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1732104757487</updated>
+    </task>
+    <option name="localTasksCounter" value="51" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="QtCharts installation" />
     <MESSAGE value="couldn't be able to merge but set modifications manually. thanks again bro ANT." />
     <MESSAGE value="BUGS BUSTED YOOOOOOOO!!!" />
     <MESSAGE value="work on new button of the toolbar. edit and delete added icon for Reglages et works on alignment" />
@@ -512,7 +512,8 @@
     <MESSAGE value="bug of 'non spéficié' column resolved" />
     <MESSAGE value="for the trends container" />
     <MESSAGE value="TRENDS ARE THERE !!!!!!" />
-    <option name="LAST_COMMIT_MESSAGE" value="TRENDS ARE THERE !!!!!!" />
+    <MESSAGE value="bug on choice of analyze subject from gendarmes table resolved" />
+    <option name="LAST_COMMIT_MESSAGE" value="bug on choice of analyze subject from gendarmes table resolved" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

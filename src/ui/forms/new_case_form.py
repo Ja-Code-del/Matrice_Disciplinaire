@@ -3,11 +3,12 @@ from datetime import datetime
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QFrame, QPushButton, QScrollArea, QGraphicsOpacityEffect, QApplication, QLineEdit,
                              QFormLayout, QComboBox, QSpinBox, QDateEdit, QMessageBox)
-from PyQt6.QtCore import Qt, QDate, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QTimer
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtCore import Qt, QDate, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QTimer, QSize
+from PyQt6.QtGui import QFont, QColor, QIcon
 
 from src.data.gendarmerie import STRUCTURE_PRINCIPALE
-from src.ui.styles.styles import Styles  # On va créer des styles dédiés
+from src.ui.styles.styles import Styles  # On va ajouter des styles dédiés
+from src.ui.forms.edit_gendarme_form import SearchUniteDialog
 
 
 class NewCaseForm(QMainWindow):
@@ -22,8 +23,10 @@ class NewCaseForm(QMainWindow):
         super().__init__()
         self.db_manager = db_manager
         self.setWindowTitle("Page enregistrement de dossier")
+        self.styles = Styles.get_styles(is_dark_mode=False)
         self.setMinimumSize(1200, 800)
         self.is_dark_mode = False
+        self.setStyleSheet(self.styles["MAIN_WINDOW"])
         self.current_section = 0  # Pour tracker la section active
         self.init_ui()
 
@@ -49,6 +52,7 @@ class NewCaseForm(QMainWindow):
 
         # Conteneur des sections
         self.sections_container = QWidget()
+        self.sections_container.setStyleSheet(self.styles['MAIN_WINDOW'])
         sections_layout = QHBoxLayout(self.sections_container)
         sections_layout.setSpacing(20)
 
@@ -427,10 +431,37 @@ class NewCaseForm(QMainWindow):
         layout.addRow(create_row("Année", self.annee))
 
         # Date d'enregistrement
-        self.date_enr = QLineEdit()
-        self.date_enr.setText(datetime.now().strftime("%d/%m/%Y"))
-        self.date_enr.setReadOnly(True)
+        # self.date_enr = QLineEdit()
+        # self.date_enr.setText(datetime.now().strftime("%d/%m/%Y"))
+        # self.date_enr.setReadOnly(True)
+        # layout.addRow(create_row("Date d'enregistrement", self.date_enr))
+        self.date_enr = QDateEdit()
+        self.date_enr.setCalendarPopup(True)
+        self.date_enr.setDate(QDate.currentDate())
+        self.date_enr.dateChanged.connect(self.update_annee_enr)
+        self.date_enr.setStyleSheet(self.styles['DATE_EDIT'])
         layout.addRow(create_row("Date d'enregistrement", self.date_enr))
+
+        today_button = QPushButton("Aujourd'hui")
+        today_button.setStyleSheet("""
+            QPushButton {
+                padding: 8px 15px;
+                background-color: #2196f3;
+                color: white;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #1976d2;
+            }
+        """)
+        today_button.clicked.connect(lambda: self.date_enr.setDate(QDate.currentDate()))
+
+        date_enr_layout = QHBoxLayout()
+        date_enr_layout.addWidget(self.date_enr)
+        date_enr_layout.addWidget(today_button)
+        date_enr_container = QWidget()
+        date_enr_container.setLayout(date_enr_layout)
+        layout.addRow(create_row("Date d'enregistrement", date_enr_container))
 
         # N° enregistrement
         self.num_enr = QLineEdit()
@@ -440,6 +471,10 @@ class NewCaseForm(QMainWindow):
 
         container.setLayout(layout)
         return container
+
+    def update_annee_enr(self):
+        """Met à jour l'année d'enregistrement automatiquement"""
+        self.annee.setText(str(self.date_enr.date().year()))
 
     def create_label(self, text):
         """Crée un label stylé"""
@@ -461,7 +496,7 @@ class NewCaseForm(QMainWindow):
                 cursor = conn.cursor()
                 # Récupère le plus grand numéro pour l'année en cours
                 cursor.execute("""
-                    SELECT MAX(CAST(numero as INTEGER))
+                    SELECT MAX(CAST(ID as INTEGER))
                     FROM sanctions
                     WHERE annee_faits = ?
                 """, (datetime.now().year,))
@@ -517,64 +552,181 @@ class NewCaseForm(QMainWindow):
         layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
 
         # Récupération des styles
-        styles = Styles.get_styles(self.is_dark_mode)
+        #styles = Styles.get_styles(self.is_dark_mode)
 
         # Matricule avec auto-complétion
         self.matricule = QLineEdit()
         self.matricule.setPlaceholderText("Entrez le matricule")
-        self.matricule.setStyleSheet(styles['INPUT'])
+        self.matricule.setStyleSheet(self.styles['INPUT'])
         self.matricule.textChanged.connect(self.on_matricule_change)
         layout.addRow(create_row("Matricule", self.matricule))
 
         # Champs auto-remplis
         self.nom = QLineEdit()
         self.nom.setReadOnly(True)
-        self.nom.setStyleSheet(styles['INPUT'])
+        self.nom.setStyleSheet(self.styles['INPUT'])
         layout.addRow(create_row("Nom", self.nom))
 
         self.prenoms = QLineEdit()
         self.prenoms.setReadOnly(True)
-        self.prenoms.setStyleSheet(styles['INPUT'])
+        self.prenoms.setStyleSheet(self.styles['INPUT'])
         layout.addRow(create_row("Prénoms", self.prenoms))
 
         self.date_naissance = QLineEdit()
         self.date_naissance.setReadOnly(True)
-        self.date_naissance.setStyleSheet(styles['INPUT'])
+        self.date_naissance.setStyleSheet(self.styles['INPUT'])
         layout.addRow(create_row("Date de naissance", self.date_naissance))
 
         # Type d'affectation
         self.type_affectation = QComboBox()
         self.type_affectation.addItems(["REGIONS", "CSG"])
-        self.type_affectation.setStyleSheet(styles['COMBO_BOX'])
+        self.type_affectation.setStyleSheet(self.styles['COMBO_BOX'])
         self.type_affectation.currentTextChanged.connect(self.on_affectation_change)
         layout.addRow(create_row("Type d'affectation", self.type_affectation))
 
-        # Région/Direction
-        self.direction = QComboBox()
-        self.direction.setStyleSheet(styles['COMBO_BOX'])
-        self.direction.currentTextChanged.connect(self.on_direction_change)
-        layout.addRow(create_row("Région/Direction", self.direction))
+        # Région/region
+        self.region = QComboBox()
+        self.region.setStyleSheet(self.styles['COMBO_BOX'])
+        self.region.currentTextChanged.connect(self.on_region_change)
+        layout.addRow(create_row("Région/region", self.region))
 
-        # Légion/Service
-        self.service = QComboBox()
-        self.service.setStyleSheet(styles['COMBO_BOX'])
-        self.service.currentTextChanged.connect(self.on_service_change)
-        layout.addRow(create_row("Légion/Service", self.service))
+        # Légion/legion
+        self.legion = QComboBox()
+        self.legion.setStyleSheet(self.styles['COMBO_BOX'])
+        self.legion.currentTextChanged.connect(self.on_legion_change)
+        layout.addRow(create_row("Légion/legion", self.legion))
 
         # Unité
+        # self.unite = QComboBox()
+        # self.unite.setStyleSheet(self.styles['COMBO_BOX'])
+        # layout.addRow(create_row("Unité", self.unite))
+        # pour rechercher les unités
         self.unite = QComboBox()
-        self.unite.setStyleSheet(styles['COMBO_BOX'])
-        layout.addRow(create_row("Unité", self.unite))
+        self.unite.setStyleSheet(self.styles['COMBO_BOX'])
+        # Création du layout horizontal pour l'unité et le bouton
+        unite_layout = QHBoxLayout()
+        unite_layout.addWidget(self.unite)
+
+        search_button = QPushButton()
+        search_button.setIcon(QIcon("../resources/icons/search.png"))
+        search_button.setIconSize(QSize(16, 16))
+        search_button.setToolTip("Rechercher région/légion par unité")
+        search_button.setStyleSheet("""
+                           QPushButton {
+                               padding: 8px;
+                               border-radius: 3px;
+                               background: #2196f3;
+                               border: none;
+                           }
+                           QPushButton:hover {
+                               background: #1976d2;
+                           }
+                       """)
+        search_button.clicked.connect(self.on_unite_search)
+
+        unite_layout.addWidget(search_button)
+        unite_container = QWidget()
+        unite_container.setLayout(unite_layout)
+        layout.addRow(create_row("Unité", unite_container))
 
         # Nombre d'enfants
         self.nb_enfants = QSpinBox()
-        self.nb_enfants.setStyleSheet(styles['SPIN_BOX'])
+        self.nb_enfants.setStyleSheet(self.styles['SPIN_BOX'])
         self.nb_enfants.setMinimum(0)
         self.nb_enfants.setMaximum(99)
         layout.addRow(create_row("Nombre d'enfants", self.nb_enfants))
 
         container.setLayout(layout)
         return container
+
+    def on_unite_search(self):
+        """Ouvre une boîte de dialogue pour rechercher une unité"""
+        dialog = SearchUniteDialog(self)
+        if dialog.exec():
+            unite_recherche = dialog.get_unite()
+            if unite_recherche:
+                if not self.search_by_unite(unite_recherche):
+                    QMessageBox.warning(self, "Recherche",
+                                        "Aucune correspondance trouvée pour cette unité.")
+
+    def search_by_unite(self, unite_recherchee):
+        """Recherche la région et la légion correspondant à une unité"""
+        print(f"Recherche de l'unité : {unite_recherchee}")  # Debug
+
+        # Parcourir la structure REGIONS
+        for region, region_data in STRUCTURE_PRINCIPALE["REGIONS"].items():
+            for legion, legion_data in region_data.items():
+                unites = []
+                if isinstance(legion_data, list):
+                    unites = legion_data
+                else:
+                    for cie, cie_unites in legion_data.items():
+                        unites.extend(cie_unites)
+
+                if unite_recherchee in unites:
+                    print(f"Unité trouvée dans {region} / {legion}")  # Debug
+
+                    # Désactiver les signaux pour éviter les mises à jour en cascade
+                    self.type_affectation.blockSignals(True)
+                    self.region.blockSignals(True)
+                    self.legion.blockSignals(True)
+                    self.unite.blockSignals(True)
+
+                    # Mettre à jour type d'affectation
+                    self.type_affectation.setCurrentText("REGIONS")
+
+                    # Ajouter et sélectionner la région si elle n'existe pas déjà
+                    if region not in [self.region.itemText(i) for i in range(self.region.count())]:
+                        self.region.addItem(region)
+                    self.region.setCurrentText(region)
+
+                    # Ajouter et sélectionner la légion si elle n'existe pas déjà
+                    if legion not in [self.legion.itemText(i) for i in range(self.legion.count())]:
+                        self.legion.addItem(legion)
+                    self.legion.setCurrentText(legion)
+
+                    # Ajouter et sélectionner l'unité si elle n'existe pas déjà
+                    if unite_recherchee not in [self.unite.itemText(i) for i in range(self.unite.count())]:
+                        self.unite.addItem(unite_recherchee)
+                    self.unite.setCurrentText(unite_recherchee)
+
+                    # Réactiver les signaux
+                    self.type_affectation.blockSignals(False)
+                    self.region.blockSignals(False)
+                    self.legion.blockSignals(False)
+                    self.unite.blockSignals(False)
+
+                    return True
+
+        # Vérifier aussi dans la structure CSG
+        for region, legions in STRUCTURE_PRINCIPALE["CSG"].items():
+            if isinstance(legions, list) and unite_recherchee in legions:
+                # Désactiver les signaux
+                self.type_affectation.blockSignals(True)
+                self.region.blockSignals(True)
+                self.unite.blockSignals(True)
+
+                # Mettre à jour type d'affectation
+                self.type_affectation.setCurrentText("CSG")
+
+                # Ajouter et sélectionner la region si elle n'existe pas déjà
+                if region not in [self.region.itemText(i) for i in range(self.region.count())]:
+                    self.region.addItem(region)
+                self.region.setCurrentText(region)
+
+                # Ajouter et sélectionner l'unité si elle n'existe pas déjà
+                if unite_recherchee not in [self.unite.itemText(i) for i in range(self.unite.count())]:
+                    self.unite.addItem(unite_recherchee)
+                self.unite.setCurrentText(unite_recherchee)
+
+                # Réactiver les signaux
+                self.type_affectation.blockSignals(False)
+                self.region.blockSignals(False)
+                self.unite.blockSignals(False)
+
+                return True
+
+        return False
 
     def on_matricule_change(self, matricule):
         """
@@ -601,72 +753,72 @@ class NewCaseForm(QMainWindow):
 
     def on_affectation_change(self, affectation_type):
         """
-        Met à jour les choix de direction selon le type d'affectation
+        Met à jour les choix de region selon le type d'affectation
         Args:
             affectation_type: Type d'affectation choisi (REGIONS/CSG)
         """
         print(f"Changement d'affectation: {affectation_type}")  # Debug
-        self.direction.clear()
-        self.service.clear()
+        self.region.clear()
+        self.legion.clear()
         self.unite.clear()
 
         if affectation_type == "REGIONS":
             regions = STRUCTURE_PRINCIPALE["REGIONS"].keys()
             print(f"Régions disponibles: {list(regions)}")  # Debug
-            self.direction.addItems(regions)
+            self.region.addItems(regions)
         else:  # CSG
-            directions = STRUCTURE_PRINCIPALE["CSG"].keys()
-            print(f"Directions CSG disponibles: {list(directions)}")  # Debug
-            self.direction.addItems(directions)
+            regions = STRUCTURE_PRINCIPALE["CSG"].keys()
+            print(f"regions CSG disponibles: {list(regions)}")  # Debug
+            self.region.addItems(regions)
 
-    def on_direction_change(self, direction):
+    def on_region_change(self, region):
         """
-        Met à jour les choix de service selon la direction
+        Met à jour les choix de legion selon la region
         Args:
-            direction: Direction choisie
+            region: region choisie
         """
-        print(f"Changement de direction: {direction}")  # Debug
-        self.service.clear()
+        print(f"Changement de region: {region}")  # Debug
+        self.legion.clear()
         self.unite.clear()
 
         affectation_type = self.type_affectation.currentText()
         if affectation_type == "REGIONS":
-            if direction in STRUCTURE_PRINCIPALE["REGIONS"]:
-                legions = STRUCTURE_PRINCIPALE["REGIONS"][direction].keys()
+            if region in STRUCTURE_PRINCIPALE["REGIONS"]:
+                legions = STRUCTURE_PRINCIPALE["REGIONS"][region].keys()
                 print(f"Légions disponibles: {list(legions)}")  # Debug
-                self.service.addItems(legions)
+                self.legion.addItems(legions)
         else:  # CSG
-            if direction in STRUCTURE_PRINCIPALE["CSG"]:
-                services = STRUCTURE_PRINCIPALE["CSG"][direction]
-                if services:  # Si la direction a des services
-                    print(f"Services disponibles: {services}")  # Debug
-                    self.service.addItems(services)
+            if region in STRUCTURE_PRINCIPALE["CSG"]:
+                legions = STRUCTURE_PRINCIPALE["CSG"][region]
+                if legions:  # Si la region a des legions
+                    print(f"legions disponibles: {legions}")  # Debug
+                    self.legion.addItems(legions)
 
-    def on_service_change(self, service):
+    def on_legion_change(self, legion):
         """
-        Met à jour les choix d'unité selon le service
+        Met à jour les choix d'unité selon le legion
         Args:
-            service: Service choisi
+            legion: legion choisi
         """
-        print(f"Changement de service: {service}")  # Debug
+        print(f"Changement de legion: {legion}")  # Debug
         self.unite.clear()
 
         affectation_type = self.type_affectation.currentText()
-        direction = self.direction.currentText()
+        region = self.region.currentText()
 
         if affectation_type == "REGIONS":
-            if direction in STRUCTURE_PRINCIPALE["REGIONS"]:
-                legion_data = STRUCTURE_PRINCIPALE["REGIONS"][direction]
-                if service in legion_data:
+            if region in STRUCTURE_PRINCIPALE["REGIONS"]:
+                legion_data = STRUCTURE_PRINCIPALE["REGIONS"][region]
+                if legion in legion_data:
                     unites = []
-                    service_data = legion_data[service]
+                    legion_data = legion_data[legion]
 
                     # Si c'est une LGM, les unités sont directement dans une liste
-                    if isinstance(service_data, list):
-                        unites = service_data
+                    if isinstance(legion_data, list):
+                        unites = legion_data
                     # Si c'est une LGT, on a des compagnies
                     else:
-                        for cie, cie_unites in service_data.items():
+                        for cie, cie_unites in legion_data.items():
                             unites.extend(cie_unites)
 
                     print(f"Unités disponibles: {unites}")  # Debug
@@ -723,7 +875,7 @@ class NewCaseForm(QMainWindow):
         self.date_faits.setCalendarPopup(True)
         self.date_faits.setDate(QDate.currentDate())
         self.date_faits.dateChanged.connect(self.update_annee_faits)
-        self.date_faits.setStyleSheet(styles['DATE_EDIT'])
+        self.date_faits.setStyleSheet(self.styles['DATE_EDIT'])
         layout.addRow(create_row("Date des faits", self.date_faits))
 
         # Faute commise (ComboBox)
@@ -735,25 +887,25 @@ class NewCaseForm(QMainWindow):
             "DESERTION",
             # ... ajoute ta liste complète de fautes ici
         ])
-        self.faute_commise.setStyleSheet(styles['COMBO_BOX'])
+        self.faute_commise.setStyleSheet(self.styles['COMBO_BOX'])
         layout.addRow(create_row("Faute commise", self.faute_commise))
 
         # Catégorie
         self.categorie = QLineEdit()
-        self.categorie.setStyleSheet(styles['INPUT'])
+        self.categorie.setStyleSheet(self.styles['INPUT'])
         layout.addRow(create_row("Catégorie", self.categorie))
 
         # Statut du dossier
         self.statut = QComboBox()
         self.statut.addItems(["EN COURS", "PUNI", "RADIE"])
         self.statut.currentTextChanged.connect(self.on_statut_change)
-        self.statut.setStyleSheet(styles['COMBO_BOX'])
+        self.statut.setStyleSheet(self.styles['COMBO_BOX'])
         layout.addRow(create_row("Statut du dossier", self.statut))
 
         # Référence du statut (visible uniquement si RADIE)
         self.ref_statut_container = QWidget()
         self.ref_statut = QLineEdit()
-        self.ref_statut.setStyleSheet(styles['INPUT'])
+        self.ref_statut.setStyleSheet(self.styles['INPUT'])
         self.ref_statut.setPlaceholderText("Référence de radiation")
         layout.addRow(create_row("Référence du statut", self.ref_statut_container))
         self.ref_statut_container.hide()
@@ -762,18 +914,18 @@ class NewCaseForm(QMainWindow):
         self.taux_jar = QSpinBox()
         self.taux_jar.setMinimum(0)
         self.taux_jar.setMaximum(365)
-        self.taux_jar.setStyleSheet(styles['SPIN_BOX'])
+        self.taux_jar.setStyleSheet(self.styles['SPIN_BOX'])
         layout.addRow(create_row("TAUX (JAR)", self.taux_jar))
 
         # COMITE
         self.comite = QLineEdit()
-        self.comite.setStyleSheet(styles['INPUT'])
+        self.comite.setStyleSheet(self.styles['INPUT'])
         layout.addRow(create_row("COMITE", self.comite))
 
         # ANNEE DES FAITS (auto)
         self.annee_faits = QLineEdit()
         self.annee_faits.setReadOnly(True)
-        self.annee_faits.setStyleSheet(styles['INPUT'])
+        self.annee_faits.setStyleSheet(self.styles['INPUT'])
         layout.addRow(create_row("ANNEE DES FAITS", self.annee_faits))
 
         container.setLayout(layout)
@@ -808,8 +960,8 @@ class NewCaseForm(QMainWindow):
                 # Section Info Mis en cause
                 'matricule': self.matricule.text(),
                 'type_affectation': self.type_affectation.currentText(),
-                'direction': self.direction.currentText(),
-                'service': self.service.currentText(),
+                'region': self.region.currentText(),
+                'legion': self.legion.currentText(),
                 'unite': self.unite.currentText(),
                 'nb_enfants': self.nb_enfants.value(),
 
@@ -832,7 +984,7 @@ class NewCaseForm(QMainWindow):
                 cursor.execute("""
                     INSERT INTO sanctions (
                         numero_dossier, numero_radiation, annee, date_enregistrement,
-                        numero, gendarme_id, date_faits, faute_commise, categorie,
+                        ID, gendarme_id, date_faits, faute_commise, categorie,
                         statut, reference_statut, taux_jar, comite, annee_faits
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
@@ -855,13 +1007,13 @@ class NewCaseForm(QMainWindow):
                 # Mise à jour des informations du gendarme
                 cursor.execute("""
                     UPDATE gendarmes_etat 
-                    SET type_affectation = ?, direction = ?, service = ?, 
+                    SET type_affectation = ?, region = ?, legion = ?, 
                         unite = ?, nb_enfants = ?
                     WHERE matricule = ?
                 """, (
                     form_data['type_affectation'],
-                    form_data['direction'],
-                    form_data['service'],
+                    form_data['region'],
+                    form_data['legion'],
                     form_data['unite'],
                     form_data['nb_enfants'],
                     form_data['matricule']

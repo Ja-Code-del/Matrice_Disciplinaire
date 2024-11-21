@@ -400,14 +400,50 @@ class MainGendarmeApp(QMainWindow):
         settings_layout = QVBoxLayout(settings_widget)
 
         import_etat_button = QPushButton("Importer Matrice Gendarmes")
+        import_etat_button.setStyleSheet("""
+                                    QPushButton {
+                                                background-color: #6C63FF;
+                                                color: white;
+                                                padding: 8px 15px;
+                                                border-radius: 15px;
+                                                font-weight: bold;
+                                            }
+                                            QPushButton:hover {
+                                                background-color: #4B0082;
+                                            }
+                                            """)
         import_etat_button.clicked.connect(self.import_etat_complet)
-        theme_button = QPushButton("Changer le thème")
-        theme_button.clicked.connect(self.toggle_theme)
+        self.theme_button = QPushButton("Changer le thème")
+        self.theme_button.setStyleSheet("""
+                                    QPushButton {
+                                                background-color: #6C63FF;
+                                                color: white;
+                                                padding: 8px 15px;
+                                                border-radius: 15px;
+                                                font-weight: bold;
+                                            }
+                                            QPushButton:hover {
+                                                background-color: #4B0082;
+                                            }
+                                            """)
+        self.theme_button.clicked.connect(self.toggle_theme)
         import_button = QPushButton("Importer Matrice Disciplinaire")
+        import_button.setStyleSheet("""
+                                    QPushButton {
+                                                background-color: #6C63FF;
+                                                color: white;
+                                                padding: 8px 15px;
+                                                border-radius: 15px;
+                                                font-weight: bold;
+                                            }
+                                            QPushButton:hover {
+                                                background-color: #4B0082;
+                                            }
+                                            """)
         import_button.clicked.connect(self.show_import_window)
 
         settings_layout.addWidget(import_etat_button)
-        settings_layout.addWidget(theme_button)
+        settings_layout.addWidget(self.theme_button)
         settings_layout.addWidget(import_button)
 
         self.settings_window = QMainWindow()
@@ -441,5 +477,5 @@ class MainGendarmeApp(QMainWindow):
         self.is_dark_mode = not self.is_dark_mode
         self.apply_theme()
         # Change l'icône selon le thème
-        # icon_name = "dark_mode.png" if self.is_dark_mode else "light_mode.png"
-        # self.theme_button.setIcon(QIcon(f"../resources/icons/{icon_name}"))
+        icon_name = "dark_mode.png" if self.is_dark_mode else "light_mode.png"
+        self.theme_button.setIcon(QIcon(f"../resources/icons/{icon_name}"))
