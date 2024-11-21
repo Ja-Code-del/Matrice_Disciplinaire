@@ -2,6 +2,16 @@
 
 REGIONS_STRUCTURE = {
     "1° REGION GENDARMERIE ABIDJAN": {
+        "GT": {
+            "EM": [
+                "EM GT"
+            ]
+        },
+        "GM": {
+            "EM": [
+                "EM GM"
+            ]
+        },
         "1° LGT": {
             "CIE ABJ-OUEST": [
                 "EM-CIE ABJ-OUEST",
