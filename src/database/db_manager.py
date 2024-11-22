@@ -68,6 +68,7 @@ class DatabaseManager:
                 taux_jar TEXT,
                 comite INTEGER,
                 annee_faits INTEGER,
+                numero_decision,
                 FOREIGN KEY (matricule) REFERENCES gendarmes_etat(matricule)
             )''')
 

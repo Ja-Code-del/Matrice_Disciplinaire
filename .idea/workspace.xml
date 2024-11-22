@@ -4,10 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="adding a new structure of gendarmes service to manage the new_case_form.">
-      <change afterPath="$PROJECT_DIR$/src/ui/forms/delete_case_dialog.py" afterDir="false" />
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="work on new_case_for/submit_form. not achieved">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/database/db_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/db_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/database/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -91,14 +91,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1727455479936</updated>
-    </task>
-    <task id="LOCAL-00004" summary="added an absolute path for db">
-      <option name="closed" value="true" />
-      <created>1729867496049</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1729867496049</updated>
     </task>
     <task id="LOCAL-00005" summary="New : now we can add the excel file from the prnicipal window. added a button inside the toolbar">
       <option name="closed" value="true" />
@@ -484,11 +476,18 @@
       <option name="project" value="LOCAL" />
       <updated>1732216667264</updated>
     </task>
-    <option name="localTasksCounter" value="53" />
+    <task id="LOCAL-00053" summary="work on new_case_for/submit_form. not achieved">
+      <option name="closed" value="true" />
+      <created>1732243804745</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1732243804745</updated>
+    </task>
+    <option name="localTasksCounter" value="54" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="work on new button of the toolbar. edit and delete added icon for Reglages et works on alignment" />
     <MESSAGE value="work on gendarme folder edition. same shape that new_case_form&#10;but some bugs remain&#10;- add new logo for the app footer" />
     <MESSAGE value="edit_gendarme_form.py : corrected the bugs but nothing appears when I click on Recherche" />
     <MESSAGE value="YOOOOOO Everyhting works we can now edit gendarme datas" />
@@ -513,7 +512,8 @@
     <MESSAGE value="bug on choice of analyze subject from gendarmes table resolved" />
     <MESSAGE value="added some styles and mainly worked on new_case_form.py for unite research and date_enr styles. now user can add past date." />
     <MESSAGE value="adding a new structure of gendarmes service to manage the new_case_form." />
-    <option name="LAST_COMMIT_MESSAGE" value="adding a new structure of gendarmes service to manage the new_case_form." />
+    <MESSAGE value="work on new_case_for/submit_form. not achieved" />
+    <option name="LAST_COMMIT_MESSAGE" value="work on new_case_for/submit_form. not achieved" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

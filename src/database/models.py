@@ -72,6 +72,7 @@ class Sanction:
     taux_jar: Optional[int] = None
     comite: str = ""
     annee_faits: Optional[int] = None
+    numero_decision: str = ""
 
     @classmethod
     def from_db_row(cls, row: tuple, column_names: list):
@@ -95,7 +96,8 @@ class Sanction:
             'reference_statut': self.reference_statut,
             'taux_jar': self.taux_jar,
             'comite': self.comite,
-            'annee_faits': self.annee_faits
+            'annee_faits': self.annee_faits,
+            'numero_decision': self.numero_decision
         }
 
 
