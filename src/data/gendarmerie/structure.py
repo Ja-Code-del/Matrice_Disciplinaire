@@ -446,54 +446,101 @@ STRUCTURE_REGIONS = {
 
 STRUCTURE_CSG = {
     "CSG": {
-        "CAB": ["INFORMATIQUE, COURRIER"],
+        "CAB": ["CAB"],
         "IGN": ["IGN"],
         "IGGN": ["IGGN"],
         "OG-OPS": ["OG-OPS"],
         "DOE": [
-            "BUREAU ORGANISATION",
-            "BUREAU EMPLOI",
-            "BUREAU SPORT",
-            "BUREAU STATISTIQUE"
+            "ORGANISATION",
+            "EMPLOI",
+            "SPORT",
+            "STATISTIQUE"
         ],
         "DRF": [
-            "BUREAU REGIE DES AVANCES",
-            "BUREAU SOLDE",
-            "BUREAU DEPLACEMENT TRANSPORT",
-            "BUREAU ETUDE PROJET",
-            "BUREAU PLAN BUDGET"
+            "REGIE DES AVANCES",
+            "SOLDE",
+            "DEPLACEMENT TRANSPORT",
+            "ETUDE PROJET",
+            "PLAN BUDGET"
         ],
         "DRH": [
-            "BUREAU PERSONNEL OFFICIER ET CIVIL",
-            "BUREAU PERSONNEL SOUS-OFFICIER",
-            "BUREAU RECRUTEMENT-CHANCELLERIE",
-            "BUREAU ACTION SOCIALE",
-            "BUREAU EFFECTIFS"
+            "PERSONNEL OFFICIER ET CIVIL",
+            "PERSONNEL SOUS-OFFICIER",
+            "RECRUTEMENT-CHANCELLERIE",
+            "ACTION SOCIALE",
+            "EFFECTIFS"
         ],
         "DTI": [
-            "BUREAU INFORMATIQUE",
-            "BUREAU TELECOMMUNICATION"
+            "INFORMATIQUE",
+            "TELECOMMUNICATION"
         ],
         "D.SANTE": ["D.SANTE"],
         "DLOG": [
-            "BUREAU MATERIELS-INTENDANCE",
-            "BUREAU CARBURANT",
-            "BUREAU PLANIFICATION DOMAINE ET INFRASTRUCTURE",
-            "BUREAU CASERNEMENT",
-            "BUREAU PARC AUTOMOBILE"
+            "MATERIELS-INTENDANCE",
+            "CARBURANT",
+            "PLANIFICATION DOMAINE ET INFRASTRUCTURE",
+            "CASERNEMENT",
+            "PARC AUTOMOBILE"
         ],
-        "DCOD": ["BUREAU COMMUNICATION"]
+        "DCOD": ["COMMUNICATION"]
     },
     "GRURGN": {
-
+        "GRURGN": [
+            "EM-GRURGN",
+            "URGN",
+            "GCS",
+            "GSR",
+            "GS-LOI",
+            "GS-LEIPA",
+            "BIRGN",
+            "ESH",
+            "ULCIR",
+            "GDR",
+            "BRRO"
+        ],
+        "CENTRE DE RENSEIGNEMENT OPERATIONNEL": [
+            "SECTION RENSEIGNEMENT",
+            "SECTION ANALYSES TRACES TECHNOLOGIQUES"
+        ],
+        "DROGUES-FICHIER-CYNOPHILE": [
+            "SECTION ANTI-DROGUE",
+            "SECTION FICHIER",
+            "SECTION CYNOPHILE"
+        ]
     },
     "US": {
-
+        "US": [
+            "EM US",
+            "GSP ABIDJAN",
+            "GSP SAN-PEDRO",
+            "GEB-GN",
+            "UIGN",
+            "EPHP",
+            "GSA",
+            "PSA BOUAKE",
+            "PSA KORHOGO",
+            "PSA SAN-PEDRO",
+            "PSA YAKRO",
+            "PSA MAN",
+            "PSA ODIENNE"
+        ]
     },
     "CECF": {
+        "CECF": [
+            "EM-CECF",
+            "EGA",
+            "EGT",
+            "GIP-GN",
+            "CFEC"
+        ]
 
     },
     "RG": {
-
-    },
+        "RG": [
+            "EM-1°RG",
+            "EM-2°RG",
+            "EM-3°RG",
+            "EM-4°RG",
+        ]
+    }
 }
