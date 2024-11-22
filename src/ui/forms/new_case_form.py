@@ -829,7 +829,7 @@ class NewCaseForm(QMainWindow):
         layout.addRow(create_row("Sexe", self.sexe))
 
         self.situation_matrimoniale = QComboBox()
-        self.situation_matrimoniale.addItems(["CELIBATAIRE", "MARIE(E)", "VEUF(VE)", "DIVORCE(E)"])
+        self.situation_matrimoniale.addItems(["CELIBATAIRE", "MARIE(E)", "VEUF(VE)"])
         self.situation_matrimoniale.setStyleSheet(self.styles['COMBO_BOX'])
         layout.addRow(create_row("Situation matrimoniale", self.situation_matrimoniale))
 
