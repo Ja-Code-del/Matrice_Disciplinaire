@@ -5,4 +5,5 @@ openpyxl~=3.1.5
 reportlab~=4.2.5
 python-pptx~=1.0.2
 numpy~=2.1.2
-seaborn
+seaborn~=0.13.2
+python-dateutil~=2.9.0.post0

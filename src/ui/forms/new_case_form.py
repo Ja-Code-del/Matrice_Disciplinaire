@@ -1,4 +1,5 @@
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QFrame, QPushButton, QScrollArea, QGraphicsOpacityEffect, QApplication, QLineEdit,
@@ -643,26 +644,27 @@ class NewCaseForm(QMainWindow):
 
     def update_age(self, date_naissance):
         try:
-            birth_date = datetime.strptime(date_naissance, "%Y-%m-%d").date()
-            faits_date = self.date_faits.date()
-            age = faits_date.year - birth_date.year
-            if faits_date.month < birth_date.month or (
-                    faits_date.month == birth_date.month and faits_date.day < birth_date.day):
-                age -= 1
-            self.age.setValue(age)
+            birth_date = datetime.strptime(date_naissance, "%d-%m-%Y").date()
+            faits_date = self.date_faits.date().toPyDate()
+            age = relativedelta(faits_date, birth_date)
+            # if faits_date.month < birth_date.month or (
+            #         faits_date.month == birth_date.month and faits_date.day < birth_date.day):
+            #     age -= 1
+            self.age.setValue(age.years)
         except Exception as e:
             print(f"Erreur lors du calcul de l'âge : {str(e)}")
             self.age.setValue(0)
 
     def update_years_of_service(self, date_entree_gie):
         try:
-            entree_date = QDate.fromString(date_entree_gie, "yyyy-MM-dd")
-            faits_date = QDate.fromString(self.date_faits.date().toString("yyyy-MM-dd"), "yyyy-MM-dd")
-            years_of_service = faits_date.year() - entree_date.year()
-            if faits_date.month() < entree_date.month() or (
-                    faits_date.month() == entree_date.month() and faits_date.day() < entree_date.day()):
-                years_of_service -= 1
-            self.annee_service.setValue(years_of_service if years_of_service else 0)
+            entree_date = datetime.strptime(date_entree_gie, "%d-%m-%Y").date()
+            faits_date = self.date_faits.date().toPyDate()
+            years_of_service = relativedelta(faits_date, entree_date)
+            # years_of_service = faits_date.year - entree_date.year
+            # if faits_date.month < entree_date.month or (
+            #         faits_date.month == entree_date.month and faits_date.day < entree_date.day):
+            #     years_of_service -= 1
+            self.annee_service.setValue(years_of_service.years if years_of_service else 0)
         except Exception as e:
             print(f"Erreur lors du calcul des années de service : {str(e)}")
             self.annee_service.setValue(0)
@@ -836,8 +838,8 @@ class NewCaseForm(QMainWindow):
 
     def calculate_age(self, date_naissance, date_faits):
         try:
-            birth_date = QDate.fromString(date_naissance, "yyyy-MM-dd")
-            faits_date = QDate.fromString(date_faits, "yyyy-MM-dd")
+            birth_date = QDate.fromString(date_naissance, "%d-%m-%Y")
+            faits_date = QDate.fromString(date_faits, "%d-%m-%Y")
             age = faits_date.year() - birth_date.year()
             if faits_date.month() < birth_date.month() or (
                     faits_date.month() == birth_date.month() and faits_date.day() < birth_date.day()):
