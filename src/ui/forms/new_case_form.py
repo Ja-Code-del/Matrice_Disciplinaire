@@ -471,7 +471,7 @@ class NewCaseForm(QMainWindow):
 
     def update_annee_enr(self):
         """Met à jour l'année d'enregistrement automatiquement"""
-        self.annee.setText(str(self.date_enr.date().year()))
+        self.annee_punition.setText(str(self.date_enr.date().year()))
 
     def create_label(self, text):
         """Crée un label stylé"""
@@ -575,17 +575,16 @@ class NewCaseForm(QMainWindow):
         # Statut du dossier
         self.statut = QComboBox()
         self.statut.addItems(["EN COURS", "PUNI", "RADIE"])
-        self.statut.currentTextChanged.connect(self.on_statut_change)
+        #self.statut.currentTextChanged.connect(self.on_statut_change)
         self.statut.setStyleSheet(self.styles['COMBO_BOX'])
         layout.addRow(create_row("Statut du dossier", self.statut))
 
-        # Référence du statut (visible uniquement si RADIE)
-        self.ref_statut_container = QWidget()
+        # Référence du statut
         self.ref_statut = QLineEdit()
         self.ref_statut.setStyleSheet(self.styles['INPUT'])
         self.ref_statut.setPlaceholderText("Référence de radiation")
-        layout.addRow(create_row("Référence du statut", self.ref_statut_container))
-        self.ref_statut_container.hide()
+        layout.addRow(create_row("Référence du statut", self.ref_statut))
+
 
         # TAUX (JAR)
         self.taux_jar = QSpinBox()
@@ -929,15 +928,15 @@ class NewCaseForm(QMainWindow):
             form_data = {
                 # Section Info Dossier
                 'numero_dossier': self.num_dossier.text(),
-                'annee_punition': self.annee.text(),
-                'date_enr': self.date_enr.date().strftime("%Y-%m-%d"),
+                'annee_punition': int(self.annee_punition.text()),
+                'date_enr': self.date_enr.date().toString("%d-%m-%Y"),
                 'numero_ordre': int(self.num_enr.text()),
 
                 # Section Info Mis en cause
                 'matricule': int(self.matricule.text()),
                 'mle': self.matricule.text(),
                 'nom_prenoms': self.nom.text() + " " + self.prenoms.text(),
-                'grade': self.grade.text(),
+                'grade': self.grade.currentText(),
                 'date_naissance': self.date_naissance.text(),
                 'age': self.age.value(),
                 'sexe': self.sexe.currentText(),
@@ -947,21 +946,21 @@ class NewCaseForm(QMainWindow):
                 'legion': self.legion.currentText(),
                 'unite': self.unite.currentText(),
 
-                'date_entree_gie': form_data['date_entree_gie'] if form_data['date_entree_gie'] else '1900-01-01',
-                'annee_service': int(self.annee_service.text()),
+                'date_entree_gie': self.date_entree_gie.text() if self.date_entree_gie.text() else '1900-01-01',
+                'annee_service': self.annee_service.value(),
                 'situation_matrimoniale': self.situation_matrimoniale.currentText(),
                 'nb_enfants': self.nb_enfants.value(),
 
                 # Section Info Faute
-                'date_faits': self.date_faits.date(),
+                'date_faits': self.date_faits.date().toString("%d-%m-%Y"),
                 'faute_commise': self.faute_commise.currentText(),
                 'categorie': self.categorie.text(),
                 'statut': self.statut.currentText(),
-                'reference_statut': self.ref_statut.text() if self.statut.currentText() == "RADIE" else "",
+                'reference_statut': self.ref_statut.text() if self.statut.currentText() == "RADIE" else "NEANT",
                 'taux_jar': self.taux_jar.value(),
-                'comite': self.comite.text(),
+                'comite': int(self.comite.text()),
                 'annee_faits': int(self.annee_faits.text()),
-                'numero_decision': self.num_decision.text() if self.statut.currentText() == "RADIE" else ""
+                'numero_decision': self.num_decision.text() if self.statut.currentText() == "RADIE" else "NEANT"
             }
 
             # Sauvegarde dans la base de données
