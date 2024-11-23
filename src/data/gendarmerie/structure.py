@@ -88,7 +88,7 @@ ANALYSIS_THEMES = {
     }
 }
 
-STRUCTURE_REGIONS = {
+STRUCTURE_UNITE = {
     "REGIONS": {
         "1°RG": {
             "GT": {
@@ -194,6 +194,104 @@ STRUCTURE_REGIONS = {
                     "ESC AGBOVILLE",
                     "ESC DABOU",
                     "ESC DIVO"
+                ]
+            },
+            "CSG": {
+                "CAB": ["CAB"],
+                "IGN": ["IGN"],
+                "IGGN": ["IGGN"],
+                "OG-OPS": ["OG-OPS"],
+                "DOE": [
+                    "ORGANISATION",
+                    "EMPLOI",
+                    "SPORT",
+                    "STATISTIQUE"
+                ],
+                "DRF": [
+                    "REGIE DES AVANCES",
+                    "SOLDE",
+                    "DEPLACEMENT TRANSPORT",
+                    "ETUDE PROJET",
+                    "PLAN BUDGET"
+                ],
+                "DRH": [
+                    "PERSONNEL OFFICIER ET CIVIL",
+                    "PERSONNEL SOUS-OFFICIER",
+                    "RECRUTEMENT-CHANCELLERIE",
+                    "ACTION SOCIALE",
+                    "EFFECTIFS"
+                ],
+                "DTI": [
+                    "INFORMATIQUE",
+                    "TELECOMMUNICATION"
+                ],
+                "D.SANTE": ["D.SANTE"],
+                "DLOG": [
+                    "MATERIELS-INTENDANCE",
+                    "CARBURANT",
+                    "PLANIFICATION DOMAINE ET INFRASTRUCTURE",
+                    "CASERNEMENT",
+                    "PARC AUTOMOBILE"
+                ],
+                "DCOD": ["COMMUNICATION"]
+            },
+            "GRURGN": {
+                "GRURGN": [
+                    "EM-GRURGN",
+                    "URGN",
+                    "GCS",
+                    "GSR",
+                    "GS-LOI",
+                    "GS-LEIPA",
+                    "BIRGN",
+                    "ESH",
+                    "ULCIR",
+                    "GDR",
+                    "BRRO"
+                ],
+                "CENTRE DE RENSEIGNEMENT OPERATIONNEL": [
+                    "SECTION RENSEIGNEMENT",
+                    "SECTION ANALYSES TRACES TECHNOLOGIQUES"
+                ],
+                "DROGUES-FICHIER-CYNOPHILE": [
+                    "SECTION ANTI-DROGUE",
+                    "SECTION FICHIER",
+                    "SECTION CYNOPHILE"
+                ]
+            },
+            "US": {
+                "US": [
+                    "EM US",
+                    "GSP ABIDJAN",
+                    "GSP SAN-PEDRO",
+                    "GEB-GN",
+                    "UIGN",
+                    "EPHP",
+                    "GSA",
+                    "PSA BOUAKE",
+                    "PSA KORHOGO",
+                    "PSA SAN-PEDRO",
+                    "PSA YAKRO",
+                    "PSA MAN",
+                    "PSA ODIENNE"
+                ]
+            },
+            "CECF": {
+                "CECF": [
+                    "EM-CECF",
+                    "EGA",
+                    "EGT",
+                    "GIP-GN",
+                    "CFEC"
+                ]
+
+            },
+            "RG": {
+                "RG": [
+                    "EM-1°RG",
+                    "EM-2°RG",
+                    "EM-3°RG",
+                    "EM-4°RG",
                 ]
             }
         },
@@ -544,3 +642,60 @@ STRUCTURE_CSG = {
         ]
     }
 }
+
+
+class Unit:
+    def __init__(self, name, region, subdivision, legion):
+        self.name = name
+        self.region = region
+        self.subdivision = subdivision
+        self.legion = legion
+
+    def __str__(self):
+        return self.name
+
+
+def get_all_unit_names(structure):
+    unit_names = []
+    for region, region_data in structure["REGIONS"].items():
+        for subdivision, subdivision_data in region_data.items():
+            for legion, legion_data in subdivision_data.items():
+                if isinstance(legion_data, list):
+                    unit_names.extend(legion_data)
+                else:
+                    for cie, cie_units in legion_data.items():
+                        unit_names.extend(cie_units)
+    return unit_names
+
+
+def get_all_regions(structure):
+    return list(structure["REGIONS"].keys())
+
+
+def get_all_subdivisions(structure, region):
+    if region in structure["REGIONS"]:
+        return list(structure["REGIONS"][region].keys())
+    return []
+
+
+def get_all_legions(structure, region, subdivision):
+    if region in structure["REGIONS"] and subdivision in structure["REGIONS"][region]:
+        legion_data = structure["REGIONS"][region][subdivision]
+        if isinstance(legion_data, dict):
+            return list(legion_data.keys())
+        else:
+            return legion_data
+    return []
+
+def get_unit_by_name(structure, unit_name):
+    for region, region_data in structure["REGIONS"].items():
+        for subdivision, subdivision_data in region_data.items():
+            for legion, legion_data in subdivision_data.items():
+                if isinstance(legion_data, list):
+                    if unit_name in legion_data:
+                        return Unit(unit_name, region, subdivision, legion)
+                else:
+                    for cie, cie_units in legion_data.items():
+                        if unit_name in cie_units:
+                            return Unit(unit_name, region, subdivision, legion, cie)
+    return None

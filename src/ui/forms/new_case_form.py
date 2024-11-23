@@ -7,9 +7,11 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
 from PyQt6.QtCore import Qt, QDate, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QTimer, QSize
 from PyQt6.QtGui import QFont, QColor, QIcon
 
-from src.data.gendarmerie import STRUCTURE_PRINCIPALE
+from src.data.gendarmerie import STRUCTURE_UNITE
+from src.data.gendarmerie.structure import (get_all_unit_names, get_unit_by_name, get_all_regions, get_all_subdivisions,
+                                            get_all_legions, Unit)
 from src.ui.styles.styles import Styles  # On va ajouter des styles dédiés
-from src.ui.forms.edit_gendarme_form import SearchUniteDialog
+from src.ui.forms.unit_search_dialog import UnitSearchDialog
 
 
 class NewCaseForm(QMainWindow):
@@ -647,9 +649,6 @@ class NewCaseForm(QMainWindow):
             birth_date = datetime.strptime(date_naissance, "%d-%m-%Y").date()
             faits_date = self.date_faits.date().toPyDate()
             age = relativedelta(faits_date, birth_date)
-            # if faits_date.month < birth_date.month or (
-            #         faits_date.month == birth_date.month and faits_date.day < birth_date.day):
-            #     age -= 1
             self.age.setValue(age.years)
         except Exception as e:
             print(f"Erreur lors du calcul de l'âge : {str(e)}")
@@ -737,57 +736,55 @@ class NewCaseForm(QMainWindow):
         self.date_naissance.setStyleSheet(self.styles['INPUT'])
         layout.addRow(create_row("Date de naissance", self.date_naissance))
 
-        # Type d'affectation
-        self.type_affectation = QComboBox()
-        self.type_affectation.addItems(["REGIONS", "CSG"])
-        self.type_affectation.setStyleSheet(self.styles['COMBO_BOX'])
-        self.type_affectation.currentTextChanged.connect(self.on_affectation_change)
-        layout.addRow(create_row("Type d'affectation", self.type_affectation))
-
-        # Région/region
-        self.region = QComboBox()
-        self.region.setStyleSheet(self.styles['COMBO_BOX'])
-        self.region.currentTextChanged.connect(self.on_region_change)
-        layout.addRow(create_row("Région/region", self.region))
-
-        # Légion/legion
-        self.legion = QComboBox()
-        self.legion.setStyleSheet(self.styles['COMBO_BOX'])
-        self.legion.currentTextChanged.connect(self.on_legion_change)
-        layout.addRow(create_row("Légion/legion", self.legion))
-
         # Unité
-        # self.unite = QComboBox()
-        # self.unite.setStyleSheet(self.styles['COMBO_BOX'])
-        # layout.addRow(create_row("Unité", self.unite))
-        # pour rechercher les unités
         self.unite = QComboBox()
+        self.unite.addItems(get_all_unit_names(STRUCTURE_UNITE))
         self.unite.setStyleSheet(self.styles['COMBO_BOX'])
-        # Création du layout horizontal pour l'unité et le bouton
-        unite_layout = QHBoxLayout()
-        unite_layout.addWidget(self.unite)
+        self.unite.currentTextChanged.connect(self.on_unit_selected)
 
         search_button = QPushButton()
         search_button.setIcon(QIcon("../resources/icons/search.png"))
         search_button.setIconSize(QSize(16, 16))
-        search_button.setToolTip("Rechercher région/légion par unité")
+        search_button.setToolTip("Rechercher unité")
         search_button.setStyleSheet("""
-                           QPushButton {
-                               padding: 8px;
-                               border-radius: 3px;
-                               background: #2196f3;
-                               border: none;
-                           }
-                           QPushButton:hover {
-                               background: #1976d2;
-                           }
-                       """)
-        search_button.clicked.connect(self.on_unite_search)
+                QPushButton {
+                    padding: 8px;
+                    border-radius: 3px;
+                    background: #2196f3;
+                    border: none;
+                }
+                QPushButton:hover {
+                    background: #1976d2;
+                }
+            """)
+        search_button.clicked.connect(self.on_unit_search)
 
+        unite_layout = QHBoxLayout()
+        unite_layout.addWidget(self.unite)
         unite_layout.addWidget(search_button)
         unite_container = QWidget()
         unite_container.setLayout(unite_layout)
         layout.addRow(create_row("Unité", unite_container))
+
+
+        # Région/region
+        self.region = QComboBox()
+        self.region.setStyleSheet(self.styles['COMBO_BOX'])
+        self.region.currentTextChanged.connect(self.on_unit_selected)
+        layout.addRow(create_row("Région/region", self.region))
+
+        # Subdivision
+        self.subdivision = QComboBox()
+        self.subdivision.setStyleSheet(self.styles['COMBO_BOX'])
+        self.subdivision.currentTextChanged.connect(self.on_unit_selected)
+        layout.addRow(create_row("Subdivision", self.subdivision))
+
+        # Légion/legion
+        self.legion = QComboBox()
+        self.legion.setStyleSheet(self.styles['COMBO_BOX'])
+        self.legion.currentTextChanged.connect(self.on_unit_selected)
+        layout.addRow(create_row("Légion/Division", self.legion))
+
 
         # Nombre d'enfants
         self.nb_enfants = QSpinBox()
@@ -836,6 +833,30 @@ class NewCaseForm(QMainWindow):
         container.setLayout(layout)
         return container
 
+    def on_unit_selected(self, unit_name):
+        unit = get_unit_by_name(STRUCTURE_UNITE, unit_name)
+        if unit:
+            self.region.clear()
+            self.region.addItems(get_all_regions(STRUCTURE_UNITE))
+            self.region.setCurrentText(unit.region)
+
+            self.subdivision.clear()
+            subdivisions = get_all_subdivisions(STRUCTURE_UNITE, unit.region)
+            self.subdivision.addItems(subdivisions)
+            self.subdivision.setCurrentText(unit.subdivision)
+
+            self.legion.clear()
+            legions = get_all_legions(STRUCTURE_UNITE, unit.region, unit.subdivision)
+            self.legion.addItems(legions)
+            self.legion.setCurrentText(unit.legion)
+        else:
+            # Gestion du cas où l'unité n'est pas trouvée dans la structure
+            QMessageBox.warning(self, "Unité non trouvée",
+                                f"L'unité '{unit_name}' n'a pas été trouvée dans la structure.")
+            self.region.setCurrentText("")
+            self.legion.setCurrentText("")
+            self.subdivision.setCurrentText("")
+
     def calculate_age(self, date_naissance, date_faits):
         try:
             birth_date = QDate.fromString(date_naissance, "%d-%m-%Y")
@@ -862,169 +883,38 @@ class NewCaseForm(QMainWindow):
             print(f"Erreur lors du calcul des années de service : {str(e)}")
             return 0
 
-    def on_unite_search(self):
+    def on_unit_search(self):
         """Ouvre une boîte de dialogue pour rechercher une unité"""
-        dialog = SearchUniteDialog(self)
+        dialog = UnitSearchDialog(self)
         if dialog.exec():
-            unite_recherche = dialog.get_unite()
-            if unite_recherche:
-                if not self.search_by_unite(unite_recherche):
-                    QMessageBox.warning(self, "Recherche",
-                                        "Aucune correspondance trouvée pour cette unité.")
-
-    def search_by_unite(self, unite_recherchee):
-        """Recherche la région et la légion correspondant à une unité"""
-        print(f"Recherche de l'unité : {unite_recherchee}")  # Debug
-
-        # Parcourir la structure REGIONS
-        for region, region_data in STRUCTURE_PRINCIPALE["REGIONS"].items():
-            for legion, legion_data in region_data.items():
-                unites = []
-                if isinstance(legion_data, list):
-                    unites = legion_data
-                else:
-                    for cie, cie_unites in legion_data.items():
-                        unites.extend(cie_unites)
-
-                if unite_recherchee in unites:
-                    print(f"Unité trouvée dans {region} / {legion}")  # Debug
-
-                    # Désactiver les signaux pour éviter les mises à jour en cascade
-                    self.type_affectation.blockSignals(True)
-                    self.region.blockSignals(True)
-                    self.legion.blockSignals(True)
-                    self.unite.blockSignals(True)
-
-                    # Mettre à jour type d'affectation
-                    self.type_affectation.setCurrentText("REGIONS")
-
-                    # Ajouter et sélectionner la région si elle n'existe pas déjà
-                    if region not in [self.region.itemText(i) for i in range(self.region.count())]:
-                        self.region.addItem(region)
-                    self.region.setCurrentText(region)
-
-                    # Ajouter et sélectionner la légion si elle n'existe pas déjà
-                    if legion not in [self.legion.itemText(i) for i in range(self.legion.count())]:
-                        self.legion.addItem(legion)
-                    self.legion.setCurrentText(legion)
-
-                    # Ajouter et sélectionner l'unité si elle n'existe pas déjà
-                    if unite_recherchee not in [self.unite.itemText(i) for i in range(self.unite.count())]:
-                        self.unite.addItem(unite_recherchee)
-                    self.unite.setCurrentText(unite_recherchee)
-
-                    # Réactiver les signaux
-                    self.type_affectation.blockSignals(False)
-                    self.region.blockSignals(False)
-                    self.legion.blockSignals(False)
-                    self.unite.blockSignals(False)
-
-                    return True
-
-        # Vérifier aussi dans la structure CSG
-        for region, legions in STRUCTURE_PRINCIPALE["CSG"].items():
-            if isinstance(legions, list) and unite_recherchee in legions:
-                # Désactiver les signaux
-                self.type_affectation.blockSignals(True)
-                self.region.blockSignals(True)
-                self.unite.blockSignals(True)
-
-                # Mettre à jour type d'affectation
-                self.type_affectation.setCurrentText("CSG")
-
-                # Ajouter et sélectionner la region si elle n'existe pas déjà
-                if region not in [self.region.itemText(i) for i in range(self.region.count())]:
-                    self.region.addItem(region)
-                self.region.setCurrentText(region)
-
-                # Ajouter et sélectionner l'unité si elle n'existe pas déjà
-                if unite_recherchee not in [self.unite.itemText(i) for i in range(self.unite.count())]:
-                    self.unite.addItem(unite_recherchee)
-                self.unite.setCurrentText(unite_recherchee)
-
-                # Réactiver les signaux
-                self.type_affectation.blockSignals(False)
-                self.region.blockSignals(False)
-                self.unite.blockSignals(False)
-
-                return True
-
-        return False
-
-
-
-    def on_affectation_change(self, affectation_type):
-        """
-        Met à jour les choix de region selon le type d'affectation
-        Args:
-            affectation_type: Type d'affectation choisi (REGIONS/CSG)
-        """
-        print(f"Changement d'affectation: {affectation_type}")  # Debug
-        self.region.clear()
-        self.legion.clear()
-        self.unite.clear()
-
-        if affectation_type == "REGIONS":
-            regions = STRUCTURE_PRINCIPALE["REGIONS"].keys()
-            print(f"Régions disponibles: {list(regions)}")  # Debug
-            self.region.addItems(regions)
-        else:  # CSG
-            regions = STRUCTURE_PRINCIPALE["CSG"].keys()
-            print(f"regions CSG disponibles: {list(regions)}")  # Debug
-            self.region.addItems(regions)
+            unit_name = dialog.get_selected_unit()
+            self.on_unit_selected(unit_name)
 
     def on_region_change(self, region):
-        """
-        Met à jour les choix de legion selon la region
-        Args:
-            region: region choisie
-        """
-        print(f"Changement de region: {region}")  # Debug
+        self.subdivision.clear()
         self.legion.clear()
-        self.unite.clear()
+        subdivision_data = STRUCTURE_UNITE["REGIONS"][region]
+        self.subdivision.addItems(subdivision_data.keys())
 
-        affectation_type = self.type_affectation.currentText()
-        if affectation_type == "REGIONS":
-            if region in STRUCTURE_PRINCIPALE["REGIONS"]:
-                legions = STRUCTURE_PRINCIPALE["REGIONS"][region].keys()
-                print(f"Légions disponibles: {list(legions)}")  # Debug
-                self.legion.addItems(legions)
-        else:  # CSG
-            if region in STRUCTURE_PRINCIPALE["CSG"]:
-                legions = STRUCTURE_PRINCIPALE["CSG"][region]
-                if legions:  # Si la region a des legions
-                    print(f"legions disponibles: {legions}")  # Debug
-                    self.legion.addItems(legions)
+    def on_subdivision_change(self, subdivision):
+        self.legion.clear()
+        region = self.region.currentText()
+        legion_data = STRUCTURE_UNITE["REGIONS"][region][subdivision]
+        if isinstance(legion_data, dict):
+            self.legion.addItems(legion_data.keys())
+        else:
+            self.legion.addItems(legion_data)
 
     def on_legion_change(self, legion):
-        """
-        Met à jour les choix d'unité selon le legion
-        Args:
-            legion: legion choisi
-        """
-        print(f"Changement de legion: {legion}")  # Debug
         self.unite.clear()
-
-        affectation_type = self.type_affectation.currentText()
         region = self.region.currentText()
-
-        if affectation_type == "REGIONS":
-            if region in STRUCTURE_PRINCIPALE["REGIONS"]:
-                legion_data = STRUCTURE_PRINCIPALE["REGIONS"][region]
-                if legion in legion_data:
-                    unites = []
-                    legion_data = legion_data[legion]
-
-                    # Si c'est une LGM, les unités sont directement dans une liste
-                    if isinstance(legion_data, list):
-                        unites = legion_data
-                    # Si c'est une LGT, on a des compagnies
-                    else:
-                        for cie, cie_unites in legion_data.items():
-                            unites.extend(cie_unites)
-
-                    print(f"Unités disponibles: {unites}")  # Debug
-                    self.unite.addItems(unites)
+        subdivision = self.subdivision.currentText()
+        unite_data = STRUCTURE_UNITE["REGIONS"][region][subdivision][legion]
+        if isinstance(unite_data, list):
+            self.unite.addItems(unite_data)
+        else:
+            for cie, cie_units in unite_data.items():
+                self.unite.addItems(cie_units)
 
     def submit_form(self):
         """
@@ -1052,8 +942,8 @@ class NewCaseForm(QMainWindow):
                 'age': self.age.value(),
                 'sexe': self.sexe.currentText(),
 
-                # 'type_affectation': self.type_affectation.currentText(),
                 'region': self.region.currentText(),
+                'subdiv': self.subdivision.currentText(),
                 'legion': self.legion.currentText(),
                 'unite': self.unite.currentText(),
 
@@ -1113,10 +1003,10 @@ class NewCaseForm(QMainWindow):
                 #Insertion dans la table gendarmes
                 cursor.execute("""
                     INSERT INTO gendarmes (
-                        mle, nom_prenoms, grade, age, date_naissance, unite, legion,
+                        mle, nom_prenoms, grade, age, date_naissance, unite, legion, subdiv,
                         region, date_entree_gie, annee_service, situation_matrimoniale,
                         nb_enfants
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     form_data['mle'],
                     form_data['nom_prenoms'],
@@ -1125,6 +1015,7 @@ class NewCaseForm(QMainWindow):
                     form_data['date_naissance'],
                     form_data['unite'],
                     form_data['legion'],
+                    form_data['subdiv'],
                     form_data['region'],
                     form_data['date_entree_gie'],
                     form_data['annee_service'],
