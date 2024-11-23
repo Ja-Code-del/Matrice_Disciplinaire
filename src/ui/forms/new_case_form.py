@@ -770,19 +770,19 @@ class NewCaseForm(QMainWindow):
         # Région/region
         self.region = QComboBox()
         self.region.setStyleSheet(self.styles['COMBO_BOX'])
-        self.region.currentTextChanged.connect(self.on_unit_selected)
+        self.region.currentTextChanged.connect(self.on_region_change)
         layout.addRow(create_row("Région/region", self.region))
 
         # Subdivision
         self.subdivision = QComboBox()
         self.subdivision.setStyleSheet(self.styles['COMBO_BOX'])
-        self.subdivision.currentTextChanged.connect(self.on_unit_selected)
+        self.subdivision.currentTextChanged.connect(self.on_subdivision_change)
         layout.addRow(create_row("Subdivision", self.subdivision))
 
         # Légion/legion
         self.legion = QComboBox()
         self.legion.setStyleSheet(self.styles['COMBO_BOX'])
-        self.legion.currentTextChanged.connect(self.on_unit_selected)
+        self.legion.currentTextChanged.connect(self.on_legion_change)
         layout.addRow(create_row("Légion/Division", self.legion))
 
 
@@ -836,26 +836,37 @@ class NewCaseForm(QMainWindow):
     def on_unit_selected(self, unit_name):
         unit = get_unit_by_name(STRUCTURE_UNITE, unit_name)
         if unit:
-            self.region.clear()
-            self.region.addItems(get_all_regions(STRUCTURE_UNITE))
-            self.region.setCurrentText(unit.region)
-
-            self.subdivision.clear()
-            subdivisions = get_all_subdivisions(STRUCTURE_UNITE, unit.region)
-            self.subdivision.addItems(subdivisions)
-            self.subdivision.setCurrentText(unit.subdivision)
-
-            self.legion.clear()
-            legions = get_all_legions(STRUCTURE_UNITE, unit.region, unit.subdivision)
-            self.legion.addItems(legions)
-            self.legion.setCurrentText(unit.legion)
+            self.update_region(unit.region)
+            self.update_subdivision(unit.region, unit.subdivision)
+            self.update_legion(unit.region, unit.subdivision, unit.legion)
         else:
             # Gestion du cas où l'unité n'est pas trouvée dans la structure
             QMessageBox.warning(self, "Unité non trouvée",
                                 f"L'unité '{unit_name}' n'a pas été trouvée dans la structure.")
-            self.region.setCurrentText("")
-            self.legion.setCurrentText("")
-            self.subdivision.setCurrentText("")
+
+    def update_region(self, region):
+        self.region.clear()
+        regions = get_all_regions(STRUCTURE_UNITE)
+        self.region.addItems(regions)
+        region_index = self.region.findText(region)
+        if region_index != -1:
+            self.region.setCurrentIndex(region_index)
+
+    def update_subdivision(self, region, subdivision):
+        self.subdivision.clear()
+        subdivisions = get_all_subdivisions(STRUCTURE_UNITE, region)
+        self.subdivision.addItems(subdivisions)
+        subdivision_index = self.subdivision.findText(subdivision)
+        if subdivision_index != -1:
+            self.subdivision.setCurrentIndex(subdivision_index)
+
+    def update_legion(self, region, subdivision, legion):
+        self.legion.clear()
+        legions = get_all_legions(STRUCTURE_UNITE, region, subdivision)
+        self.legion.addItems(legions)
+        legion_index = self.legion.findText(legion)
+        if legion_index != -1:
+            self.legion.setCurrentIndex(legion_index)
 
     def calculate_age(self, date_naissance, date_faits):
         try:
@@ -891,30 +902,15 @@ class NewCaseForm(QMainWindow):
             self.on_unit_selected(unit_name)
 
     def on_region_change(self, region):
-        self.subdivision.clear()
-        self.legion.clear()
-        subdivision_data = STRUCTURE_UNITE["REGIONS"][region]
-        self.subdivision.addItems(subdivision_data.keys())
+        self.update_subdivision(region, "")
+        self.update_legion(region, self.subdivision.currentText(), "")
 
     def on_subdivision_change(self, subdivision):
-        self.legion.clear()
-        region = self.region.currentText()
-        legion_data = STRUCTURE_UNITE["REGIONS"][region][subdivision]
-        if isinstance(legion_data, dict):
-            self.legion.addItems(legion_data.keys())
-        else:
-            self.legion.addItems(legion_data)
+        self.update_legion(self.region.currentText(), subdivision, "")
 
     def on_legion_change(self, legion):
-        self.unite.clear()
-        region = self.region.currentText()
-        subdivision = self.subdivision.currentText()
-        unite_data = STRUCTURE_UNITE["REGIONS"][region][subdivision][legion]
-        if isinstance(unite_data, list):
-            self.unite.addItems(unite_data)
-        else:
-            for cie, cie_units in unite_data.items():
-                self.unite.addItems(cie_units)
+        # Aucune action supplémentaire nécessaire ici
+        pass
 
     def submit_form(self):
         """
