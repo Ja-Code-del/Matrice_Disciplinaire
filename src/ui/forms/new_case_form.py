@@ -836,6 +836,7 @@ class NewCaseForm(QMainWindow):
     def on_unit_selected(self, unit_name):
         unit = get_unit_by_name(STRUCTURE_UNITE, unit_name)
         if unit:
+            self.update_unite(unit_name)
             self.update_region(unit.region)
             self.update_subdivision(unit.region, unit.subdivision)
             self.update_legion(unit.region, unit.subdivision, unit.legion)
@@ -867,6 +868,9 @@ class NewCaseForm(QMainWindow):
         legion_index = self.legion.findText(legion)
         if legion_index != -1:
             self.legion.setCurrentIndex(legion_index)
+
+    def update_unite(self, unit_name):
+        self.unite.setCurrentText(unit_name)
 
     def calculate_age(self, date_naissance, date_faits):
         try:
