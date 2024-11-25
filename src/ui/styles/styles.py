@@ -120,7 +120,7 @@ class Styles:
                 }}
                 QSpinBox::up-button, QSpinBox::down-button {{
                     width: 25px;
-                    background: {colors['surface']};
+                    background: {colors['primary']};
                     border-radius: 3px;
                 }}
                 QSpinBox::up-arrow {{
@@ -199,9 +199,11 @@ class Styles:
                 }}
                 QGroupBox::title {{
                     subcontrol-origin: margin;
+                    subcontrol-position: top left;
+                    padding: 15px;
+                    letter-spacing: 0.5px;
                     color: {colors['text']};
-                    font-size: 16px;
-                    font-weight: bold;
+                    font: bold 36px; "Helvetica Neue";
                 }}
             """,
 

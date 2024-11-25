@@ -64,9 +64,10 @@ class MainGendarmeApp(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
-        """Initialise l'interface utilisateur"""
+        """Initialise interface utilisateur"""
         self.setWindowTitle("Gestion des Gendarmes")
-        self.setMinimumSize(1200, 800)
+        self.setMinimumSize(800, 600)
+        self.resize(1024, 768)
 
         # Widget principal
         main_widget = QWidget()
@@ -74,7 +75,8 @@ class MainGendarmeApp(QMainWindow):
         layout = QVBoxLayout(main_widget)
 
         # Configuration de la barre de recherche avec logo
-        search_group = QGroupBox("Recherche")
+        search_group = QGroupBox("Rechercher")
+        search_group.setFont(QFont('Helvetica', 24, QFont.Weight.Bold))
         search_layout = QHBoxLayout()
         self.search_type = QComboBox()
         self.search_type.addItems(["Matricule (MLE)", "Nom"])
