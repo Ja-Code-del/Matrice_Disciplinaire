@@ -49,7 +49,7 @@ class NewCaseForm(QMainWindow):
 
         # Titre du formulaire
         title = QLabel("Nouveau Dossier Disciplinaire")
-        title.setFont(QFont('Helvetica', 24, QFont.Weight.Bold))
+        title.setFont(QFont('Helvetica', 36, QFont.Weight.Bold))
         title.setStyleSheet("color: #FFFFFF; margin-bottom: 20px;")
         layout.addWidget(title)
 
@@ -64,6 +64,10 @@ class NewCaseForm(QMainWindow):
         self.section1 = self.create_section("📝 Informations du Dossier", "Numéro, dates et détails administratifs")
         self.section3 = self.create_section("⚖️ Informations sur la Faute", "Nature et détails de la sanction")
         self.section2 = self.create_section("👤 Informations du Mis en Cause", "Identité et affectation du gendarme")
+
+        #Reglage initial : les deux autres fenêtres sont cachees
+        self.section2.setVisible(False)
+        self.section3.setVisible(False)
 
         sections_layout.addWidget(self.section1)
         sections_layout.addWidget(self.section3)
@@ -179,8 +183,8 @@ class NewCaseForm(QMainWindow):
 
     def update_navigation(self):
         self.prev_button.setVisible(self.current_section > 0)
-        self.next_button.setVisible(self.current_section < 1)
-        self.submit_button.setVisible(self.current_section == 1)
+        self.next_button.setVisible(self.current_section < 2)
+        self.submit_button.setVisible(self.current_section == 2)
 
     def switch_section(self, index):
         """
@@ -196,7 +200,7 @@ class NewCaseForm(QMainWindow):
 
             # Animation de la taille
             size_animation = QPropertyAnimation(section, b"maximumWidth")
-            size_animation.setDuration(1800)
+            size_animation.setDuration(900)
             size_animation.setEasingCurve(QEasingCurve.Type.InOutQuint)
 
             # Définir la taille en fonction de l'index de la section active
@@ -267,16 +271,25 @@ class NewCaseForm(QMainWindow):
             animation_group.start()
         QTimer.singleShot(1800, lambda: QApplication.restoreOverrideCursor())
 
+    def display_section(self, current_sect):
+        for i, section in enumerate([self.section1, self.section3, self.section2]):
+            if i == current_sect:
+                section.setVisible(True)
+            else:
+                section.setVisible(False)
+
     def next_section(self):
         if self.current_section < 2:
             self.current_section += 1
-            self.switch_section(self.current_section)
+            self.display_section(self.current_section)
+            #self.switch_section(self.current_section)
             self.update_navigation()
 
     def previous_section(self):
         if self.current_section > 0:
             self.current_section -= 1
-            self.switch_section(self.current_section)
+            self.display_section(self.current_section)
+            #self.switch_section(self.current_section)
             self.update_navigation()
 
     def create_case_info_section(self):

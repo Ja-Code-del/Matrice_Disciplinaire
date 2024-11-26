@@ -4,11 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="work on new_case_for update age">
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="important changes to make the import of data smooth and adapive wether e have huge datas to import or not. we use QThreads">
+      <change afterPath="$PROJECT_DIR$/src/database/auth_manager.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ui/windows/auth/login_window.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/import_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/import_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/styles/styles.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/styles/styles.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -31,12 +33,12 @@
     &quot;assignee&quot;: &quot;Ja-Code-del&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/Ja-Code-del/Matrice_Disciplinaire.git&quot;,
-    &quot;accountId&quot;: &quot;64d15a15-a1cb-470c-ada0-f04b4c897d5d&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/Ja-Code-del/Matrice_Disciplinaire",
+    "accountId": "0f54eb91-15e8-46c2-9245-04f83e7a4903"
   }
-}</component>
+}]]></component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
@@ -91,22 +93,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1727455479936</updated>
-    </task>
-    <task id="LOCAL-00006" summary="update">
-      <option name="closed" value="true" />
-      <created>1729867573779</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
-      <option name="project" value="LOCAL" />
-      <updated>1729867573779</updated>
-    </task>
-    <task id="LOCAL-00007" summary="update">
-      <option name="closed" value="true" />
-      <created>1729867584226</created>
-      <option name="number" value="00007" />
-      <option name="presentableId" value="LOCAL-00007" />
-      <option name="project" value="LOCAL" />
-      <updated>1729867584226</updated>
     </task>
     <task id="LOCAL-00008" summary="new window for stats. added a new folder to organize all this stuff">
       <option name="closed" value="true" />
@@ -484,12 +470,26 @@
       <option name="project" value="LOCAL" />
       <updated>1732288825674</updated>
     </task>
-    <option name="localTasksCounter" value="55" />
+    <task id="LOCAL-00055" summary="few changes on styles">
+      <option name="closed" value="true" />
+      <created>1732560199764</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
+      <option name="project" value="LOCAL" />
+      <updated>1732560199764</updated>
+    </task>
+    <task id="LOCAL-00056" summary="important changes to make the import of data smooth and adapive wether e have huge datas to import or not. we use QThreads">
+      <option name="closed" value="true" />
+      <created>1732560690539</created>
+      <option name="number" value="00056" />
+      <option name="presentableId" value="LOCAL-00056" />
+      <option name="project" value="LOCAL" />
+      <updated>1732560690539</updated>
+    </task>
+    <option name="localTasksCounter" value="57" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="edit_gendarme_form.py : corrected the bugs but nothing appears when I click on Recherche" />
-    <MESSAGE value="YOOOOOO Everyhting works we can now edit gendarme datas" />
     <MESSAGE value="OOk now we can modify the unit of a gendarme by just searching his unit" />
     <MESSAGE value="going to work on stats now. first version of all files. We got many TODO. There is lot of job here believe me" />
     <MESSAGE value="best config for stats data but not &quot;sexy&quot; enough" />
@@ -513,7 +513,9 @@
     <MESSAGE value="adding a new structure of gendarmes service to manage the new_case_form." />
     <MESSAGE value="work on new_case_for/submit_form. not achieved" />
     <MESSAGE value="work on new_case_for update age" />
-    <option name="LAST_COMMIT_MESSAGE" value="work on new_case_for update age" />
+    <MESSAGE value="few changes on styles" />
+    <MESSAGE value="important changes to make the import of data smooth and adapive wether e have huge datas to import or not. we use QThreads" />
+    <option name="LAST_COMMIT_MESSAGE" value="important changes to make the import of data smooth and adapive wether e have huge datas to import or not. we use QThreads" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
