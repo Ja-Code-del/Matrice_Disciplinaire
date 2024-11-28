@@ -1,9 +1,14 @@
 # src/ui/windows/auth/login_window.py
+import os
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QLineEdit, QPushButton, QMessageBox, QDialog,
                              QListWidget)
+
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
+
 from src.database.auth_manager import AuthManager
+from src.ui.widgets.welcome_widget import WelcomeWidget
 
 
 class LoginWindow(QMainWindow):
@@ -16,152 +21,184 @@ class LoginWindow(QMainWindow):
 
     def setup_ui(self):
         self.setWindowTitle("Configuration Admin" if self.is_first_run else "Connexion")
-        self.setFixedSize(400, 250)
+        self.setFixedSize(756, 567)
+
+        # # Chemins absolus pour les ressources
+        # base_dir = Path(__file__).resolve().parent.parent
+        # resources_dir = base_dir / "resources" / "icons"
+        #
+        # logo_path = str(resources_dir / "logo_user.png")
+        # user_path = str(resources_dir / "user.png")
+        # lock_path = str(resources_dir / "lock.png")
 
         self.setStyleSheet("""
-                    /* Général */
             QWidget {
-                background-color: #f4f4f4;
-                font-family: 'Arial', sans-serif;
+                background-color: #0f172a;
+                font-family: Helvetica, -apple-system, sans-serif;
                 font-size: 14px;
-                color: #333;
+                color: #e2e8f0;
             }
-            
-            /* QLineEdit - Style des champs de texte */
+
             QLineEdit {
-                background-color: #fff;
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                padding: 8px 12px;
-                font-size: 14px;
-                color: #333;
+                background-color: #1e293b;
+                border: 2px solid #334155;
+                border-radius: 6px;
+                padding: 8px 12px 8px 36px;
+                color: #e2e8f0;
+                min-height: 24px;
             }
-            
-            /* Focus sur QLineEdit */
+
             QLineEdit:focus {
-                border: 1px solid #0078d4;
-                box-shadow: 0 0 5px rgba(0, 120, 212, 0.5);
-                background-color: #f9f9f9;
+                border-color: #3b82f6;
+                background-color: #1e293b;
+                outline: 2px solid #1d4ed8;
             }
-            
-            /* QPushButton */
+
             QPushButton {
-                background-color: #0078d4;
+                background-color: #3b82f6;
                 border: none;
-                border-radius: 8px;
+                border-radius: 6px;
                 color: white;
                 padding: 8px 16px;
-                font-size: 14px;
-                font-weight: bold;
+                font-weight: 600;
+                min-height: 40px;
             }
-            
+
             QPushButton:hover {
-                background-color: #005bb5;
+                background-color: #2563eb;
             }
-            
+
             QPushButton:pressed {
-                background-color: #004b99;
-                border: 1px solid #003e80;
+                background-color: #1d4ed8;
             }
-            
-            /* QLabel */
+
+            QPushButton#request_account_button {
+                background-color: transparent;
+                border: 2px solid #3b82f6;
+                color: #3b82f6;
+            }
+
+            QPushButton#request_account_button:hover {
+                background-color: #1e293b;
+            }
+
             QLabel {
-                font-size: 14px;
-                color: #444;
+                color: #94a3b8;
+                font-weight: 500;
             }
-            
-            /* QMessageBox */
+
             QMessageBox {
-                background-color: #fff;
-                border-radius: 10px;
-            }
-            
-            /* Scrollbars */
-            QScrollBar:vertical {
-                border: none;
-                background: #eaeaea;
-                width: 8px;
-                margin: 0px 0px 0px 0px;
-            }
-            
-            QScrollBar::handle:vertical {
-                background: #0078d4;
-                border-radius: 4px;
-            }
-            
-            QScrollBar::handle:vertical:hover {
-                background: #005bb5;
-            }
-            
-            QScrollBar::handle:vertical:pressed {
-                background: #004b99;
+                background-color: #1e293b;
+                border-radius: 8px;
             }
         """)
 
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout()
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(12)
 
-        # Message d'accueil
+        # Logo
+        logo_label = QLabel()
+        logo_label.setPixmap(QPixmap("../resources/icons/logo_user.png").scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio,
+                                                       Qt.TransformationMode.SmoothTransformation))
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(logo_label)
+
+        # Welcome text
         welcome_text = ("Bienvenue ! Veuillez créer le compte administrateur."
                         if self.is_first_run else "Veuillez vous connecter")
         welcome_label = QLabel(welcome_text)
+        welcome_label.setStyleSheet("font-size: 18px; font-weight: 600; color: #e2e8f0; margin: 16px 0;")
         welcome_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(welcome_label)
 
-        # Champs de connexion
+        # Username field avec icône intégrée
         self.username_label = QLabel("Nom d'utilisateur:")
         self.username_input = QLineEdit()
+        self.username_input.setPlaceholderText("Entrez votre nom d'utilisateur")
 
+        username_icon = QLabel(self.username_input)
+        username_icon.setPixmap(QPixmap("../resources/icons/user.png").scaled(16, 16, Qt.AspectRatioMode.KeepAspectRatio,
+                                                          Qt.TransformationMode.SmoothTransformation))
+        username_icon.setStyleSheet("background: transparent;")
+        username_icon.move(10, 6)  # Position de l'icône dans le QLineEdit
+
+        # Password field avec icône intégrée
         self.password_label = QLabel("Mot de passe:")
         self.password_input = QLineEdit()
+        self.password_input.setPlaceholderText("Entrez votre mot de passe")
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
 
-        # Boutons
+        password_icon = QLabel(self.password_input)
+        password_icon.setPixmap(QPixmap("../resources/icons/lock.png").scaled(16, 16, Qt.AspectRatioMode.KeepAspectRatio,
+                                                          Qt.TransformationMode.SmoothTransformation))
+        password_icon.setStyleSheet("background: transparent; text-align: center;")
+        password_icon.move(10, 6)  # Position de l'icône dans le QLineEdit
+
+        # Layout des boutons
         button_layout = QHBoxLayout()
+        button_layout.setSpacing(12)
+
         self.login_button = QPushButton("Créer Admin" if self.is_first_run else "Se connecter")
         self.login_button.clicked.connect(self.handle_login)
 
         if not self.is_first_run:
             self.request_account_button = QPushButton("Demander un compte")
+            self.request_account_button.setObjectName("request_account_button")
             self.request_account_button.clicked.connect(self.show_request_account_dialog)
             button_layout.addWidget(self.request_account_button)
 
         button_layout.addWidget(self.login_button)
 
-        # Ajout des widgets au layout
+        # Ajout des widgets au layout principal
         layout.addWidget(self.username_label)
         layout.addWidget(self.username_input)
         layout.addWidget(self.password_label)
         layout.addWidget(self.password_input)
+        layout.addSpacing(8)
         layout.addLayout(button_layout)
 
         central_widget.setLayout(layout)
 
     def handle_login(self):
-        username = self.username_input.text()
+        username = self.username_input.text().strip()
         password = self.password_input.text()
+
+        if not username or not password:
+            QMessageBox.warning(self, "Erreur", "Veuillez remplir tous les champs")
+            return
 
         if self.is_first_run:
             success, message = self.auth_manager.create_admin(username, password)
             if success:
-                QMessageBox.information(self, "Succès", "Compte administrateur créé avec succès")
-                self.main_app.show()
+                welcome = WelcomeWidget(username)
+                welcome.show()
+                if self.main_app:
+                    self.main_app.username = username  # Set username
+                    self.main_app.update_username(username)
+                    self.main_app.show()
                 self.close()
             else:
                 QMessageBox.warning(self, "Erreur", message)
         else:
             success, user_info = self.auth_manager.verify_credentials(username, password)
-            try:
-                if success:
-                    if user_info["role"] == "admin":
-                        self.show_admin_panel(user_info)
+            if success:
+                welcome = WelcomeWidget(user_info['username'])
+                welcome.show()
+                if user_info["role"] == "admin":
+                    # Vérifier s'il y a des demandes en attente
+                    pending_requests = self.auth_manager.get_pending_requests()
+                    if pending_requests:  # N'ouvre le panneau que s'il y a des demandes
+                        admin_panel = AdminPanel(self.auth_manager, user_info)
+                        admin_panel.exec()
+                if self.main_app:
+                    self.main_app.update_username(user_info['username'])  # Utilise la nouvelle méthode
                     self.main_app.show()
-                    self.close()
-                else:
-                    QMessageBox.warning(self, "Erreur", "Identifiants incorrects")
-            except Exception as e:
-                QMessageBox.critical(self, "Erreur", f"Une erreur est survenue : {str(e)}")
+                self.close()
+            else:
+                QMessageBox.warning(self, "Erreur", "Identifiants incorrects")
 
     def show_request_account_dialog(self):
         dialog = RequestAccountDialog(self)
@@ -180,7 +217,7 @@ class RequestAccountDialog(QDialog):
 
     def setup_ui(self):
         self.setWindowTitle("Demande de compte")
-        self.setFixedSize(300, 200)
+        self.setFixedSize(320, 240)
 
         layout = QVBoxLayout()
 

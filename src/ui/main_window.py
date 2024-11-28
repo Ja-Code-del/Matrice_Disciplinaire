@@ -15,13 +15,15 @@ from src.database.models import GendarmeRepository, SanctionRepository
 from src.ui.windows.import_etat_window import ImportEtatCompletWindow
 from src.ui.forms.edit_gendarme_form import SearchMatriculeDialog, EditCaseForm
 from .handlers.stats_handler import StatsHandler
+from src.ui.widgets.user_info_widget import UserInfoWidget
 
 
 class MainGendarmeApp(QMainWindow):
-    def __init__(self):
+    def __init__(self, username=None):
         super().__init__()
 
         # Initialisation des attributs
+        self.username = username
         self.search_type = None
         self.logo_label = QLabel()
         self.sanctions_table = None
@@ -66,13 +68,20 @@ class MainGendarmeApp(QMainWindow):
     def init_ui(self):
         """Initialise interface utilisateur"""
         self.setWindowTitle("Gestion des Gendarmes")
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(1000, 750)
         self.resize(1024, 768)
 
         # Widget principal
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
+
+        if self.username:
+            header_layout = QHBoxLayout()
+            user_info = UserInfoWidget(self.username)
+            header_layout.addStretch()  # Pour pousser le widget vers la droite
+            header_layout.addWidget(user_info)
+            layout.addLayout(header_layout)
 
         # Configuration de la barre de recherche avec logo
         search_group = QGroupBox("Rechercher")
@@ -234,6 +243,26 @@ class MainGendarmeApp(QMainWindow):
 
         self.statusBar().showMessage("Prêt")
         self.apply_theme()
+
+    def update_username(self, new_username):
+        self.username = new_username
+        # Met à jour uniquement la partie username de l'interface
+        central_widget = self.centralWidget()
+        main_layout = central_widget.layout()
+
+        if hasattr(self, 'user_info_layout'):
+            # Supprime l'ancien widget username s'il existe
+            for i in reversed(range(self.user_info_layout.count())):
+                self.user_info_layout.itemAt(i).widget().setParent(None)
+        else:
+            # Crée le layout pour le username s'il n'existe pas
+            self.user_info_layout = QHBoxLayout()
+            main_layout.insertLayout(0, self.user_info_layout)
+
+        # Ajoute le nouveau widget username
+        user_info = UserInfoWidget(self.username)
+        self.user_info_layout.addStretch()
+        self.user_info_layout.addWidget(user_info)
 
     def search_gendarme(self):
         """Recherche un gendarme selon le critère sélectionné"""

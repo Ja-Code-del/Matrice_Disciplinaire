@@ -1,9 +1,9 @@
 # src/database/auth_manager.py
+
 import sqlite3
 import hashlib
 import os
 import json
-from typing import TextIO
 
 
 class AuthManager:
@@ -14,12 +14,14 @@ class AuthManager:
         self.check_first_run()
 
     def init_db(self):
+        """Initialise la base de données avec les tables nécessaires"""
         if not os.path.exists(os.path.dirname(self.db_path)):
             os.makedirs(os.path.dirname(self.db_path))
 
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
+        # Création de la table users avec la colonne approved_by
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,6 +33,7 @@ class AuthManager:
             )
         ''')
 
+        # Création de la table pending_users
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS pending_users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,7 +47,7 @@ class AuthManager:
         conn.close()
 
     def check_first_run(self):
-        """Vérifie si c'est la première exécution du système"""
+        """Vérifie si c'est la première exécution"""
         if not os.path.exists(self.config_path):
             config = {"first_run": True}
             with open(self.config_path, 'w') as f:
@@ -62,10 +65,11 @@ class AuthManager:
             json.dump(config, f)
 
     def hash_password(self, password):
+        """Hash le mot de passe avec SHA-256"""
         return hashlib.sha256(password.encode()).hexdigest()
 
     def create_admin(self, username, password):
-        """Crée le compte admin initial"""
+        """Crée le compte administrateur initial"""
         if not self.check_first_run():
             return False, "Un administrateur existe déjà"
 
@@ -87,8 +91,27 @@ class AuthManager:
         finally:
             conn.close()
 
+    def verify_credentials(self, username, password):
+        """Vérifie les identifiants de connexion"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        password_hash = self.hash_password(password)
+
+        cursor.execute(
+            "SELECT id, username, role FROM users WHERE username=? AND password_hash=?",
+            (username, password_hash)
+        )
+
+        user = cursor.fetchone()
+        conn.close()
+
+        if user:
+            return True, {"id": user[0], "username": user[1], "role": user[2]}
+        return False, None
+
     def request_account(self, username, password):
-        """Crée une demande de compte en attente d'approbation"""
+        """Crée une demande de compte"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
@@ -118,50 +141,48 @@ class AuthManager:
         return requests
 
     def approve_user(self, request_id, admin_id):
-        """Approuve une demande de compte utilisateur"""
+        """Approuve une demande de compte"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
         try:
-            # Récupérer les informations de la demande
-            cursor.execute("SELECT username, password_hash FROM pending_users WHERE id = ?", (request_id,))
+            cursor.execute(
+                "SELECT username, password_hash FROM pending_users WHERE id = ?",
+                (request_id,)
+            )
             user_info = cursor.fetchone()
 
             if user_info:
-                # Créer le compte utilisateur
                 cursor.execute(
                     "INSERT INTO users (username, password_hash, role, approved_by) VALUES (?, ?, 'user', ?)",
                     (user_info[0], user_info[1], admin_id)
                 )
 
-                # Supprimer la demande
                 cursor.execute("DELETE FROM pending_users WHERE id = ?", (request_id,))
 
                 conn.commit()
                 return True, "Compte utilisateur approuvé"
             return False, "Demande non trouvée"
-        except sqlite3.Error:
-            return False, "Erreur lors de l'approbation"
+
+        except sqlite3.IntegrityError:
+            return False, "Nom d'utilisateur déjà existant"
+        except sqlite3.Error as e:
+            return False, f"Erreur lors de l'approbation: {str(e)}"
         finally:
             conn.close()
 
-    def verify_credentials(self, username, password):
-        """Vérifie les identifiants et retourne les informations de l'utilisateur"""
+    def reject_user(self, request_id):
+        """Rejette une demande de compte"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        password_hash = self.hash_password(password)
-
-        cursor.execute(
-            "SELECT id, username, role FROM users WHERE username=? AND password_hash=?",
-            (username, password_hash)
-        )
-
-        user = cursor.fetchone()
-        conn.close()
-
-        if user:
-            return True, {"id": user[0], "username": user[1], "role": user[2]}
-        return False, None
+        try:
+            cursor.execute("DELETE FROM pending_users WHERE id = ?", (request_id,))
+            conn.commit()
+            return True
+        except sqlite3.Error:
+            return False
+        finally:
+            conn.close()
 
 
