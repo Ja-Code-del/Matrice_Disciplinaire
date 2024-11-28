@@ -4,13 +4,15 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="important changes to make the import of data smooth and adapive wether e have huge datas to import or not. we use QThreads">
-      <change afterPath="$PROJECT_DIR$/src/database/auth_manager.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/ui/windows/auth/login_window.py" afterDir="false" />
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="New file to record users data">
+      <change afterPath="$PROJECT_DIR$/src/ui/widgets/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ui/widgets/user_info_widget.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ui/widgets/welcome_widget.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/import_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/import_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/database/auth_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/auth_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/auth/login_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/auth/login_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/import_etat_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/import_etat_window.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -33,12 +35,12 @@
     &quot;assignee&quot;: &quot;Ja-Code-del&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/Ja-Code-del/Matrice_Disciplinaire",
-    "accountId": "0f54eb91-15e8-46c2-9245-04f83e7a4903"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Ja-Code-del/Matrice_Disciplinaire&quot;,
+    &quot;accountId&quot;: &quot;0f54eb91-15e8-46c2-9245-04f83e7a4903&quot;
   }
-}]]></component>
+}</component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
@@ -54,25 +56,25 @@
     <option name="showLibraryContents" value="true" />
     <option name="sortKey" value="BY_TIME_DESCENDING" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.gendarme-app-import-2.executor": "Run",
-    "Python.gendarme-app-import-5.executor": "Run",
-    "Python.gendarme-app-import.executor": "Run",
-    "Python.import_window.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.main_window.executor": "Run",
-    "Python.scratch.executor": "Run",
-    "Python.styles.executor": "Run",
-    "Python.test.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "/Users/bretwalda/PycharmProjects/Matrice_Disciplinaire/src/data/gendarmerie",
-    "run.code.analysis.last.selected.profile": "pProject Default",
-    "settings.editor.selected.configurable": "preferences.lookFeel"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.gendarme-app-import-2.executor&quot;: &quot;Run&quot;,
+    &quot;Python.gendarme-app-import-5.executor&quot;: &quot;Run&quot;,
+    &quot;Python.gendarme-app-import.executor&quot;: &quot;Run&quot;,
+    &quot;Python.import_window.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main_window.executor&quot;: &quot;Run&quot;,
+    &quot;Python.scratch.executor&quot;: &quot;Run&quot;,
+    &quot;Python.styles.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/bretwalda/PycharmProjects/Matrice_Disciplinaire/src/data/gendarmerie&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/data/gendarmerie" />
@@ -93,38 +95,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1727455479936</updated>
-    </task>
-    <task id="LOCAL-00008" summary="new window for stats. added a new folder to organize all this stuff">
-      <option name="closed" value="true" />
-      <created>1729871484086</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
-      <option name="project" value="LOCAL" />
-      <updated>1729871484086</updated>
-    </task>
-    <task id="LOCAL-00009" summary="Work on style of main_window principally">
-      <option name="closed" value="true" />
-      <created>1730070271258</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1730070271258</updated>
-    </task>
-    <task id="LOCAL-00010" summary="Work on style of main_window deleted old code put in comment">
-      <option name="closed" value="true" />
-      <created>1730070428675</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1730070428675</updated>
-    </task>
-    <task id="LOCAL-00011" summary="Main_window : date des faits no : date &#10;stats_window: worked on total list of punished&#10;and finally added the punis_list.py file to handle it">
-      <option name="closed" value="true" />
-      <created>1730096412122</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1730096412122</updated>
     </task>
     <task id="LOCAL-00012" summary="Main_window : update to handle new button : import Soff complete excel files. new button to write forms now diretcly into the app">
       <option name="closed" value="true" />
@@ -486,14 +456,42 @@
       <option name="project" value="LOCAL" />
       <updated>1732560690539</updated>
     </task>
-    <option name="localTasksCounter" value="57" />
+    <task id="LOCAL-00057" summary="Changes to add Login">
+      <option name="closed" value="true" />
+      <created>1732581539611</created>
+      <option name="number" value="00057" />
+      <option name="presentableId" value="LOCAL-00057" />
+      <option name="project" value="LOCAL" />
+      <updated>1732581539611</updated>
+    </task>
+    <task id="LOCAL-00058" summary="changes on the way I display the windows of the forms">
+      <option name="closed" value="true" />
+      <created>1732581622825</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1732581622825</updated>
+    </task>
+    <task id="LOCAL-00059" summary="try to fix the problem with the progress bar">
+      <option name="closed" value="true" />
+      <created>1732581663308</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1732581663308</updated>
+    </task>
+    <task id="LOCAL-00060" summary="New file to record users data">
+      <option name="closed" value="true" />
+      <created>1732581697170</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1732581697170</updated>
+    </task>
+    <option name="localTasksCounter" value="61" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="OOk now we can modify the unit of a gendarme by just searching his unit" />
-    <MESSAGE value="going to work on stats now. first version of all files. We got many TODO. There is lot of job here believe me" />
-    <MESSAGE value="best config for stats data but not &quot;sexy&quot; enough" />
-    <MESSAGE value="YOOOOO MY STATS ARE ON FIRE" />
     <MESSAGE value="Diagrams improvements with seaborn" />
     <MESSAGE value="improvements on charts selection. but computing is not accurate yet" />
     <MESSAGE value="Big bug on 'liste exhaustive' solved. I think Stats can work properly now" />
@@ -515,7 +513,11 @@
     <MESSAGE value="work on new_case_for update age" />
     <MESSAGE value="few changes on styles" />
     <MESSAGE value="important changes to make the import of data smooth and adapive wether e have huge datas to import or not. we use QThreads" />
-    <option name="LAST_COMMIT_MESSAGE" value="important changes to make the import of data smooth and adapive wether e have huge datas to import or not. we use QThreads" />
+    <MESSAGE value="Changes to add Login" />
+    <MESSAGE value="changes on the way I display the windows of the forms" />
+    <MESSAGE value="try to fix the problem with the progress bar" />
+    <MESSAGE value="New file to record users data" />
+    <option name="LAST_COMMIT_MESSAGE" value="New file to record users data" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

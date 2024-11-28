@@ -101,9 +101,9 @@ class ImportEtatCompletWindow(QMainWindow):
                             str(row['NOM']),
                             str(row['PRENOMS']),
                             str(row['MATRICULE']),
-                            pd.to_datetime(row['DATE DE NAISSANCE']) if pd.notna(row['DATE DE NAISSANCE']) else None,
+                            pd.to_datetime(row['DATE DE NAISSANCE']).strftime('%d/%m/%Y') if pd.notna(row['DATE DE NAISSANCE']) else None,
                             str(row['LIEU DE NAISSANCE']),
-                            pd.to_datetime(row['DATE ENTREE GIE']) if pd.notna(row['DATE ENTREE GIE']) else None,
+                            pd.to_datetime(row['DATE ENTREE GIE']).strftime('%d/%m/%Y') if pd.notna(row['DATE ENTREE GIE']) else None,
                             str(row['SEXE'])
                         ))
                         success_count += 1
