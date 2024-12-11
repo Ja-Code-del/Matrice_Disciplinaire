@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QFrame, QPushButton, QScrollArea, QGraphicsOpacityEffect, QApplication, QLineEdit,
                              QFormLayout, QComboBox, QSpinBox, QDateEdit, QMessageBox)
-from PyQt6.QtCore import Qt, QDate, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QTimer, QSize
+from PyQt6.QtCore import Qt, QDate, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QTimer, QSize, pyqtSignal
 from PyQt6.QtGui import QFont, QColor, QIcon
 
 from src.data.gendarmerie import STRUCTURE_UNITE
@@ -12,6 +12,7 @@ from src.data.gendarmerie.structure import (get_all_unit_names, get_unit_by_name
                                             get_all_legions, Unit)
 from src.ui.styles.styles import Styles  # On va ajouter des styles dédiés
 from src.ui.forms.unit_search_dialog import UnitSearchDialog
+from src.ui.windows.statistics import StatistiquesWindow
 
 
 class NewCaseForm(QMainWindow):
@@ -24,6 +25,7 @@ class NewCaseForm(QMainWindow):
                     db_manager: Instance du gestionnaire de base de données
                 """
         super().__init__()
+        self.case_added = pyqtSignal()
         self.db_manager = db_manager
         self.setWindowTitle("Page enregistrement de dossier")
         self.setMinimumSize(1200, 800)
@@ -658,7 +660,7 @@ class NewCaseForm(QMainWindow):
 
     def update_age(self, date_naissance):
         try:
-            birth_date = datetime.strptime(date_naissance, "%d-%m-%Y").date()
+            birth_date = datetime.strptime(date_naissance, "%d/%m/%Y").date()
             faits_date = self.date_faits.date().toPyDate()
             age = relativedelta(faits_date, birth_date)
             self.age.setValue(age.years)
@@ -668,13 +670,9 @@ class NewCaseForm(QMainWindow):
 
     def update_years_of_service(self, date_entree_gie):
         try:
-            entree_date = datetime.strptime(date_entree_gie, "%d-%m-%Y").date()
+            entree_date = datetime.strptime(date_entree_gie, "%d/%m/%Y").date()
             faits_date = self.date_faits.date().toPyDate()
             years_of_service = relativedelta(faits_date, entree_date)
-            # years_of_service = faits_date.year - entree_date.year
-            # if faits_date.month < entree_date.month or (
-            #         faits_date.month == entree_date.month and faits_date.day < entree_date.day):
-            #     years_of_service -= 1
             self.annee_service.setValue(years_of_service.years if years_of_service else 0)
         except Exception as e:
             print(f"Erreur lors du calcul des années de service : {str(e)}")
@@ -929,58 +927,45 @@ class NewCaseForm(QMainWindow):
         pass
 
     def submit_form(self):
-        """
-        Enregistre toutes les données du formulaire dans la base de données
-        """
+        """Enregistre les données du formulaire dans la base de données"""
         try:
-            # Validation des champs obligatoires
             if not self.validate_form():
                 return
 
-            # Récupération des données du formulaire
             form_data = {
-                # Section Info Dossier
                 'numero_dossier': self.num_dossier.text(),
                 'annee_punition': int(self.annee_punition.text()),
-                'date_enr': self.date_enr.date().toString("%d-%m-%Y"),
+                'date_enr': self.date_enr.date().toString("dd/MM/yyyy"),
                 'numero_ordre': int(self.num_enr.text()),
-
-                # Section Info Mis en cause
                 'matricule': int(self.matricule.text()),
                 'mle': self.matricule.text(),
-                'nom_prenoms': self.nom.text() + " " + self.prenoms.text(),
+                'nom_prenoms': f"{self.nom.text()} {self.prenoms.text()}",
                 'grade': self.grade.currentText(),
                 'date_naissance': self.date_naissance.text(),
                 'age': self.age.value(),
                 'sexe': self.sexe.currentText(),
-
-                'region': self.region.currentText(),
+                'regions': self.region.currentText(),
                 'subdiv': self.subdivision.currentText(),
-                'legion': self.legion.currentText(),
+                'legions': self.legion.currentText(),
                 'unite': self.unite.currentText(),
-
-                'date_entree_gie': self.date_entree_gie.text() if self.date_entree_gie.text() else '1900-01-01',
+                'date_entree_gie': self.date_entree_gie.text() or '01/01/1900',
                 'annee_service': self.annee_service.value(),
                 'situation_matrimoniale': self.situation_matrimoniale.currentText(),
                 'nb_enfants': self.nb_enfants.value(),
-
-                # Section Info Faute
-                'date_faits': self.date_faits.date().toString("%d-%m-%Y"),
+                'date_faits': self.date_faits.date().toString("dd/MM/yyyy"),
                 'faute_commise': self.faute_commise.currentText(),
                 'categorie': self.categorie.text(),
                 'statut': self.statut.currentText(),
-                'reference_statut': self.ref_statut.text() if self.statut.currentText() == "RADIE" else "NEANT",
+                'reference_statut': self.ref_statut.text(),
                 'taux_jar': self.taux_jar.value(),
                 'comite': int(self.comite.text()),
                 'annee_faits': int(self.annee_faits.text()),
                 'numero_decision': self.num_decision.text() if self.statut.currentText() == "RADIE" else "NEANT"
             }
 
-            # Sauvegarde dans la base de données
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
 
-                # Vérification de l'existence du numéro de dossier
                 cursor.execute("SELECT COUNT(*) FROM sanctions WHERE numero_dossier = ?",
                                (form_data['numero_dossier'],))
                 if cursor.fetchone()[0] > 0:
@@ -988,16 +973,14 @@ class NewCaseForm(QMainWindow):
                                         f"Le numéro de dossier {form_data['numero_dossier']} existe déjà.")
                     return
 
-                # Insertion dans la table sanctions
                 cursor.execute("""
                     INSERT INTO sanctions (
-                        numero_dossier, numero_decision, annee_punition, date_enr,
-                        numero_ordre, matricule, date_faits, faute_commise, categorie,
-                        statut, reference_statut, taux_jar, comite, annee_faits
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        numero_dossier, annee_punition, numero_ordre, date_enr,
+                        matricule, faute_commise, date_faits, categorie,
+                        statut, reference_statut, taux_jar, comite, annee_faits, 'numero_decision'
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     form_data['numero_dossier'],
-                    form_data['numero_decision'],
                     form_data['annee_punition'],
                     form_data['date_enr'],
                     form_data['numero_ordre'],
@@ -1006,17 +989,17 @@ class NewCaseForm(QMainWindow):
                     form_data['faute_commise'],
                     form_data['categorie'],
                     form_data['statut'],
-                    form_data['ref_statut'],
+                    form_data['reference_statut'],
                     form_data['taux_jar'],
                     form_data['comite'],
-                    form_data['annee_faits']
+                    form_data['annee_faits'],
+                    form_data['numero_decision']
                 ))
 
-                #Insertion dans la table gendarmes
                 cursor.execute("""
                     INSERT INTO gendarmes (
-                        mle, nom_prenoms, grade, age, date_naissance, unite, legion, subdiv,
-                        region, date_entree_gie, annee_service, situation_matrimoniale,
+                        mle, nom_prenoms, grade, age, date_naissance, unite, legions, subdiv,
+                        regions, date_entree_gie, annee_service, situation_matrimoniale,
                         nb_enfants
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
@@ -1026,9 +1009,9 @@ class NewCaseForm(QMainWindow):
                     form_data['age'],
                     form_data['date_naissance'],
                     form_data['unite'],
-                    form_data['legion'],
+                    form_data['legions'],
                     form_data['subdiv'],
-                    form_data['region'],
+                    form_data['regions'],
                     form_data['date_entree_gie'],
                     form_data['annee_service'],
                     form_data['situation_matrimoniale'],
@@ -1037,12 +1020,18 @@ class NewCaseForm(QMainWindow):
 
                 conn.commit()
 
-                QMessageBox.information(self, "Succès", "Dossier enregistré avec succès!")
-                self.close()
+            QMessageBox.information(self, "Succès", "Dossier enregistré avec succès!")
+            self.case_added.emit()  # Émettre le signal
+            self.close()
 
         except Exception as e:
             QMessageBox.critical(self, "Erreur", f"Erreur lors de l'enregistrement : {str(e)}")
             print(f"Erreur détaillée : {str(e)}")
+
+    def show_new_case_form(self):
+        form = NewCaseForm(self.db_manager)
+        form.case_added.connect(StatistiquesWindow.update_trends)  # Connexion du signal
+        form.show()
 
     def validate_form(self):
         """

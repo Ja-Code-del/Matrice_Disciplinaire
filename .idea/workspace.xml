@@ -4,15 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="New file to record users data">
-      <change afterPath="$PROJECT_DIR$/src/ui/widgets/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/ui/widgets/user_info_widget.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/ui/widgets/welcome_widget.py" afterDir="false" />
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="new icons">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/database/auth_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/auth_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/widgets/welcome_widget.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/widgets/welcome_widget.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/windows/auth/login_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/auth/login_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/windows/import_etat_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/import_etat_window.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -64,6 +62,7 @@
     &quot;Python.import_window.executor&quot;: &quot;Run&quot;,
     &quot;Python.main.executor&quot;: &quot;Run&quot;,
     &quot;Python.main_window.executor&quot;: &quot;Run&quot;,
+    &quot;Python.new_case_form.executor&quot;: &quot;Debug&quot;,
     &quot;Python.scratch.executor&quot;: &quot;Run&quot;,
     &quot;Python.styles.executor&quot;: &quot;Run&quot;,
     &quot;Python.test.executor&quot;: &quot;Run&quot;,
@@ -95,30 +94,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1727455479936</updated>
-    </task>
-    <task id="LOCAL-00012" summary="Main_window : update to handle new button : import Soff complete excel files. new button to write forms now diretcly into the app">
-      <option name="closed" value="true" />
-      <created>1730161992865</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1730161992865</updated>
-    </task>
-    <task id="LOCAL-00013" summary="new files to manage forms and complete gendarmes datas">
-      <option name="closed" value="true" />
-      <created>1730162045338</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1730162045338</updated>
-    </task>
-    <task id="LOCAL-00014" summary="first of form section done">
-      <option name="closed" value="true" />
-      <created>1730202936668</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1730202936668</updated>
     </task>
     <task id="LOCAL-00015" summary="WORKED ON FIRST FORM SECTION NOW SATISFIED; The field was too short">
       <option name="closed" value="true" />
@@ -488,17 +463,38 @@
       <option name="project" value="LOCAL" />
       <updated>1732581697170</updated>
     </task>
-    <option name="localTasksCounter" value="61" />
+    <task id="LOCAL-00061" summary="Added a welcome widget.">
+      <option name="closed" value="true" />
+      <created>1732818240908</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1732818240908</updated>
+    </task>
+    <task id="LOCAL-00062" summary="worked on dates">
+      <option name="closed" value="true" />
+      <created>1732818299447</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1732818299447</updated>
+    </task>
+    <task id="LOCAL-00063" summary="new icons">
+      <option name="closed" value="true" />
+      <created>1732818339966</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1732818339966</updated>
+    </task>
+    <option name="localTasksCounter" value="64" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Diagrams improvements with seaborn" />
-    <MESSAGE value="improvements on charts selection. but computing is not accurate yet" />
     <MESSAGE value="Big bug on 'liste exhaustive' solved. I think Stats can work properly now" />
     <MESSAGE value="fired gendarmes info are now colored in red in 'liste exhaustive' Statistics menu" />
     <MESSAGE value="NOW EVERYTHING IS OK WITH LIST_EXHAUSTIVE (next update : add tooltip on each line so that the reason of punishment would diplay" />
     <MESSAGE value="Liste exhaustive has now styled export button. tried to had animation but will make it after" />
-    <MESSAGE value="new icons" />
     <MESSAGE value="TOTAL was 175 rather than 171. now its fixed. and 'count' error is fixed. TODO: fix the subject choice error" />
     <MESSAGE value="Worked on grouped bar graphic. not achieved" />
     <MESSAGE value="work on bar grouped with 'tranche annee_service/subdivisions' sujet: Non-respect des consignes" />
@@ -517,7 +513,10 @@
     <MESSAGE value="changes on the way I display the windows of the forms" />
     <MESSAGE value="try to fix the problem with the progress bar" />
     <MESSAGE value="New file to record users data" />
-    <option name="LAST_COMMIT_MESSAGE" value="New file to record users data" />
+    <MESSAGE value="Added a welcome widget." />
+    <MESSAGE value="worked on dates" />
+    <MESSAGE value="new icons" />
+    <option name="LAST_COMMIT_MESSAGE" value="new icons" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

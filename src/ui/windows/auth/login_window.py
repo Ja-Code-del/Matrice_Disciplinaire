@@ -2,7 +2,7 @@
 import os
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QLineEdit, QPushButton, QMessageBox, QDialog,
-                             QListWidget)
+                             QListWidget, QComboBox)
 
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
@@ -294,11 +294,21 @@ class AdminPanel(QDialog):
 
     def approve_selected(self):
         current_item = self.requests_list.currentItem()
-        if current_item:
-            request_id = int(current_item.text().split('-')[0].replace('ID:', '').strip())
-            success, message = self.auth_manager.approve_user(request_id, self.admin_info["id"])
+        if not current_item:
+            QMessageBox.warning(self, "Erreur", "Veuillez sélectionner une demande")
+            return
+
+        request_id = int(current_item.text().split('-')[0].replace('ID:', '').strip())
+        username = current_item.text().split('-')[1].strip().split(':')[1].strip()
+
+        # Ouvrir le dialogue de sélection de rôle
+        role_dialog = RoleSelectionDialog(username, self)
+        if role_dialog.exec():
+            selected_role = role_dialog.selected_role
+            success, message = self.auth_manager.approve_user(request_id, self.admin_info["id"], role=selected_role)
+
             if success:
-                QMessageBox.information(self, "Succès", "Compte approuvé")
+                QMessageBox.information(self, "Succès", f"Compte approuvé avec le rôle: {selected_role}")
                 self.load_pending_requests()
             else:
                 QMessageBox.warning(self, "Erreur", message)
@@ -314,3 +324,45 @@ class AdminPanel(QDialog):
                 self.load_pending_requests()
             else:
                 QMessageBox.warning(self, "Erreur", "Erreur lors du rejet de la demande")
+
+
+class RoleSelectionDialog(QDialog):
+    def __init__(self, username, parent=None):
+        super().__init__(parent)
+        self.username = username
+        self.selected_role = None
+        self.init_ui()
+
+    def init_ui(self):
+        self.setWindowTitle("Sélection du rôle")
+        self.setFixedSize(300, 150)
+
+        layout = QVBoxLayout()
+
+        # Label informatif
+        info_label = QLabel(f"Sélectionner le rôle pour l'utilisateur: {self.username}")
+        info_label.setWordWrap(True)
+        layout.addWidget(info_label)
+
+        # Combo box pour la sélection du rôle
+        self.role_combo = QComboBox()
+        self.role_combo.addItems(["membre", "admin"])
+        layout.addWidget(self.role_combo)
+
+        # Boutons
+        button_layout = QHBoxLayout()
+        confirm_button = QPushButton("Confirmer")
+        cancel_button = QPushButton("Annuler")
+
+        confirm_button.clicked.connect(self.accept_role)
+        cancel_button.clicked.connect(self.reject)
+
+        button_layout.addWidget(confirm_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+
+        self.setLayout(layout)
+
+    def accept_role(self):
+        self.selected_role = self.role_combo.currentText()
+        self.accept()

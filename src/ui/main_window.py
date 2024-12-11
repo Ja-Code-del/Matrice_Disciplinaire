@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLineEdit, QPushButton, QLabel,
                              QTableWidget, QTableWidgetItem, QTabWidget,
                              QComboBox, QGroupBox, QGridLayout, QMessageBox,
-                             QHeaderView, QDialog, QToolBar, QFileDialog, QDockWidget, QSizePolicy)
+                             QHeaderView, QDialog, QToolBar, QFileDialog, QDockWidget, QSizePolicy, QFrame)
 
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QAction
@@ -76,12 +76,12 @@ class MainGendarmeApp(QMainWindow):
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
 
-        if self.username:
-            header_layout = QHBoxLayout()
-            user_info = UserInfoWidget(self.username)
-            header_layout.addStretch()  # Pour pousser le widget vers la droite
-            header_layout.addWidget(user_info)
-            layout.addLayout(header_layout)
+        # if self.username:
+        #     header_layout = QHBoxLayout()
+        #     user_info = UserInfoWidget(self.username)
+        #     header_layout.addStretch()  # Pour pousser le widget vers la droite
+        #     header_layout.addWidget(user_info)
+        #     layout.addLayout(header_layout)
 
         # Configuration de la barre de recherche avec logo
         search_group = QGroupBox("Rechercher")
@@ -199,6 +199,29 @@ class MainGendarmeApp(QMainWindow):
 
             # Add button to toolbar
             toolbar.addWidget(button)
+
+        # Ajouter un espaceur pour pousser le widget utilisateur vers le bas
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        toolbar.addWidget(spacer)
+
+        # Ajout du widget utilisateur en bas de la toolbar
+        if self.username:
+            user_container = QWidget()
+            user_layout = QVBoxLayout(user_container)
+            user_layout.setContentsMargins(5, 5, 5, 5)
+
+            # Ligne de séparation
+            separator = QFrame()
+            separator.setFrameShape(QFrame.Shape.HLine)
+            separator.setStyleSheet("background-color: #dee2e6;")
+            user_layout.addWidget(separator)
+
+            # Widget utilisateur
+            user_info = UserInfoWidget(self.username)
+            user_layout.addWidget(user_info)
+
+            toolbar.addWidget(user_container)
 
         # Configuration of dock widget
         dock_widget.setWidget(toolbar)

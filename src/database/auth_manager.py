@@ -140,8 +140,18 @@ class AuthManager:
         conn.close()
         return requests
 
-    def approve_user(self, request_id, admin_id):
-        """Approuve une demande de compte"""
+    def approve_user(self, request_id, admin_id, role='membre'):
+        """
+        Approuve une demande de compte utilisateur
+
+        Args:
+            request_id (int): L'ID de la demande à approuver
+            admin_id (int): L'ID de l'admin qui approuve
+            role (str): Le rôle à attribuer ('membre' ou 'admin')
+
+        Returns:
+            tuple: (success: bool, message: str)
+        """
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
@@ -154,8 +164,8 @@ class AuthManager:
 
             if user_info:
                 cursor.execute(
-                    "INSERT INTO users (username, password_hash, role, approved_by) VALUES (?, ?, 'user', ?)",
-                    (user_info[0], user_info[1], admin_id)
+                    "INSERT INTO users (username, password_hash, role, approved_by) VALUES (?, ?, ?, ?)",
+                    (user_info[0], user_info[1], role, admin_id)
                 )
 
                 cursor.execute("DELETE FROM pending_users WHERE id = ?", (request_id,))

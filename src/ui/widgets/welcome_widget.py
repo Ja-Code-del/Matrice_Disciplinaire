@@ -56,7 +56,7 @@ class WelcomeWidget(QWidget):
 
         # Créer le gradient
         gradient = QLinearGradient(0, 0, self.width(), self.height())
-        gradient.setColorAt(0, QColor("#4488FF"))
+        gradient.setColorAt(0, QColor("#111111"))
         gradient.setColorAt(0.46, QColor("#333333"))
         gradient.setColorAt(1, QColor("#111111"))
 
