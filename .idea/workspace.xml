@@ -4,13 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="new icons">
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="work on welcome window and profil info">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/database/auth_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/auth_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/widgets/welcome_widget.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/widgets/welcome_widget.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/windows/auth/login_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/auth/login_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/matrice_last.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/matrice_last.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/date_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/date_utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -82,7 +81,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-fb887030ada0-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.21565.199" />
+        <option value="bundled-python-sdk-1b1018131e27-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.22562.180" />
       </set>
     </attachedChunks>
   </component>
@@ -94,14 +93,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1727455479936</updated>
-    </task>
-    <task id="LOCAL-00015" summary="WORKED ON FIRST FORM SECTION NOW SATISFIED; The field was too short">
-      <option name="closed" value="true" />
-      <created>1730213431918</created>
-      <option name="number" value="00015" />
-      <option name="presentableId" value="LOCAL-00015" />
-      <option name="project" value="LOCAL" />
-      <updated>1730213431918</updated>
     </task>
     <task id="LOCAL-00016" summary="Now we can provide informations about a gendarme into a form but it remains his fault info form. and some little style improvements">
       <option name="closed" value="true" />
@@ -487,11 +478,18 @@
       <option name="project" value="LOCAL" />
       <updated>1732818339966</updated>
     </task>
-    <option name="localTasksCounter" value="64" />
+    <task id="LOCAL-00064" summary="work on welcome window and profil info">
+      <option name="closed" value="true" />
+      <created>1733957436651</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1733957436651</updated>
+    </task>
+    <option name="localTasksCounter" value="65" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Big bug on 'liste exhaustive' solved. I think Stats can work properly now" />
     <MESSAGE value="fired gendarmes info are now colored in red in 'liste exhaustive' Statistics menu" />
     <MESSAGE value="NOW EVERYTHING IS OK WITH LIST_EXHAUSTIVE (next update : add tooltip on each line so that the reason of punishment would diplay" />
     <MESSAGE value="Liste exhaustive has now styled export button. tried to had animation but will make it after" />
@@ -516,7 +514,8 @@
     <MESSAGE value="Added a welcome widget." />
     <MESSAGE value="worked on dates" />
     <MESSAGE value="new icons" />
-    <option name="LAST_COMMIT_MESSAGE" value="new icons" />
+    <MESSAGE value="work on welcome window and profil info" />
+    <option name="LAST_COMMIT_MESSAGE" value="work on welcome window and profil info" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

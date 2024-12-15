@@ -244,7 +244,9 @@ STRUCTURE_UNITE = {
                     "GS-LOI",
                     "GS-LEIPA",
                     "BIRGN",
-                    "ESH",
+                    "ESH /P.ESCORTE",
+                    "ESH /P.HONNEUR",
+                    "ESH /P.MUSIQUE",
                     "ULCIR",
                     "GDR",
                     "BRRO"

@@ -1,5 +1,4 @@
 # src/ui/windows/statistics/full_list_window.py
-from csv import excel
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QFileDialog, QVBoxLayout, QHBoxLayout,
                              QPushButton, QTableWidget, QTableWidgetItem,
@@ -36,6 +35,9 @@ class FullListWindow(QMainWindow):
 
     def __init__(self, db_manager, parent=None):
         super().__init__(parent)
+        self.filters = {}
+        self.search_edit = None
+        self.table = None
         self.result_label = None
         self.db_manager = db_manager
         self.setWindowTitle("Liste exhaustive des sanctionnés")
@@ -842,16 +844,22 @@ class FullListWindow(QMainWindow):
 
             # Informations sur les filtres appliqués
             filter_info = []
-            if self.grade_combo.currentText() != "Tous les grades":
-                filter_info.append(f"Grade: {self.grade_combo.currentText()}")
-            if self.subdiv_combo.currentText() != "Toutes les subdivisions":
-                filter_info.append(f"Subdivision: {self.subdiv_combo.currentText()}")
-            if self.annee_combo.currentText() != "Toutes les années":
-                filter_info.append(f"Année: {self.annee_combo.currentText()}")
-            if self.sanction_combo.currentText() != "Toutes les catégories":
-                filter_info.append(f"Catégorie: {self.sanction_combo.currentText()}")
-            if self.service_combo.currentText() != "Toutes les tranches":
-                filter_info.append(f"Années de service: {self.service_combo.currentText()}")
+            if self.filters["grade"].currentText() != "Tous(tes)":
+                filter_info.append(f"Grade: {self.filters['grade'].currentText()}")
+            if self.filters["subdiv"].currentText() != "Tous(tes)":
+                filter_info.append(f"Subdivision: {self.filters['subdiv'].currentText()}")
+            if self.filters["faute"].currentText() != "Tous(tes)":
+                filter_info.append(f"Faute commise: {self.filters['faute'].currentText()}")
+            if self.filters["situation"].currentText() != "Tous(tes)":
+                filter_info.append(f"Situation matrimoniale: {self.filters['situation'].currentText()}")
+            if self.filters["annee"].currentText() != "Tous(tes)":
+                filter_info.append(f"Année de punition: {self.filters['annee'].currentText()}")
+            if self.filters["statut"].currentText() != "Tous(tes)":
+                filter_info.append(f"Statut: {self.filters['statut'].currentText()}")
+            if self.filters["categorie"].currentText() != "Tous(tes)":
+                filter_info.append(f"Catégorie: {self.filters['categorie'].currentText()}")
+            if self.filters["service"].currentText() != "Tous(tes)":
+                filter_info.append(f"Années de service: {self.filters['service'].currentText()}")
 
             if filter_info:
                 filter_text = "Filtres appliqués: " + ", ".join(filter_info)
@@ -961,21 +969,39 @@ class FullListWindow(QMainWindow):
 
             tf = body_shape.text_frame
 
-            if self.grade_combo.currentText() != "Tous les grades":
+            # Informations sur les filtres appliqués
+            filter_info = []
+            if self.filters["grade"].currentText() != "Tous(tes)":
                 p = tf.add_paragraph()
-                p.text = f"Grade: {self.grade_combo.currentText()}"
-            if self.subdiv_combo.currentText() != "Toutes les subdivisions":
+                p.text = f"Grade: {self.filters['grade'].currentText()}"
+
+            if self.filters["subdiv"].currentText() != "Tous(tes)":
                 p = tf.add_paragraph()
-                p.text = f"Subdivision: {self.subdiv_combo.currentText()}"
-            if self.annee_combo.currentText() != "Toutes les années":
+                p.text = f"Subdivision: {self.filters['subdiv'].currentText()}"
+
+            if self.filters["faute"].currentText() != "Tous(tes)":
                 p = tf.add_paragraph()
-                p.text = f"Année: {self.annee_combo.currentText()}"
-            if self.sanction_combo.currentText() != "Toutes les catégories":
+                p.text = f"Faute commise: {self.filters['faute'].currentText()}"
+
+            if self.filters["situation"].currentText() != "Tous(tes)":
                 p = tf.add_paragraph()
-                p.text = f"Catégorie: {self.sanction_combo.currentText()}"
-            if self.service_combo.currentText() != "Toutes les tranches":
+                p.text = f"Situation matrimoniale: {self.filters['situation'].currentText()}"
+
+            if self.filters["annee"].currentText() != "Tous(tes)":
                 p = tf.add_paragraph()
-                p.text = f"Années de service: {self.service_combo.currentText()}"
+                p.text = f"Année de punition: {self.filters['annee'].currentText()}"
+
+            if self.filters["statut"].currentText() != "Tous(tes)":
+                p = tf.add_paragraph()
+                p.text = f"Statut: {self.filters['statut'].currentText()}"
+
+            if self.filters["categorie"].currentText() != "Tous(tes)":
+                p = tf.add_paragraph()
+                p.text = f"Categorie de faute: {self.filters['categorie'].currentText()}"
+
+            if self.filters["service"].currentText() != "Tous(tes)":
+                p = tf.add_paragraph()
+                p.text = f"Année de service: {self.filters['service'].currentText()}"
 
             # Slides de données
             rows_per_slide = 10
