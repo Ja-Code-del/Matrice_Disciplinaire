@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="work on welcome window and profil info">
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="Works on stats.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/matrice_last.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/matrice_last.xlsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/date_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/date_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/forms/delete_case_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/delete_case_dialog.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -93,14 +91,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1727455479936</updated>
-    </task>
-    <task id="LOCAL-00016" summary="Now we can provide informations about a gendarme into a form but it remains his fault info form. and some little style improvements">
-      <option name="closed" value="true" />
-      <created>1730230266668</created>
-      <option name="number" value="00016" />
-      <option name="presentableId" value="LOCAL-00016" />
-      <option name="project" value="LOCAL" />
-      <updated>1730230266668</updated>
     </task>
     <task id="LOCAL-00017" summary="All the section of the form are operational. but we should make some changes on table sanction about N° dossier and everything would be great. A">
       <option name="closed" value="true" />
@@ -486,11 +476,18 @@
       <option name="project" value="LOCAL" />
       <updated>1733957436651</updated>
     </task>
-    <option name="localTasksCounter" value="65" />
+    <task id="LOCAL-00065" summary="Works on stats.">
+      <option name="closed" value="true" />
+      <created>1734302101225</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1734302101226</updated>
+    </task>
+    <option name="localTasksCounter" value="66" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="fired gendarmes info are now colored in red in 'liste exhaustive' Statistics menu" />
     <MESSAGE value="NOW EVERYTHING IS OK WITH LIST_EXHAUSTIVE (next update : add tooltip on each line so that the reason of punishment would diplay" />
     <MESSAGE value="Liste exhaustive has now styled export button. tried to had animation but will make it after" />
     <MESSAGE value="TOTAL was 175 rather than 171. now its fixed. and 'count' error is fixed. TODO: fix the subject choice error" />
@@ -515,7 +512,8 @@
     <MESSAGE value="worked on dates" />
     <MESSAGE value="new icons" />
     <MESSAGE value="work on welcome window and profil info" />
-    <option name="LAST_COMMIT_MESSAGE" value="work on welcome window and profil info" />
+    <MESSAGE value="Works on stats." />
+    <option name="LAST_COMMIT_MESSAGE" value="Works on stats." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

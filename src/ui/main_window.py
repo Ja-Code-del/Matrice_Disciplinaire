@@ -14,6 +14,7 @@ from src.ui.styles.styles import Styles
 from src.database.models import GendarmeRepository, SanctionRepository
 from src.ui.windows.import_etat_window import ImportEtatCompletWindow
 from src.ui.forms.edit_gendarme_form import SearchMatriculeDialog, EditCaseForm
+from .forms.delete_case_dialog import DeleteCaseDialog
 from .handlers.stats_handler import StatsHandler
 from src.ui.widgets.user_info_widget import UserInfoWidget
 
@@ -160,7 +161,7 @@ class MainGendarmeApp(QMainWindow):
             {
                 "text": "Supprimer un dossier",
                 "icon": "../resources/icons/person_remove.png",
-                "callback": None  # Callback non défini dans le code original
+                "callback": "show_delete_case_dialog"
             },
             {
                 "text": "Réglages",
@@ -414,6 +415,48 @@ class MainGendarmeApp(QMainWindow):
             except ValueError:
                 QMessageBox.warning(self, "Erreur",
                                     "Le matricule doit être un nombre valide.")
+
+    def show_delete_case_dialog(self):
+        """Affiche la boîte de dialogue de suppression de dossier."""
+        try:
+            dialog = DeleteCaseDialog(self.db_manager, self)
+
+            # Connecter le signal à la méthode de rafraîchissement
+            dialog.case_deleted.connect(self.refresh_after_deletion)
+
+            dialog.exec()
+
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                f"Erreur lors de l'ouverture de la fenêtre de suppression : {str(e)}"
+            )
+
+    def refresh_after_deletion(self):
+        """Rafraîchit les données après une suppression."""
+        try:
+            # Si un gendarme est actuellement affiché (son matricule est visible)
+            current_matricule = self.info_labels.get('mle').text() if self.info_group.isVisible() else None
+
+            if current_matricule:
+                # Refaire une recherche pour mettre à jour l'affichage
+                self.search_input.setText(current_matricule)
+                self.search_type.setCurrentText("Matricule (MLE)")
+                self.search_gendarme()
+
+            # Mettre à jour le statut
+            self.statusBar().showMessage("Dossier(s) supprimé(s) avec succès", 3000)
+
+        except Exception as e:
+            print(f"Erreur lors du rafraîchissement : {str(e)}")
+            QMessageBox.warning(
+                self,
+                "Attention",
+                "La suppression a réussi mais le rafraîchissement a échoué.\n"
+                "Veuillez faire une nouvelle recherche."
+            )
 
     def show_import_window(self):
         """Ouvre la fenêtre d'import"""
