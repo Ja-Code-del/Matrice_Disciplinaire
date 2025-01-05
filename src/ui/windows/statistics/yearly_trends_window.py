@@ -316,32 +316,33 @@ class YearlyTrendsWindow(QMainWindow):
 
     def _update_region_card(self, conn):
         query = """
-       SELECT g.regions, COUNT(DISTINCT s.numero_dossier) as count,
-              ROUND(COUNT(DISTINCT s.numero_dossier) * 100.0 / 
-              (SELECT COUNT(DISTINCT numero_dossier) FROM sanctions 
-               WHERE strftime('%Y', date_enr) = ?), 2) as percentage
-       FROM sanctions s
-       JOIN gendarmes g ON s.matricule = g.mle
-       WHERE strftime('%Y', s.date_enr) = ?
-       GROUP BY g.regions
+       WITH region_counts AS (
+           SELECT g.regions, COUNT(DISTINCT s.numero_dossier) as count
+           FROM gendarmes g
+           LEFT JOIN sanctions s ON CAST(s.matricule AS TEXT) = g.mle 
+               AND strftime('%Y', s.date_enr) = ?
+           WHERE g.regions IS NOT NULL
+           GROUP BY g.regions
+       )
+       SELECT regions, count,
+              ROUND(count * 100.0 / (SELECT SUM(count) FROM region_counts), 2) as percentage
+       FROM region_counts
        ORDER BY count ASC
        LIMIT 1
        """
 
         cursor = conn.cursor()
-        cursor.execute(query, (str(self.year), str(self.year)))
+        cursor.execute(query, (str(self.year),))
         region, count, percentage = cursor.fetchone()
 
-        self.region_card = self._create_card("region_moins", "#A8D5BA")
-        self.region_card.title_label.setText("Région la moins touchée")
-        self.region_card.value_label.setText(region)
+        self.region_card.title_label.setText("Région la moins exposée")
+        self.region_card.value_label.setText(region if region else "Non spécifié")
         self.region_card.detail_label.setText(f"{count} sanctions ({percentage}%)")
         self.region_card.title_label.setStyleSheet("font-size: 18px; font-weight: bold;")
         self.region_card.value_label.setStyleSheet("font-size: 32px; font-weight: bold;")
         self.region_card.detail_label.setStyleSheet("font-size: 14px;")
 
-        # Mise à jour du layout pour ajouter la nouvelle carte
-        #self.main_layout.addWidget(self.region_card, 3, 1)  # position à ajuster
+
 
 
 
