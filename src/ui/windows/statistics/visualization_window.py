@@ -306,35 +306,57 @@ class VisualizationWindow(QMainWindow):
                     if df is None or df.empty:
                         raise Exception("Aucune donnée disponible")
 
-                    # Traitement spécial pour les années de service si nécessaire
-                    if any(config["field"] == "annee_service"
-                           for config in [self.config["x_axis"], self.config["y_axis"]]):
-                        # S'assurer que annee_service est numérique
+                    # Modifier le traitement des années de service
+                    if any(config["field"] == "annee_service" for config in
+                           [self.config["x_axis"], self.config["y_axis"]]):
+                        # Définir les catégories à l'avance avec "Non spécifié"
+                        service_categories = ['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
+                                              '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS', 'Non spécifié']
+
+                        # Conversion en catégories
                         df['annee_service'] = pd.to_numeric(df['annee_service'], errors='coerce')
 
-                        # Créer d'abord un masque pour les valeurs nulles/invalides
-                        null_mask = df['annee_service'].isna()
+                        # Création des tranches avec gestion des valeurs nulles
+                        df['service_range'] = pd.cut(
+                            df['annee_service'],
+                            bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
+                            labels=service_categories[:-1],  # Exclure "Non spécifié"
+                            include_lowest=True
+                        )
 
-                        # Si aucune valeur nulle, pas besoin de catégorie "Non spécifié"
-                        if not null_mask.any():
-                            df['service_range'] = pd.cut(
-                                df['annee_service'],
-                                bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
-                                labels=['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
-                                        '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS'],
-                                include_lowest=True
-                            )
-                        else:
-                            # Créer les tranches pour les valeurs valides
-                            df.loc[~null_mask, 'service_range'] = pd.cut(
-                                df.loc[~null_mask, 'annee_service'],
-                                bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
-                                labels=['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
-                                        '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS'],
-                                include_lowest=True
-                            )
-                            # Attribuer "Non spécifié" aux valeurs nulles/invalides
-                            df.loc[null_mask, 'service_range'] = 'Non spécifié'
+                        # Remplacer les NaN par "Non spécifié"
+                        df['service_range'] = df['service_range'].cat.add_categories(['Non spécifié'])
+                        df.loc[df['service_range'].isna(), 'service_range'] = 'Non spécifié'
+
+                    # Traitement spécial pour les années de service si nécessaire
+                    # if any(config["field"] == "annee_service"
+                    #        for config in [self.config["x_axis"], self.config["y_axis"]]):
+                    #     # S'assurer que annee_service est numérique
+                    #     df['annee_service'] = pd.to_numeric(df['annee_service'], errors='coerce')
+                    #
+                    #     # Créer d'abord un masque pour les valeurs nulles/invalides
+                    #     null_mask = df['annee_service'].isna()
+                    #
+                    #     # Si aucune valeur nulle, pas besoin de catégorie "Non spécifié"
+                    #     if not null_mask.any():
+                    #         df['service_range'] = pd.cut(
+                    #             df['annee_service'],
+                    #             bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
+                    #             labels=['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
+                    #                     '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS'],
+                    #             include_lowest=True
+                    #         )
+                    #     else:
+                    #         # Créer les tranches pour les valeurs valides
+                    #         df.loc[~null_mask, 'service_range'] = pd.cut(
+                    #             df.loc[~null_mask, 'annee_service'],
+                    #             bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
+                    #             labels=['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
+                    #                     '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS'],
+                    #             include_lowest=True
+                    #         )
+                    #         # Attribuer "Non spécifié" aux valeurs nulles/invalides
+                    #         df.loc[null_mask, 'service_range'] = 'Non spécifié'
 
                     # Préparation des données pour les axes
                     x_config = self.config["x_axis"]
@@ -381,6 +403,11 @@ class VisualizationWindow(QMainWindow):
                 "Erreur",
                 f"Erreur lors du chargement des données: {str(e)}"
             )
+
+    def cleanup(self):
+        plt.close('all')
+        if hasattr(self, 'canvas'):
+            self.canvas.close()
 
 
     def apply_filters(self, df):

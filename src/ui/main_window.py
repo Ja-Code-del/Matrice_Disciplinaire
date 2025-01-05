@@ -437,7 +437,7 @@ class MainGendarmeApp(QMainWindow):
     def refresh_after_deletion(self):
         """Rafraîchit les données après une suppression."""
         try:
-            # Si un gendarme est actuellement affiché (son matricule est visible)
+            # 1. Rafraîchir l'affichage principal si un gendarme est affiché
             current_matricule = self.info_labels.get('mle').text() if self.info_group.isVisible() else None
 
             if current_matricule:
@@ -446,8 +446,24 @@ class MainGendarmeApp(QMainWindow):
                 self.search_type.setCurrentText("Matricule (MLE)")
                 self.search_gendarme()
 
-            # Mettre à jour le statut
-            self.statusBar().showMessage("Dossier(s) supprimé(s) avec succès", 3000)
+            # 2. Rafraîchir les statistiques si elles sont ouvertes
+            if hasattr(self, 'stats_handler') and self.stats_handler:
+                stats_window = self.stats_handler.get_current_stats_window()
+                if stats_window:
+                    # Mettre à jour les tendances
+                    if hasattr(stats_window, 'update_trends'):
+                        stats_window.update_trends()
+
+                    # Rafraîchir la liste exhaustive si elle est ouverte
+                    if hasattr(stats_window, 'list_window') and stats_window.list_window:
+                        stats_window.list_window.load_data()
+
+                    # Rafraîchir toute autre fenêtre de visualisation ouverte
+                    if hasattr(stats_window, 'visualization_window') and stats_window.visualization_window:
+                        stats_window.visualization_window.load_data()
+
+            # 3. Mettre à jour le statut
+            self.statusBar().showMessage("Dossier(s) supprimé(s) avec succès et données mises à jour", 3000)
 
         except Exception as e:
             print(f"Erreur lors du rafraîchissement : {str(e)}")
@@ -455,7 +471,7 @@ class MainGendarmeApp(QMainWindow):
                 self,
                 "Attention",
                 "La suppression a réussi mais le rafraîchissement a échoué.\n"
-                "Veuillez faire une nouvelle recherche."
+                "Veuillez rafraîchir manuellement les fenêtres ouvertes."
             )
 
     def show_import_window(self):

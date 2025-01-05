@@ -1,11 +1,21 @@
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import QObject, pyqtSignal
+from matplotlib import pyplot as plt
+
 from ..windows.statistics.stats_window import StatistiquesWindow
 import logging
 
+# Cache global
+_global_cache = {
+    'data': {},
+    'charts': {},
+    'queries': {}
+}
 
 class StatsHandler(QObject):
     """Gestionnaire pour la partie statistiques de l'application."""
+
+    _cache = {}  # Pour stocker les données fréquemment utilisées
 
     # Signaux
     statsWindowClosed = pyqtSignal()
@@ -174,10 +184,24 @@ class StatsHandler(QObject):
         QMessageBox.critical(self.main_window, title, message)
 
     def cleanup(self):
-        """
-        Nettoie les ressources utilisées par le handler.
-        À appeler avant la fermeture de l'application.
-        """
-        print("=== Nettoyage du StatsHandler ===")
-        self.close_statistics()
-        print("✓ Nettoyage terminé")
+        """Nettoyage amélioré des ressources"""
+        self._cache.clear()
+        if self.stats_window:
+            self.stats_window.close()
+            self.stats_window = None
+        print("✓ Nettoyage complet effectué")
+
+    # def cleanup(self):
+    #     """
+    #     Nettoie les ressources utilisées par le handler.
+    #     À appeler avant la fermeture de l'application.
+    #     """
+    #     print("=== Nettoyage du StatsHandler ===")
+    #     self.close_statistics()
+    #     print("✓ Nettoyage terminé")
+
+    def get_current_stats_window(self):
+        """Retourne la fenêtre des statistiques si elle est ouverte."""
+        if hasattr(self, 'statistics_window') and self.statistics_window:
+            return self.statistics_window
+        return None

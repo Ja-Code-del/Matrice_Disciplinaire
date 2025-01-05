@@ -4,10 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="Works on stats.">
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="Works on deletion. Next I aim to add refreshing parameter for stats after deletion">
+      <change afterPath="$PROJECT_DIR$/src/ui/windows/statistics/yearly_trends_window.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/forms/delete_case_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/delete_case_dialog.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/handlers/stats_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/handlers/stats_handler.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -79,7 +83,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-1b1018131e27-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.22562.180" />
+        <option value="bundled-python-sdk-495700d161d3-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.22562.220" />
       </set>
     </attachedChunks>
   </component>
@@ -91,14 +95,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1727455479936</updated>
-    </task>
-    <task id="LOCAL-00017" summary="All the section of the form are operational. but we should make some changes on table sanction about N° dossier and everything would be great. A">
-      <option name="closed" value="true" />
-      <created>1730251448462</created>
-      <option name="number" value="00017" />
-      <option name="presentableId" value="LOCAL-00017" />
-      <option name="project" value="LOCAL" />
-      <updated>1730251448462</updated>
     </task>
     <task id="LOCAL-00018" summary="new icons">
       <option name="closed" value="true" />
@@ -484,11 +480,18 @@
       <option name="project" value="LOCAL" />
       <updated>1734302101226</updated>
     </task>
-    <option name="localTasksCounter" value="66" />
+    <task id="LOCAL-00066" summary="Works on deletion. Next I aim to add refreshing parameter for stats after deletion">
+      <option name="closed" value="true" />
+      <created>1734349022029</created>
+      <option name="number" value="00066" />
+      <option name="presentableId" value="LOCAL-00066" />
+      <option name="project" value="LOCAL" />
+      <updated>1734349022029</updated>
+    </task>
+    <option name="localTasksCounter" value="67" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="NOW EVERYTHING IS OK WITH LIST_EXHAUSTIVE (next update : add tooltip on each line so that the reason of punishment would diplay" />
     <MESSAGE value="Liste exhaustive has now styled export button. tried to had animation but will make it after" />
     <MESSAGE value="TOTAL was 175 rather than 171. now its fixed. and 'count' error is fixed. TODO: fix the subject choice error" />
     <MESSAGE value="Worked on grouped bar graphic. not achieved" />
@@ -513,7 +516,8 @@
     <MESSAGE value="new icons" />
     <MESSAGE value="work on welcome window and profil info" />
     <MESSAGE value="Works on stats." />
-    <option name="LAST_COMMIT_MESSAGE" value="Works on stats." />
+    <MESSAGE value="Works on deletion. Next I aim to add refreshing parameter for stats after deletion" />
+    <option name="LAST_COMMIT_MESSAGE" value="Works on deletion. Next I aim to add refreshing parameter for stats after deletion" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

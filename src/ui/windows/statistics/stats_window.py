@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QDialog, QVBoxLayout, QPushButton, QGridLayout,
-                             QHBoxLayout, QLabel, QSizePolicy, QMessageBox, QFrame, QTableWidget, QTableWidgetItem)
+                             QHBoxLayout, QLabel, QSizePolicy, QMessageBox, QFrame, QTableWidget, QTableWidgetItem,
+                             QInputDialog)
 from PyQt6.QtCore import pyqtSignal, Qt, QSize
 from PyQt6.QtGui import QIcon
 
@@ -16,6 +17,8 @@ from .full_list_window import FullListWindow
 from .chart_selection_dialog import ChartSelectionDialog
 
 from datetime import datetime
+
+from .yearly_trends_window import YearlyTrendsWindow
 
 
 class StatistiquesWindow(QMainWindow):
@@ -189,6 +192,11 @@ class StatistiquesWindow(QMainWindow):
                 "text": "Liste exhaustive",
                 "icon": "../resources/icons/list.png",
                 "callback": self.show_full_list
+            },
+            {
+                "text": "Tendances par année",
+                "icon": "../resources/icons/trend.png",
+                "callback": self.show_yearly_trends
             }
         ]
 
@@ -667,3 +675,33 @@ class StatistiquesWindow(QMainWindow):
             return stats
         return None
 
+    # Dans StatistiquesWindow, ajouter :
+    from .yearly_trends_window import YearlyTrendsWindow
+
+    def show_yearly_trends(self):
+        """Ouvre la fenêtre des tendances annuelles"""
+        try:
+            year, ok = QInputDialog.getInt(
+                self,
+                'Sélection Année',
+                'Entrez l\'année souhaitée:',
+                2024,  # valeur par défaut
+                2000,  # minimum
+                2100  # maximum
+            )
+            if ok:
+                self.trends_window = YearlyTrendsWindow(self.db_manager, year, self)
+                # Positionner la fenêtre
+                if self.isVisible():
+                    geometry = self.geometry()
+                    self.trends_window.move(
+                        geometry.x() + 50,
+                        geometry.y() + 50
+                    )
+                self.trends_window.show()
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                f"Erreur lors de l'ouverture des tendances: {str(e)}"
+            )
