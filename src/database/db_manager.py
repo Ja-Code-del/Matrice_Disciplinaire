@@ -37,8 +37,8 @@ class DatabaseManager:
             cursor = conn.cursor()
 
             # Suppression des tables existantes si elles existent
-            cursor.execute("DROP TABLE IF EXISTS sanctions")
-            cursor.execute("DROP TABLE IF EXISTS gendarmes_etat")
+            cursor.execute("DROP TABLE IF EXISTS main_tab")
+
 
             # Table des gendarmes
             cursor.execute('''CREATE TABLE IF NOT EXISTS gendarmes_etat (
@@ -52,30 +52,14 @@ class DatabaseManager:
                 sexe TEXT
             )''')
 
-            # Table sanctions
-            cursor.execute('''CREATE TABLE IF NOT EXISTS sanctions (
+            # Table principale : la matrice
+            cursor.execute('''CREATE TABLE IF NOT EXISTS main_tab (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 numero_dossier TEXT,
                 annee_punition INTEGER,
                 numero_ordre INTEGER,
                 date_enr DATE,
                 matricule INTEGER,
-                faute_commise TEXT,
-                date_faits DATE,
-                categorie INTEGER,
-                statut TEXT,
-                reference_statut TEXT,
-                taux_jar TEXT,
-                comite INTEGER,
-                annee_faits INTEGER,
-                numero_decision,
-                FOREIGN KEY (matricule) REFERENCES gendarmes_etat(matricule)
-            )''')
-
-            # Table principale des gendarmes
-            cursor.execute('''CREATE TABLE IF NOT EXISTS gendarmes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                mle TEXT,
                 nom_prenoms TEXT,
                 grade TEXT,
                 sexe TEXT,
@@ -88,7 +72,19 @@ class DatabaseManager:
                 date_entree_gie TEXT,
                 annee_service INTEGER,
                 situation_matrimoniale TEXT,
-                nb_enfants INTEGER)''')
+                nb_enfants INTEGER,
+                faute_commise TEXT,
+                date_faits DATE,
+                categorie INTEGER,
+                statut TEXT,
+                reference_statut TEXT,
+                taux_jar TEXT,
+                comite INTEGER,
+                annee_faits INTEGER,
+                numero_arrete,
+                numero_decision,
+                FOREIGN KEY (matricule) REFERENCES gendarmes_etat(matricule)
+            )''')
 
             conn.commit()
 
@@ -96,18 +92,19 @@ class DatabaseManager:
         """Récupère tous les gendarmes de la base de données"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM gendarmes ORDER BY nom_prenoms")
+            cursor.execute("SELECT * FROM main_tab ORDER BY numero_dossier")
             return cursor.fetchall()
 
-    def get_sanctions_by_gendarme_id(self, matricule):
+    #Changer le nom de cette méthode en get_sanctions_by_folder_num plus tard
+    def get_sanctions_by_gendarme_id(self, num_dossier):
         """Récupère toutes les sanctions d'un gendarme"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT * FROM sanctions 
-                WHERE matricule = ? 
+                SELECT * FROM main_tab 
+                WHERE numero_dossier = ? 
                 ORDER BY date_enr DESC
-            """, (matricule,))
+            """, (num_dossier,))
             return cursor.fetchall()
 
     def get_statistics(self):
@@ -117,11 +114,11 @@ class DatabaseManager:
             stats = {}
 
             # Nombre total de gendarmes
-            cursor.execute("SELECT COUNT(*) FROM gendarmes")
+            cursor.execute("SELECT COUNT (DISTINCT matricule) FROM main_tab")
             stats['total_gendarmes'] = cursor.fetchone()[0]
 
             # Nombre total de sanctions
-            cursor.execute("SELECT COUNT(*) FROM sanctions")
+            cursor.execute("SELECT COUNT(*) FROM main_tab")
             stats['total_sanctions'] = cursor.fetchone()[0]
 
             # Moyenne des sanctions par gendarme
@@ -176,30 +173,31 @@ class DatabaseManager:
             with self.get_connection() as conn:
                 query_check = """
                 SELECT 
-                    s.numero_dossier, 
-                    s.matricule,
-                    s.date_faits,
-                    s.faute_commise,
+                    m.numero_dossier, 
+                    m.matricule,
+                    m.date_faits,
+                    m.faute_commise,
                     COUNT(*) as occurrence_count
-                FROM sanctions s
-                GROUP BY s.numero_dossier, s.matricule, s.date_faits, s.faute_commise
+                FROM main_tab m
+                GROUP BY m.numero_dossier, m.matricule, m.date_faits, m.faute_commise
                 HAVING COUNT(*) > 1
                 """
-                cursor = conn.cursor()
-                cursor.execute(query_check)
-                duplicates = cursor.fetchall()
-                return duplicates
+
+                with conn.cursor() as cursor:  # Utilisation du contexte pour fermer automatiquement le curseur
+                    cursor.execute(query_check)
+                    return cursor.fetchall()
+
         except Exception as e:
             print(f"Erreur lors de la vérification des doublons : {str(e)}")
             return None
 
     def run_sanctions_diagnostic(self):
-        """Exécute un diagnostic complet de la table sanctions."""
+        """Exécute un diagnostic complet de la table principale."""
         debug_queries = [
             # 1. Total des dossiers uniques
             """
             SELECT COUNT(DISTINCT numero_dossier) as total_unique_dossiers 
-            FROM sanctions;
+            FROM main_tab;
             """,
 
             # 2. Détail des doublons par numéro de dossier
@@ -208,7 +206,7 @@ class DatabaseManager:
                 numero_dossier,
                 COUNT(*) as occurrences,
                 GROUP_CONCAT(matricule) as matricules
-            FROM sanctions
+            FROM main_tab
             GROUP BY numero_dossier
             HAVING COUNT(*) > 1
             ORDER BY occurrences DESC;
@@ -225,12 +223,12 @@ class DatabaseManager:
 
             # 4. Les enregistrements qui posent problème
             """
-            SELECT s1.*
-            FROM sanctions s1
+            SELECT m1.*
+            FROM main_tab m1
             WHERE EXISTS (
                 SELECT 1
-                FROM sanctions s2
-                WHERE s1.numero_dossier = s2.numero_dossier
+                FROM main_tab m2
+                WHERE m1.matricule = m2.numero_dossier
                 AND s1.rowid != s2.rowid
             )
             ORDER BY numero_dossier;
