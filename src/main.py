@@ -15,10 +15,11 @@ def main():
 
     #Fenetre principale
     main_window = MainGendarmeApp()
+    main_window.show()
 
     #Fenetre de Login
-    login_window = LoginWindow(main_window)
-    login_window.show()
+    #login_window = LoginWindow(main_window)
+    #login_window.show()
 
     sys.exit(app.exec())
 
