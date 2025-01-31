@@ -1,3 +1,4 @@
+import os
 import sys
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QPushButton, QLabel, QFileDialog,
@@ -60,151 +61,108 @@ class ImportWindow(QMainWindow):
             "Excel files (*.xlsx *.xls)"
         )
 
-        if file_name:
-            try:
-                self.progress_bar.setVisible(True)
-                self.progress_bar.setValue(0)
-                self.status_label.setText("Lecture du fichier Excel...")
+        if not file_name:
+            return  # Si aucun fichier sélectionné, on annule l'import.
 
-                df = pd.read_excel(file_name)
-                total_rows = len(df)
-                self.progress_bar.setMaximum(total_rows)
+        try:
+            self.progress_bar.setVisible(True)
+            self.progress_bar.setValue(0)
+            self.status_label.setText("Lecture du fichier Excel...")
 
-                success_count = 0
-                error_count = 0
+            df = pd.read_excel(file_name)
+            total_rows = len(df)
+            self.progress_bar.setMaximum(total_rows)
 
-                with self.db_manager.get_connection() as conn:
-                    cursor = conn.cursor()
+            # Supprimer les doublons avant conversion en CSV
+            df = df.drop_duplicates()
 
-                    # Préparation des données des sanctions (informations uniques)
-                    sanctions_df = df[[
-                        'N° DOSSIER',
-                        'ANNEE DE PUNITION',
-                        'N° ORDRE',
-                        'DATE ENR',
-                        'MLE',
-                        'FAUTE COMMISE',
-                        'DATE DES FAITS',
-                        'N° CAT',
-                        'STATUT',
-                        'REFERENCE DU STATUT',
-                        'TAUX (JAR)',
-                        'COMITE',
-                        'ANNEE DES FAITS'
-                    ]].drop_duplicates()
+            # Créer un fichier CSV temporaire
+            csv_file = file_name.replace('.xlsx', '.csv').replace('.xls', '.csv')
+            df.to_csv(csv_file, index=False, sep=';', encoding='utf-8')
 
-                    self.status_label.setText("Import des données gendarmes...")
+            # Convertir les colonnes de dates
+            date_columns = ['DATE ENR', 'DATE DE NAISSANCE', 'DATE D\'ENTREE GIE', 'DATE DES FAITS']
+            for col in date_columns:
+                df[col] = df[col].apply(adapt_date)
 
-                    gendarmes_df = df[[
-                        'MLE',
-                        'NOM ET PRENOMS',
-                        'GRADE',
-                        'SEXE',
-                        'DATE DE NAISSANCE',
-                        'AGE',
-                        'UNITE',
-                        'LEGIONS',
-                        'SUBDIV',
-                        'REGIONS',
-                        'DATE D\'ENTREE GIE',
-                        'ANNEE DE SERVICE',
-                        'SITUATION MATRIMONIALE',
-                        'NB ENF'
-                    ]].drop_duplicates()
+            success_count = 0
+            error_count = 0
 
-                    # Import des sanctions
-                    for _, row in sanctions_df.iterrows():
-                        try:
-                            cursor.execute('''
-                                INSERT INTO sanctions (
-                                    numero_dossier,
-                                    annee_punition,
-                                    numero_ordre,
-                                    date_enr,
-                                    matricule,
-                                    faute_commise,
-                                    date_faits,
-                                    categorie,
-                                    statut,
-                                    reference_statut,
-                                    taux_jar,
-                                    comite,
-                                    annee_faits
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                ''', (
-                                str(row['N° DOSSIER']),
-                                int(row['ANNEE DE PUNITION']) if pd.notna(row['ANNEE DE PUNITION']) else None,
-                                int(row['N° ORDRE']) if pd.notna(row['N° ORDRE']) else None,
-                                adapt_date(row['DATE ENR']) if pd.notna(row['DATE ENR']) else None,
-                                int(row['MLE']) if pd.notna(row['MLE']) else None,
-                                str(row['FAUTE COMMISE']) if pd.notna(row['FAUTE COMMISE']) else None,
-                                adapt_date(row['DATE DES FAITS']) if pd.notna(row['DATE DES FAITS']) else None,
-                                int(row['N° CAT']) if pd.notna(row['N° CAT']) else None,
-                                str(row['STATUT']) if pd.notna(row['STATUT']) else None,
-                                str(row['REFERENCE DU STATUT']) if pd.notna(row['REFERENCE DU STATUT']) else None,
-                                str(row['TAUX (JAR)']) if pd.notna(row['TAUX (JAR)']) else None,
-                                str(row['COMITE']) if pd.notna(row['COMITE']) else None,
-                                int(row['ANNEE DES FAITS']) if pd.notna(row['ANNEE DES FAITS']) else None
-                            ))
-                        except Exception as e:
-                            error_count += 1
-                            print(f"Erreur sur la ligne {_ + 2}: {str(e)}")
+            # Préparation des données sous forme de liste de tuples pour executemany()
+            data = []
+            for _, row in df.iterrows():
+                try:
+                    data.append((
+                        str(row['N° DOSSIER']),
+                        int(row['ANNEE DE PUNITION']) if pd.notna(row['ANNEE DE PUNITION']) else None,
+                        int(row['N° ORDRE']) if pd.notna(row['N° ORDRE']) else None,
+                        row['DATE ENR'] if pd.notna(row['DATE ENR']) else None,
+                        int(row['MLE']) if pd.notna(row['MLE']) else None,
+                        str(row['NOM ET PRENOMS']) if pd.notna(row['NOM ET PRENOMS']) else None,
+                        str(row['GRADE']) if pd.notna(row['GRADE']) else None,
+                        str(row['SEXE']) if pd.notna(row['SEXE']) else None,
+                        row['DATE DE NAISSANCE'] if pd.notna(row['DATE DE NAISSANCE']) else None,
+                        int(row['AGE']) if pd.notna(row['AGE']) else None,
+                        str(row['UNITE']) if pd.notna(row['UNITE']) else None,
+                        str(row['LEGIONS']) if pd.notna(row['LEGIONS']) else None,
+                        str(row['SUBDIV']) if pd.notna(row['SUBDIV']) else None,
+                        str(row['REGIONS']) if pd.notna(row['REGIONS']) else None,
+                        row['DATE D\'ENTREE GIE'] if pd.notna(row['DATE D\'ENTREE GIE']) else None,
+                        int(row['ANNEE DE SERVICE']) if pd.notna(row['ANNEE DE SERVICE']) else None,
+                        str(row['SITUATION MATRIMONIALE']) if pd.notna(row['SITUATION MATRIMONIALE']) else None,
+                        int(row['NB ENF']) if pd.notna(row['NB ENF']) else None,
+                        str(row['FAUTE COMMISE']) if pd.notna(row['FAUTE COMMISE']) else None,
+                        row['DATE DES FAITS'] if pd.notna(row['DATE DES FAITS']) else None,
+                        int(row['N° CAT']) if pd.notna(row['N° CAT']) else None,
+                        str(row['STATUT']) if pd.notna(row['STATUT']) else None,
+                        str(row['REFERENCE DU STATUT']) if pd.notna(row['REFERENCE DU STATUT']) else None,
+                        str(row['TAUX (JAR)']) if pd.notna(row['TAUX (JAR)']) else None,
+                        str(row['COMITE']) if pd.notna(row['COMITE']) else None,
+                        int(row['ANNEE DES FAITS']) if pd.notna(row['ANNEE DES FAITS']) else None
+                    ))
+                    success_count += 1
+                except Exception as e:
+                    error_count += 1
+                    print(f"Erreur sur la ligne {_ + 2}: {str(e)}")
 
-                    for _, row in gendarmes_df.iterrows():
-                        try:
-                            print("On importe les données des gendarmes")
-                            cursor.execute('''
-                                INSERT INTO gendarmes (
-                                    mle,
-                                    nom_prenoms,
-                                    grade,
-                                    sexe,
-                                    date_naissance,
-                                    age,
-                                    unite,
-                                    legions,
-                                    subdiv,
-                                    regions,
-                                    date_entree_gie,
-                                    annee_service,
-                                    situation_matrimoniale,
-                                    nb_enfants
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                ''', (
-                                str(row['MLE']) if pd.notna(row['MLE']) else None,
-                                str(row['NOM ET PRENOMS']) if pd.notna(row['NOM ET PRENOMS']) else None,
-                                str(row['GRADE']) if pd.notna(row['GRADE']) else None,
-                                str(row['SEXE']) if pd.notna(row['SEXE']) else None,
-                                adapt_date(row['DATE DE NAISSANCE']) if pd.notna(row['DATE DE NAISSANCE']) else pd.to_datetime(row['DATE DE NAISSANCE']).strftime('%d-%m-%Y'),
-                                int(row['AGE']) if pd.notna(row['AGE']) else None,
-                                str(row['UNITE']) if pd.notna(row['UNITE']) else None,
-                                str(row['LEGIONS']) if pd.notna(row['LEGIONS']) else None,
-                                str(row['SUBDIV']) if pd.notna(row['SUBDIV']) else None,
-                                str(row['REGIONS']) if pd.notna(row['REGIONS']) else None,
-                                adapt_date(row['DATE D\'ENTREE GIE']) if pd.notna(row['DATE D\'ENTREE GIE']) else None,
-                                int(row['ANNEE DE SERVICE']) if pd.notna(row['ANNEE DE SERVICE']) else None,
-                                str(row['SITUATION MATRIMONIALE']) if pd.notna(row['SITUATION MATRIMONIALE']) else None,
-                                int(row['NB ENF']) if pd.notna(row['NB ENF']) else None,
-                            ))
+                # Mise à jour de la barre de progression en direct
+                self.progress_bar.setValue(success_count + error_count)
 
-                            print(f'{success_count} tache terminée')
-                            success_count += 1
-                            self.update_stats(total_rows, success_count, error_count)
+            # Connexion à la base de données
+            with self.db_manager.get_connection() as conn:
+                cursor = conn.cursor()
 
-                        except Exception as e:
-                            error_count += 1
-                            print(f"Erreur sur la ligne {_ + 2}: {str(e)}")
+                query = '''
+                        INSERT INTO main_tab (
+                            numero_dossier, annee_punition, numero_ordre, date_enr, matricule,
+                            nom_prenoms, grade, sexe, date_naissance, age, unite, legions,
+                            subdiv, regions, date_entree_gie, annee_service, situation_matrimoniale,
+                            nb_enfants, faute_commise, date_faits, categorie, statut,
+                            reference_statut, taux_jar, comite, annee_faits
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    '''
 
+                # Exécution en batch avec executemany() et transaction
+                try:
+                    cursor.executemany(query, data)
                     conn.commit()
-
-                    self.progress_bar.setValue(100)
                     self.status_label.setText("Import terminé avec succès!")
                     QMessageBox.information(self, "Succès", "Les données ont été importées avec succès!")
+                except Exception as e:
+                    conn.rollback()  # Rollback en cas d'erreur
+                    QMessageBox.critical(self, "Erreur", f"Erreur lors de l'import : {str(e)}")
+                    self.status_label.setText("Erreur lors de l'import")
+                    print(f"Erreur détaillée : {str(e)}")
 
-            except Exception as e:
-                QMessageBox.critical(self, "Erreur", f"Erreur lors de l'import : {str(e)}")
-                self.status_label.setText("Erreur lors de l'import")
-                print(f"Erreur détaillée : {str(e)}")
+            self.progress_bar.setValue(100)
+
+            # Supprimer le fichier CSV temporaire
+            os.remove(csv_file)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur", f"Erreur lors de l'import : {str(e)}")
+            self.status_label.setText("Erreur lors de l'import")
+            print(f"Erreur détaillée : {str(e)}")
 
     def update_stats(self, total, success, errors):
         """

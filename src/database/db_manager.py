@@ -193,103 +193,94 @@ class DatabaseManager:
 
     def run_sanctions_diagnostic(self):
         """Exécute un diagnostic complet de la table principale."""
-        debug_queries = [
-            # 1. Total des dossiers uniques
-            """
-            SELECT COUNT(DISTINCT numero_dossier) as total_unique_dossiers 
-            FROM main_tab;
+        debug_queries = {
+            1: """
+                SELECT COUNT(DISTINCT numero_dossier) as total_unique_dossiers 
+                FROM main_tab;
             """,
-
-            # 2. Détail des doublons par numéro de dossier
-            """
-            SELECT 
-                numero_dossier,
-                COUNT(*) as occurrences,
-                GROUP_CONCAT(matricule) as matricules
-            FROM main_tab
-            GROUP BY numero_dossier
-            HAVING COUNT(*) > 1
-            ORDER BY occurrences DESC;
+            2: """
+                SELECT 
+                    numero_dossier,
+                    COUNT(*) as occurrences,
+                    GROUP_CONCAT(matricule SEPARATOR ' | ') as matricules
+                FROM main_tab
+                GROUP BY numero_dossier
+                HAVING COUNT(*) > 1
+                ORDER BY occurrences DESC;
             """,
-
-            # 3. Vérification des champs NULL ou vides
-            """
-            SELECT 
-                COUNT(*) as total,
-                COUNT(NULLIF(numero_dossier, '')) as dossiers_non_vides,
-                COUNT(NULLIF(matricule, '')) as matricules_non_vides
-            FROM sanctions;
+            3: """
+                SELECT 
+                    COUNT(*) as total,
+                    COUNT(NULLIF(numero_dossier, '')) as dossiers_non_vides,
+                    COUNT(NULLIF(matricule, '')) as matricules_non_vides
+                FROM main_tab;
             """,
-
-            # 4. Les enregistrements qui posent problème
-            """
-            SELECT m1.*
-            FROM main_tab m1
-            WHERE EXISTS (
-                SELECT 1
-                FROM main_tab m2
-                WHERE m1.matricule = m2.numero_dossier
-                AND s1.rowid != s2.rowid
-            )
-            ORDER BY numero_dossier;
+            4: """
+                SELECT 
+                    m1.numero_dossier, m1.matricule, m1.date_faits, m1.faute_commise
+                FROM main_tab m1
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM main_tab m2
+                    WHERE m1.matricule = m2.matricule
+                    AND m1.rowid != m2.rowid
+                )
+                ORDER BY numero_dossier;
             """,
-
-            # Ajouter cette requête comme Diagnostic 5
+            5: """
+                SELECT 
+                    m.numero_dossier, m.matricule, m.date_faits, m.faute_commise
+                FROM main_tab m
+                ORDER BY m.date_faits DESC;
             """
-            SELECT 
-                s.numero_dossier,
-                s.matricule,
-                s.date_faits,
-                s.faute_commise
-            FROM sanctions s
-            ORDER BY s.date_faits DESC;
-            """
-        ]
+        }
 
-        results = {}
-        print("=== DIAGNOSTIC DES DONNÉES ===")
+        results = {}  # Stocke tous les résultats
+        print("=== 📊 DIAGNOSTIC DES DONNÉES ===")
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
 
-            for i, query in enumerate(debug_queries, 1):
+            for i, (num, query) in enumerate(debug_queries.items(), 1):
                 try:
-                    print(f"\n--- Diagnostic {i} ---")
+                    print(f"\n--- 🔍 Diagnostic {num} ---")
                     cursor.execute(query)
-                    results = cursor.fetchall()
+                    results[num] = cursor.fetchall()
 
-                    if i == 1:  # Total des dossiers uniques
-                        print(f"Nombre total de dossiers uniques : {results[0][0]}")
+                    if num == 1:  # Total des dossiers uniques
+                        print(f"📌 Nombre total de dossiers uniques : {results[num][0][0]}")
 
-                    elif i == 2:  # Détail des doublons
-                        print("Doublons trouvés :")
-                        if not results:
-                            print("Aucun doublon trouvé")
-                        for row in results:
-                            print(f"Dossier: {row[0]}")
-                            print(f"Nombre d'occurrences: {row[1]}")
-                            print(f"Matricules concernés: {row[2]}\n")
+                    elif num == 2:  # Détail des doublons
+                        print("🟠 Doublons trouvés :")
+                        if not results[num]:
+                            print("✅ Aucun doublon trouvé.")
+                        else:
+                            for row in results[num]:
+                                print(f"Dossier: {row[0]}, Occurrences: {row[1]}")
+                                print(f"Matricules concernés: {row[2]}\n")
 
-                    elif i == 3:  # Vérification des champs NULL
-                        row = results[0]
-                        print(f"Total des enregistrements : {row[0]}")
-                        print(f"Dossiers non vides : {row[1]}")
-                        print(f"Matricules non vides : {row[2]}")
+                    elif num == 3:  # Vérification des champs NULL
+                        row = results[num][0]
+                        print(f"📊 Total des enregistrements : {row[0]}")
+                        print(f"✅ Dossiers non vides : {row[1]}")
+                        print(f"✅ Matricules non vides : {row[2]}")
 
-                    elif i == 4:  # Enregistrements problématiques
-                        print("Enregistrements avec même numéro de dossier :")
-                        if not results:
-                            print("Aucun enregistrement problématique trouvé")
-                        for row in results:
-                            print(f"Dossier: {row[0]}, Matricule: {row[1]}")
+                    elif num == 4:  # Enregistrements problématiques
+                        print("⚠️ Enregistrements suspects (matricules en double) :")
+                        if not results[num]:
+                            print("✅ Aucun enregistrement problématique trouvé.")
+                        else:
+                            for row in results[num]:
+                                print(f"Dossier: {row[0]}, Matricule: {row[1]}, Date: {row[2]}, Faute: {row[3]}")
 
-                    elif i == 5:  # Liste détaillée des sanctions
-                        print("Détail des sanctions :")
-                        print("Num Dossier | Matricule | Date faits | Faute ")
+                    elif num == 5:  # Liste détaillée des sanctions
+                        print("📜 Détail des sanctions (triées par date) :")
+                        print("Num Dossier | Matricule  | Date faits  | Faute")
                         print("-" * 70)
-                        for row in results:
-                            print(f"{row[0]:<12} | {row[1]:<10} | {row[2]:<11} | {row[3]} ")
-                        print(f"\nNombre total d'enregistrements : {len(results)}")
+                        for row in results[num]:
+                            print(f"{row[0]:<12} | {row[1]:<10} | {row[2]:<11} | {row[3]}")
+                        print(f"\n📌 Nombre total d'enregistrements : {len(results[num])}")
 
                 except Exception as e:
-                    print(f"Erreur lors du diagnostic {i}: {str(e)}")
+                    print(f"❌ Erreur lors du diagnostic {num}: {str(e)}")
                     continue

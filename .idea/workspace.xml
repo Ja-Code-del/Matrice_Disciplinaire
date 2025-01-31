@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="" />
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="added SQLALCHEMY" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -92,22 +92,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1727455479936</updated>
-    </task>
-    <task id="LOCAL-00018" summary="new icons">
-      <option name="closed" value="true" />
-      <created>1730251478435</created>
-      <option name="number" value="00018" />
-      <option name="presentableId" value="LOCAL-00018" />
-      <option name="project" value="LOCAL" />
-      <updated>1730251478435</updated>
-    </task>
-    <task id="LOCAL-00019" summary="Style and design : ok but bug to import Excel Tab">
-      <option name="closed" value="true" />
-      <created>1730445363061</created>
-      <option name="number" value="00019" />
-      <option name="presentableId" value="LOCAL-00019" />
-      <option name="project" value="LOCAL" />
-      <updated>1730445363061</updated>
     </task>
     <task id="LOCAL-00020" summary="ERROR / name 'info_group' is not define">
       <option name="closed" value="true" />
@@ -485,12 +469,26 @@
       <option name="project" value="LOCAL" />
       <updated>1734349022029</updated>
     </task>
-    <option name="localTasksCounter" value="67" />
+    <task id="LOCAL-00067" summary="Working into db_manager.py &#10;Changes : got new one table for all datas called main_tab&lt;&#10;Not achieved... just need to sleep :)">
+      <option name="closed" value="true" />
+      <created>1738280141257</created>
+      <option name="number" value="00067" />
+      <option name="presentableId" value="LOCAL-00067" />
+      <option name="project" value="LOCAL" />
+      <updated>1738280141258</updated>
+    </task>
+    <task id="LOCAL-00068" summary="added SQLALCHEMY">
+      <option name="closed" value="true" />
+      <created>1738280172741</created>
+      <option name="number" value="00068" />
+      <option name="presentableId" value="LOCAL-00068" />
+      <option name="project" value="LOCAL" />
+      <updated>1738280172741</updated>
+    </task>
+    <option name="localTasksCounter" value="69" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Liste exhaustive has now styled export button. tried to had animation but will make it after" />
-    <MESSAGE value="TOTAL was 175 rather than 171. now its fixed. and 'count' error is fixed. TODO: fix the subject choice error" />
     <MESSAGE value="Worked on grouped bar graphic. not achieved" />
     <MESSAGE value="work on bar grouped with 'tranche annee_service/subdivisions' sujet: Non-respect des consignes" />
     <MESSAGE value="Good SQL for Load_data" />
@@ -514,7 +512,9 @@
     <MESSAGE value="work on welcome window and profil info" />
     <MESSAGE value="Works on stats." />
     <MESSAGE value="Works on deletion. Next I aim to add refreshing parameter for stats after deletion" />
-    <option name="LAST_COMMIT_MESSAGE" value="Works on deletion. Next I aim to add refreshing parameter for stats after deletion" />
+    <MESSAGE value="Working into db_manager.py &#10;Changes : got new one table for all datas called main_tab&lt;&#10;Not achieved... just need to sleep :)" />
+    <MESSAGE value="added SQLALCHEMY" />
+    <option name="LAST_COMMIT_MESSAGE" value="added SQLALCHEMY" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
