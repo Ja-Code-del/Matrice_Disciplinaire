@@ -11,7 +11,7 @@ from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QAction
 from src.database.db_manager import DatabaseManager
 from src.ui.styles.styles import Styles
-from src.database.models import GendarmeRepository, SanctionRepository
+from src.database.models import  MainTabRepository
 from src.ui.windows.import_etat_window import ImportEtatCompletWindow
 from src.ui.forms.edit_gendarme_form import SearchMatriculeDialog, EditCaseForm
 from .forms.delete_case_dialog import DeleteCaseDialog
@@ -38,8 +38,7 @@ class MainGendarmeApp(QMainWindow):
 
         # Initialisation des gestionnaires de données
         self.db_manager = DatabaseManager()
-        self.gendarme_repository = GendarmeRepository(self.db_manager)
-        self.sanction_repository = SanctionRepository(self.db_manager)
+        self.main_repository = MainTabRepository(self.db_manager)
 
         # Initialisation du gestionnaire de statistiques
         self.stats_handler = StatsHandler(self)
@@ -47,7 +46,7 @@ class MainGendarmeApp(QMainWindow):
         # Définition des champs d'information
         self.info_fields = [
             ('numero_dossier', 'N° de dossier'),
-            ('mle', 'Matricule'),
+            ('matricule', 'Matricule'),
             ('nom_prenoms', 'Nom et Prénoms'),
             ('grade', 'Grade'),
             ('sexe', 'Sexe'),
@@ -68,7 +67,7 @@ class MainGendarmeApp(QMainWindow):
 
     def init_ui(self):
         """Initialise interface utilisateur"""
-        self.setWindowTitle("Gestion des Gendarmes")
+        self.setWindowTitle("Matrice disciplinaire des Gendarmes")
         self.setMinimumSize(1000, 750)
         self.resize(1024, 768)
 
@@ -301,12 +300,12 @@ class MainGendarmeApp(QMainWindow):
 
                 # Requête pour le gendarme
                 if self.search_type.currentText() == "Matricule (MLE)":
-                    where_clause = "WHERE mle = ?"
+                    where_clause = "WHERE matricule = ?"
                 else:
                     where_clause = "WHERE nom_prenoms LIKE ?"
                     search_text = f"%{search_text}%"
 
-                cursor.execute(f"SELECT * FROM gendarmes {where_clause}", (search_text,))
+                cursor.execute(f"SELECT * FROM main_tab {where_clause}", (search_text,))
                 gendarmes = cursor.fetchall()
                 #print(gendarmes)
                 if gendarmes:
@@ -333,7 +332,7 @@ class MainGendarmeApp(QMainWindow):
                     # Requête pour les sanctions
                     cursor.execute("""
                         SELECT id, numero_dossier, faute_commise, date_faits, categorie, statut, reference_statut, taux_jar, comite, 
-                        annee_faits   FROM sanctions
+                        annee_faits   FROM main_tab
                         WHERE matricule = ?
                         ORDER BY date_faits DESC
                     """, (search_text,))
@@ -438,7 +437,7 @@ class MainGendarmeApp(QMainWindow):
         """Rafraîchit les données après une suppression."""
         try:
             # 1. Rafraîchir l'affichage principal si un gendarme est affiché
-            current_matricule = self.info_labels.get('mle').text() if self.info_group.isVisible() else None
+            current_matricule = self.info_labels.get('matricule').text() if self.info_group.isVisible() else None
 
             if current_matricule:
                 # Refaire une recherche pour mettre à jour l'affichage
@@ -499,7 +498,7 @@ class MainGendarmeApp(QMainWindow):
         """Import de l'état complet des gendarmes"""
         file_name, _ = QFileDialog.getOpenFileName(
             self,
-            "Importer l'état complet",
+            "Importer l'état complet des Sous-officiers",
             "",
             "Excel files (*.xlsx *.xls)"
         )

@@ -1,14 +1,17 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List
-from typing import Dict, List, Any
+from typing import Optional, List, Dict, Any
 
 
 @dataclass
-class Gendarme:
-    """Classe représentant un gendarme"""
+class MainTab:
+    """Classe représentant un enregistrement de la table main_tab"""
     id: Optional[int] = None
-    mle: str = ""
+    numero_dossier: str = ""
+    annee_punition: Optional[int] = None
+    numero_ordre: Optional[int] = None
+    date_enr: str = ""
+    matricule: Optional[int] = None
     nom_prenoms: str = ""
     grade: str = ""
     sexe: str = ""
@@ -22,61 +25,20 @@ class Gendarme:
     annee_service: Optional[int] = None
     situation_matrimoniale: str = ""
     nb_enfants: Optional[int] = None
-    sanctions: List['Sanction'] = None
-
-    def __post_init__(self):
-        if self.sanctions is None:
-            self.sanctions = []
-
-    @classmethod
-    def from_db_row(cls, row: tuple, column_names: list):
-        """Crée une instance de Gendarme à partir d'une ligne de la base de données"""
-        data = dict(zip(column_names, row))
-        return cls(**data)
-
-    def to_dict(self):
-        """Convertit l'instance en dictionnaire"""
-        return {
-            'id': self.id,
-            'mle': self.mle,
-            'nom_prenoms': self.nom_prenoms,
-            'grade': self.grade,
-            'sexe': self.sexe,
-            'date_naissance': self.date_naissance,
-            'age': self.age,
-            'unite': self.unite,
-            'legions': self.legions,
-            'subdiv': self.subdiv,
-            'regions': self.regions,
-            'date_entree_gie': self.date_entree_gie,
-            'annee_service': self.annee_service,
-            'situation_matrimoniale': self.situation_matrimoniale,
-            'nb_enfants': self.nb_enfants
-        }
-
-
-@dataclass
-class Sanction:
-    """Classe représentant une sanction"""
-    id: Optional[int] = None
-    numero_dossier: str = ""
-    annee_punition: Optional[int] = None
-    numero_ordre: int = ""
-    date_enr: str = ""
-    matricule: int = ""
     faute_commise: str = ""
     date_faits: str = ""
-    numero_cat: str = ""
+    categorie: Optional[int] = None
     statut: str = ""
     reference_statut: str = ""
-    taux_jar: Optional[int] = None
-    comite: str = ""
+    taux_jar: str = ""
+    comite: Optional[int] = None
     annee_faits: Optional[int] = None
+    numero_arrete: str = ""
     numero_decision: str = ""
 
     @classmethod
     def from_db_row(cls, row: tuple, column_names: list):
-        """Crée une instance de Sanction à partir d'une ligne de la base de données"""
+        """Crée une instance de MainTab à partir d'une ligne de la base de données"""
         data = dict(zip(column_names, row))
         return cls(**data)
 
@@ -89,88 +51,92 @@ class Sanction:
             'numero_ordre': self.numero_ordre,
             'date_enr': self.date_enr,
             'matricule': self.matricule,
+            'nom_prenoms': self.nom_prenoms,
+            'grade': self.grade,
+            'sexe': self.sexe,
+            'date_naissance': self.date_naissance,
+            'age': self.age,
+            'unite': self.unite,
+            'legions': self.legions,
+            'subdiv': self.subdiv,
+            'regions': self.regions,
+            'date_entree_gie': self.date_entree_gie,
+            'annee_service': self.annee_service,
+            'situation_matrimoniale': self.situation_matrimoniale,
+            'nb_enfants': self.nb_enfants,
             'faute_commise': self.faute_commise,
             'date_faits': self.date_faits,
-            'numero_cat': self.numero_cat,
+            'categorie': self.categorie,
             'statut': self.statut,
             'reference_statut': self.reference_statut,
             'taux_jar': self.taux_jar,
             'comite': self.comite,
             'annee_faits': self.annee_faits,
+            'numero_arrete': self.numero_arrete,
             'numero_decision': self.numero_decision
         }
 
 
-class GendarmeRepository:
-    """Classe pour gérer les opérations sur les gendarmes dans la base de données"""
+class MainTabRepository:
+    """Classe pour gérer les opérations sur la table main_tab"""
 
     def __init__(self, db_manager):
         self.db_manager = db_manager
 
-    def get_all(self) -> List[Gendarme]:
-        """Récupère tous les gendarmes"""
+    def get_all(self) -> List[MainTab]:
+        """Récupère tous les enregistrements de la table main_tab"""
         with self.db_manager.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM gendarmes ORDER BY nom_prenoms")
+            cursor.execute("SELECT * FROM main_tab ORDER BY nom_prenoms")
             columns = [description[0] for description in cursor.description]
-            return [Gendarme.from_db_row(row, columns) for row in cursor.fetchall()]
+            return [MainTab.from_db_row(row, columns) for row in cursor.fetchall()]
 
-    def get_by_mle(self, mle: str) -> Optional[Gendarme]:
-        """Récupère un gendarme par son matricule"""
+    def get_by_numero_dossier(self, numero_dossier: str) -> Optional[MainTab]:
+        """Récupère un enregistrement par son numéro de dossier"""
         with self.db_manager.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM gendarmes WHERE mle = ?", (mle,))
+            cursor.execute("SELECT * FROM main_tab WHERE numero_dossier = ?", (numero_dossier,))
             row = cursor.fetchone()
             if row:
                 columns = [description[0] for description in cursor.description]
-                return Gendarme.from_db_row(row, columns)
+                return MainTab.from_db_row(row, columns)
         return None
 
-    def get_by_name(self, name: str) -> List[Gendarme]:
-        """Récupère les gendarmes par leur nom"""
+    def get_by_matricule(self, matricule: int) -> List[MainTab]:
+        """Récupère les enregistrements par matricule"""
         with self.db_manager.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM gendarmes WHERE nom_prenoms LIKE ?", (f"%{name}%",))
+            cursor.execute("SELECT * FROM main_tab WHERE matricule = ?", (matricule,))
             columns = [description[0] for description in cursor.description]
-            return [Gendarme.from_db_row(row, columns) for row in cursor.fetchall()]
+            return [MainTab.from_db_row(row, columns) for row in cursor.fetchall()]
 
-
-class SanctionRepository:
-    """Classe pour gérer les opérations sur les sanctions dans la base de données"""
-
-    def __init__(self, db_manager):
-        self.db_manager = db_manager
-
-    def get_by_gendarme(self, gendarme_id: int) -> List[Sanction]:
-        """Récupère toutes les sanctions d'un gendarme"""
+    def get_by_name(self, name: str) -> List[MainTab]:
+        """Récupère les enregistrements par nom et prénoms"""
         with self.db_manager.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                SELECT * FROM sanctions 
-                WHERE matricule = ? 
-                ORDER BY date_faits DESC
-            """, (gendarme_id,))
+            cursor.execute("SELECT * FROM main_tab WHERE nom_prenoms LIKE ?", (f"%{name}%",))
             columns = [description[0] for description in cursor.description]
-            return [Sanction.from_db_row(row, columns) for row in cursor.fetchall()]
+            return [MainTab.from_db_row(row, columns) for row in cursor.fetchall()]
 
     def get_statistics(self) -> dict:
-        """Récupère des statistiques sur les sanctions"""
+        """Récupère des statistiques générales"""
         with self.db_manager.get_connection() as conn:
             cursor = conn.cursor()
             stats = {}
 
+            # Nombre total de gendarmes (distincts par matricule)
+            cursor.execute("SELECT COUNT(DISTINCT matricule) FROM main_tab")
+            stats['total_gendarmes'] = cursor.fetchone()[0]
+
             # Nombre total de sanctions
-            cursor.execute("SELECT COUNT(*) FROM sanctions")
+            cursor.execute("SELECT COUNT(*) FROM main_tab")
             stats['total_sanctions'] = cursor.fetchone()[0]
 
-            # Répartition par type
-            cursor.execute("""
-                SELECT statut, COUNT(*) as count 
-                FROM sanctions 
-                GROUP BY statut
-                ORDER BY count DESC
-            """)
-            stats['repartition_par_type'] = dict(cursor.fetchall())
+            # Moyenne des sanctions par gendarme
+            if stats['total_gendarmes'] > 0:
+                stats['moyenne_sanctions'] = stats['total_sanctions'] / stats['total_gendarmes']
+            else:
+                stats['moyenne_sanctions'] = 0
 
             return stats
 
@@ -195,7 +161,7 @@ class StatisticsRepository:
             cursor = conn.cursor()
             query = """
                 SELECT strftime('%m', date_faits) as mois, COUNT(*) as nombre
-                FROM sanctions 
+                FROM main_tab 
                 WHERE annee_faits = ?
                 GROUP BY mois
                 ORDER BY mois
@@ -212,10 +178,9 @@ class StatisticsRepository:
         with self.db_manager.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT g.grade, COUNT(*) as count
-                FROM sanctions s
-                JOIN gendarmes g ON CAST(s.matricule AS TEXT) = g.mle
-                GROUP BY g.grade
+                SELECT grade, COUNT(*) as count
+                FROM main_tab
+                GROUP BY grade
                 ORDER BY count DESC
             """)
             results = dict(cursor.fetchall())
@@ -229,10 +194,9 @@ class StatisticsRepository:
         with self.db_manager.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT g.regions, COUNT(*) as count
-                FROM sanctions s
-                JOIN gendarmes g ON CAST(s.matricule AS TEXT) = g.mle
-                GROUP BY g.regions
+                SELECT regions, COUNT(*) as count
+                FROM main_tab
+                GROUP BY regions
                 ORDER BY count DESC
             """)
             results = dict(cursor.fetchall())
@@ -247,38 +211,37 @@ class StatisticsRepository:
             cursor = conn.cursor()
             query = """
                 SELECT 
-                    s.matricule,
-                    g.nom_prenoms,
-                    g.grade,
-                    g.regions,
-                    s.date_faits,
-                    s.faute_commise,
-                    s.categorie,
-                    s.statut
-                FROM sanctions s
-                LEFT JOIN gendarmes g ON CAST(s.matricule AS TEXT) = g.mle
+                    matricule,
+                    nom_prenoms,
+                    grade,
+                    regions,
+                    date_faits,
+                    faute_commise,
+                    categorie,
+                    statut
+                FROM main_tab
                 WHERE 1=1
             """
             params = []
 
             if filters:
                 if filters.get('grade'):
-                    query += " AND g.grade = ?"
+                    query += " AND grade = ?"
                     params.append(filters['grade'])
                 if filters.get('region'):
-                    query += " AND g.regions = ?"
+                    query += " AND regions = ?"
                     params.append(filters['region'])
                 if filters.get('year'):
-                    query += " AND s.annee_punition = ?"
+                    query += " AND annee_punition = ?"
                     params.append(filters['year'])
                 if filters.get('matricule'):
-                    query += " AND s.matricule LIKE ?"
+                    query += " AND matricule LIKE ?"
                     params.append(f"%{filters['matricule']}%")
                 if filters.get('categorie'):
-                    query += " AND s.categorie = ?"
+                    query += " AND categorie = ?"
                     params.append(filters['categorie'])
 
-            query += " ORDER BY s.date_faits DESC"
+            query += " ORDER BY date_faits DESC"
             cursor.execute(query, params)
             return cursor.fetchall()
 
@@ -289,19 +252,19 @@ class StatisticsRepository:
             cursor = conn.cursor()
 
             # Grades
-            cursor.execute("SELECT DISTINCT grade FROM gendarmes ORDER BY grade")
+            cursor.execute("SELECT DISTINCT grade FROM main_tab ORDER BY grade")
             filters['grades'] = [row[0] for row in cursor.fetchall() if row[0]]
 
             # Régions
-            cursor.execute("SELECT DISTINCT regions FROM gendarmes ORDER BY regions")
+            cursor.execute("SELECT DISTINCT regions FROM main_tab ORDER BY regions")
             filters['regions'] = [row[0] for row in cursor.fetchall() if row[0]]
 
             # Années
-            cursor.execute("SELECT DISTINCT annee_punition FROM sanctions ORDER BY annee_punition DESC")
+            cursor.execute("SELECT DISTINCT annee_punition FROM main_tab ORDER BY annee_punition DESC")
             filters['years'] = [row[0] for row in cursor.fetchall() if row[0]]
 
             # Catégories de sanctions
-            cursor.execute("SELECT DISTINCT categorie FROM sanctions ORDER BY categorie")
+            cursor.execute("SELECT DISTINCT categorie FROM main_tab ORDER BY categorie")
             filters['categories'] = [row[0] for row in cursor.fetchall() if row[0]]
 
             return filters
