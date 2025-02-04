@@ -1,0 +1,26 @@
+
+FAULT_ITEMS = [
+            "ABSENCE IRREGULIERE PROLONGEE",
+            "FAUTE CONTRE L'HONNEUR",
+            "NON - RESPECT DES CONSIGNES",
+            "ABSENCE IRREGULIERE",
+            "ABANDON DE POSTE",
+            "FAUTE DE COMPORTEMENT",
+            "EVASION GARDE A VUE",
+            "FAUTE PROFESSIONNELLE",
+            "EXTORSION DE FONDS",
+            "TENTATIVE D'EXTORSION DE FONDS",
+            "INDISCIPLINE",
+            "NEGLIGENCE PROFESSIONNELLE",
+            "IMPRUDENCE",
+            "PERTE D'ARME"
+        ]
+
+MATRIMONIAL_ITEMS = ["CELIBATAIRE", "MARIE(E)", "VEUF(VE)", "DIVORCE(E)"]
+
+GENDER_ITEMS = ["M" ,"F"]
+
+RANKS_ITEMS = ["ESO", "MDL", "MDC", "ADJ", "ADC", "ACM"]
+
+STATUT_ITEMS = ["EN COURS", "PUNI", "RADIE", "AVERTI"]
+

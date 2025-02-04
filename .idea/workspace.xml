@@ -4,7 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="added SQLALCHEMY" />
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="added SQLALCHEMY">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/forms/delete_case_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/delete_case_dialog.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/~$matrix.xlsx" beforeDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -26,12 +32,12 @@
     &quot;assignee&quot;: &quot;Ja-Code-del&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/Ja-Code-del/Matrice_Disciplinaire&quot;,
-    &quot;accountId&quot;: &quot;0f54eb91-15e8-46c2-9245-04f83e7a4903&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/Ja-Code-del/Matrice_Disciplinaire.git",
+    "accountId": "0f54eb91-15e8-46c2-9245-04f83e7a4903"
   }
-}</component>
+}]]></component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>

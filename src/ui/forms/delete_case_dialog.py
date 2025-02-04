@@ -58,10 +58,10 @@ class DeleteCaseDialog(QDialog):
 
                 # Recherche par numéro de dossier ou matricule
                 query = """
-                    SELECT s.numero_dossier, s.matricule, s.faute_commise, s.statut
-                    FROM sanctions s
-                    WHERE s.numero_dossier LIKE ? OR s.matricule LIKE ?
-                    ORDER BY s.date_enr DESC
+                    SELECT m.numero_dossier, s.matricule, s.faute_commise, s.statut
+                    FROM main_tab m
+                    WHERE m.numero_dossier LIKE ? OR s.matricule LIKE ?
+                    ORDER BY m.date_enr DESC
                 """
                 cursor.execute(query, (f"%{search_text}%", f"%{search_text}%"))
                 results = cursor.fetchall()
@@ -115,7 +115,7 @@ class DeleteCaseDialog(QDialog):
                     for _, numero_dossier in selected_rows:
                         # Supprimer les enregistrements liés au dossier
                         cursor.execute(
-                            "DELETE FROM sanctions WHERE numero_dossier = ?",
+                            "DELETE FROM main_tab WHERE numero_dossier = ?",
                             (numero_dossier,)
                         )
 

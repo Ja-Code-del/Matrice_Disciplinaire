@@ -8,6 +8,7 @@ from PyQt6.QtCore import Qt, QDate, QPropertyAnimation, QEasingCurve, QParallelA
 from PyQt6.QtGui import QFont, QColor, QIcon
 
 from src.data.gendarmerie import STRUCTURE_UNITE
+from src.data.gendarmerie.utilities import FAULT_ITEMS, MATRIMONIAL_ITEMS, GENDER_ITEMS, RANKS_ITEMS, STATUT_ITEMS
 from src.data.gendarmerie.structure import (get_all_unit_names, get_unit_by_name, get_all_regions, get_all_subdivisions,
                                             get_all_legions, Unit)
 from src.ui.styles.styles import Styles  # On va ajouter des styles dédiés
@@ -64,8 +65,8 @@ class NewCaseForm(QMainWindow):
         # Les trois sections
         #prevoir mettre les subtitles en tooltip
         self.section1 = self.create_section("📝 Informations du Dossier", "Numéro, dates et détails administratifs")
-        self.section3 = self.create_section("⚖️ Informations sur la Faute", "Nature et détails de la sanction")
         self.section2 = self.create_section("👤 Informations du Mis en Cause", "Identité et affectation du gendarme")
+        self.section3 = self.create_section("⚖️ Informations sur la Faute", "Nature et détails de la sanction")
 
         #Reglage initial : les deux autres fenêtres sont cachees
         self.section2.setVisible(False)
@@ -435,7 +436,12 @@ class NewCaseForm(QMainWindow):
         # N° Décision de radiation
         self.num_decision = QLineEdit()
         self.num_decision.setPlaceholderText("À remplir si radié")
-        layout.addRow(create_row("N° Décision de radiation", self.num_decision, True))
+        layout.addRow(create_row("Numero de Décision de radiation", self.num_decision, True))
+
+        # Arrêté de radiation
+        self.num_arrete = QLineEdit()
+        self.num_arrete.setPlaceholderText("À remplir si radié")
+        layout.addRow(create_row("Numero d'Arrêté de radiation", self.num_arrete, True))
 
         # Année
         self.annee_punition = QLineEdit()
@@ -509,8 +515,8 @@ class NewCaseForm(QMainWindow):
                 # Récupère le plus grand numéro pour l'année en cours
                 cursor.execute("""
                     SELECT MAX(CAST(ID as INTEGER))
-                    FROM sanctions
-                    WHERE annee_faits = ?
+                    FROM main_tab
+                    WHERE date_enr = ?
                 """, (datetime.now().year,))
                 last_num = cursor.fetchone()[0]
                 next_num = 1 if last_num is None else last_num + 1
@@ -572,13 +578,7 @@ class NewCaseForm(QMainWindow):
 
         # Faute commise (ComboBox)
         self.faute_commise = QComboBox()
-        self.faute_commise.addItems([
-            "ABANDON DE POSTE",
-            "NEGLIGENCE",
-            "CORRUPTION",
-            "DESERTION",
-            # ... ajoute ta liste complète de fautes ici
-        ])
+        self.faute_commise.addItems(FAULT_ITEMS)
         self.faute_commise.setStyleSheet(self.styles['COMBO_BOX'])
         layout.addRow(create_row("Faute commise", self.faute_commise))
 
@@ -589,7 +589,7 @@ class NewCaseForm(QMainWindow):
 
         # Statut du dossier
         self.statut = QComboBox()
-        self.statut.addItems(["EN COURS", "PUNI", "RADIE"])
+        self.statut.addItems(STATUT_ITEMS)
         #self.statut.currentTextChanged.connect(self.on_statut_change)
         self.statut.setStyleSheet(self.styles['COMBO_BOX'])
         layout.addRow(create_row("Statut du dossier", self.statut))
@@ -805,7 +805,7 @@ class NewCaseForm(QMainWindow):
 
         # Grade
         self.grade = QComboBox()
-        self.grade.addItems(["ESO", "MDL", "MDC", "ADJ", "ADC", "ACM"])
+        self.grade.addItems(RANKS_ITEMS)
         self.grade.setStyleSheet(self.styles['COMBO_BOX'])
         layout.addRow(create_row("Grade", self.grade))
 
@@ -830,13 +830,13 @@ class NewCaseForm(QMainWindow):
         layout.addRow(create_row("Années de service", self.annee_service))
 
         self.sexe = QComboBox()
-        self.sexe.addItems(["M", "F"])
+        self.sexe.addItems(GENDER_ITEMS)
         self.sexe.setStyleSheet(self.styles['COMBO_BOX'])
         #self.sexe.setCurrentText(self.get_gendarme_sexe(m))
         layout.addRow(create_row("Sexe", self.sexe))
 
         self.situation_matrimoniale = QComboBox()
-        self.situation_matrimoniale.addItems(["CELIBATAIRE", "MARIE(E)", "VEUF(VE)"])
+        self.situation_matrimoniale.addItems(MATRIMONIAL_ITEMS)
         self.situation_matrimoniale.setStyleSheet(self.styles['COMBO_BOX'])
         layout.addRow(create_row("Situation matrimoniale", self.situation_matrimoniale))
 
@@ -933,12 +933,13 @@ class NewCaseForm(QMainWindow):
                 return
 
             form_data = {
+                # Section Info Dossier (table main_tab)
                 'numero_dossier': self.num_dossier.text(),
                 'annee_punition': int(self.annee_punition.text()),
                 'date_enr': self.date_enr.date().toString("dd/MM/yyyy"),
                 'numero_ordre': int(self.num_enr.text()),
+
                 'matricule': int(self.matricule.text()),
-                'mle': self.matricule.text(),
                 'nom_prenoms': f"{self.nom.text()} {self.prenoms.text()}",
                 'grade': self.grade.currentText(),
                 'date_naissance': self.date_naissance.text(),
@@ -952,6 +953,7 @@ class NewCaseForm(QMainWindow):
                 'annee_service': self.annee_service.value(),
                 'situation_matrimoniale': self.situation_matrimoniale.currentText(),
                 'nb_enfants': self.nb_enfants.value(),
+
                 'date_faits': self.date_faits.date().toString("dd/MM/yyyy"),
                 'faute_commise': self.faute_commise.currentText(),
                 'categorie': self.categorie.text(),
@@ -960,13 +962,14 @@ class NewCaseForm(QMainWindow):
                 'taux_jar': self.taux_jar.value(),
                 'comite': int(self.comite.text()),
                 'annee_faits': int(self.annee_faits.text()),
-                'numero_decision': self.num_decision.text() if self.statut.currentText() == "RADIE" else "NEANT"
+                'numero_decision': self.num_decision.text() if self.statut.currentText() == "RADIE" else "NEANT",
+                'numero_arrete': self.num_arrete.text() if self.statut.currentText() == "RADIE" else "NEANT"
             }
 
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
 
-                cursor.execute("SELECT COUNT(*) FROM sanctions WHERE numero_dossier = ?",
+                cursor.execute("SELECT COUNT(*) FROM main_tab WHERE numero_dossier = ?",
                                (form_data['numero_dossier'],))
                 if cursor.fetchone()[0] > 0:
                     QMessageBox.warning(self, "Erreur",
@@ -974,36 +977,19 @@ class NewCaseForm(QMainWindow):
                     return
 
                 cursor.execute("""
-                    INSERT INTO sanctions (
+                    INSERT INTO main_tab (
                         numero_dossier, annee_punition, numero_ordre, date_enr,
-                        matricule, faute_commise, date_faits, categorie,
-                        statut, reference_statut, taux_jar, comite, annee_faits, 'numero_decision'
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        matricule,nom_prenoms, grade, age, date_naissance, unite, legions, subdiv,
+                        regions, date_entree_gie, annee_service, situation_matrimoniale,
+                        nb_enfants, faute_commise, date_faits, categorie,
+                        statut, reference_statut, taux_jar, comite, annee_faits, numero_arrete, numero_decision
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     form_data['numero_dossier'],
                     form_data['annee_punition'],
-                    form_data['date_enr'],
                     form_data['numero_ordre'],
+                    form_data['date_enr'],
                     form_data['matricule'],
-                    form_data['date_faits'],
-                    form_data['faute_commise'],
-                    form_data['categorie'],
-                    form_data['statut'],
-                    form_data['reference_statut'],
-                    form_data['taux_jar'],
-                    form_data['comite'],
-                    form_data['annee_faits'],
-                    form_data['numero_decision']
-                ))
-
-                cursor.execute("""
-                    INSERT INTO gendarmes (
-                        mle, nom_prenoms, grade, age, date_naissance, unite, legions, subdiv,
-                        regions, date_entree_gie, annee_service, situation_matrimoniale,
-                        nb_enfants
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    form_data['mle'],
                     form_data['nom_prenoms'],
                     form_data['grade'],
                     form_data['age'],
@@ -1015,7 +1001,17 @@ class NewCaseForm(QMainWindow):
                     form_data['date_entree_gie'],
                     form_data['annee_service'],
                     form_data['situation_matrimoniale'],
-                    form_data['nb_enfants']
+                    form_data['nb_enfants'],
+                    form_data['date_faits'],
+                    form_data['faute_commise'],
+                    form_data['categorie'],
+                    form_data['statut'],
+                    form_data['reference_statut'],
+                    form_data['taux_jar'],
+                    form_data['comite'],
+                    form_data['annee_faits'],
+                    form_data['numero_arrete'],
+                    form_data['numero_decision']
                 ))
 
                 conn.commit()

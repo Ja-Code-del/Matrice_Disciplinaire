@@ -9,11 +9,12 @@ from PyQt6.QtCore import Qt, QDate, QPropertyAnimation, QEasingCurve, QParallelA
 from PyQt6.QtGui import QFont, QColor, QIcon
 
 from src.data.gendarmerie import STRUCTURE_PRINCIPALE
+from src.data.gendarmerie.utilities import FAULT_ITEMS, MATRIMONIAL_ITEMS, RANKS_ITEMS, GENDER_ITEMS, STATUT_ITEMS
 from src.ui.styles.styles import Styles
 
+#Recherche d'unite
 
-#pour la recherche d'unité
-class SearchUniteDialog(QDialog):
+class SearchUniteDialog:
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Rechercher par unité")
@@ -83,12 +84,11 @@ class SearchUniteDialog(QDialog):
     def get_unite(self):
         return self.unite_combo.currentText()
 
-
-class SearchMatriculeDialog(QDialog):
+class SearchDossierDialog(QDialog):
     def __init__(self, db_manager, parent=None):
         super().__init__(parent)
         self.db_manager = db_manager
-        self.setWindowTitle("Recherche du gendarme à modifier")
+        self.setWindowTitle("Recherche du dossier à modifier")
         self.setMinimumWidth(400)
         self.init_ui()
 
@@ -98,21 +98,10 @@ class SearchMatriculeDialog(QDialog):
         layout.setContentsMargins(30, 30, 30, 30)
 
         # Titre
-        title = QLabel("Recherche par matricule")
+        title = QLabel("Recherche par matricule et numéro de dossier")
         title.setFont(QFont('Helvetica', 18, QFont.Weight.Bold))
         title.setStyleSheet("color: #1976d2; margin-bottom: 20px;")
         layout.addWidget(title)
-
-        # Message d'instruction
-        instruction = QLabel("Entrez le matricule du gendarme à modifier")
-        instruction.setStyleSheet("""
-            QLabel {
-                font-size: 14px;
-                color: #555;
-                margin-bottom: 10px;
-            }
-        """)
-        layout.addWidget(instruction)
 
         # Champ de saisie du matricule
         self.matricule_input = QLineEdit()
@@ -132,6 +121,25 @@ class SearchMatriculeDialog(QDialog):
             }
         """)
         layout.addWidget(self.matricule_input)
+
+        # Champ de saisie du numéro de dossier
+        self.num_dossier_input = QLineEdit()
+        self.num_dossier_input.setPlaceholderText("Entrez le numéro de dossier")
+        self.num_dossier_input.setStyleSheet("""
+            QLineEdit {
+                padding: 12px 20px;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                background: white;
+                font-size: 16px;
+                color: #333;
+            }
+            QLineEdit:focus {
+                border-color: #2196f3;
+                background: #f1f4f8;
+            }
+        """)
+        layout.addWidget(self.num_dossier_input)
 
         # Boutons
         button_layout = QHBoxLayout()
@@ -178,23 +186,26 @@ class SearchMatriculeDialog(QDialog):
         self.search_button.clicked.connect(self.validate_and_accept)
         self.cancel_button.clicked.connect(self.reject)
         self.matricule_input.returnPressed.connect(self.validate_and_accept)
+        self.num_dossier_input.returnPressed.connect(self.validate_and_accept)
 
     def validate_and_accept(self):
+        """Valide les champs et recherche le dossier"""
         matricule = self.matricule_input.text().strip()
-        if not matricule:
-            QMessageBox.warning(self, "Erreur", "Veuillez entrer un matricule.")
+        num_dossier = self.num_dossier_input.text().strip()
+
+        if not matricule or not num_dossier:
+            QMessageBox.warning(self, "Erreur", "Veuillez entrer un matricule et un numéro de dossier.")
             return
 
         try:
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
-                # Vérifier dans les deux tables
+                # Vérifier dans la table main_tab
                 cursor.execute("""
-                    SELECT s.matricule 
-                    FROM sanctions s
-                    JOIN gendarmes g ON s.matricule = g.mle
-                    WHERE s.matricule = ?
-                """, (matricule,))
+                    SELECT * 
+                    FROM main_tab 
+                    WHERE matricule = ? AND numero_dossier = ?
+                """, (matricule, num_dossier))
 
                 result = cursor.fetchone()
 
@@ -202,7 +213,7 @@ class SearchMatriculeDialog(QDialog):
                     self.accept()
                 else:
                     QMessageBox.warning(self, "Erreur",
-                                        f"Aucun dossier trouvé pour le matricule {matricule}")
+                                        f"Aucun dossier trouvé pour le matricule {matricule} et le numéro de dossier {num_dossier}")
         except Exception as e:
             QMessageBox.critical(self, "Erreur",
                                  f"Erreur lors de la recherche : {str(e)}")
@@ -211,22 +222,22 @@ class SearchMatriculeDialog(QDialog):
     def get_matricule(self):
         return self.matricule_input.text().strip()
 
+    def get_num_dossier(self):
+        return self.num_dossier_input.text().strip()
+
 
 class EditCaseForm(QMainWindow):
-    def __init__(self, matricule, db_manager):
+    def __init__(self, matricule, num_dossier, db_manager):
         super().__init__()
         self.matricule = matricule
+        self.num_dossier = num_dossier
         self.db_manager = db_manager
-        self.setWindowTitle("Modification du dossier")
+        self.setWindowTitle(f"Modification du dossier {num_dossier} - Matricule {matricule}")
         self.setMinimumSize(1200, 800)
         self.is_dark_mode = False
         self.current_section = 0
         self.init_ui()
         self.load_data()
-
-        # Désactiver l'édition du matricule
-        self.matricule_field.setEnabled(False)
-        self.matricule_field.setStyleSheet("QLineEdit { background-color: #f0f0f0; }")
 
     def create_form_row(self, label_text, widget, with_info=False):
         """Crée une ligne de formulaire avec label et widget"""
@@ -282,7 +293,7 @@ class EditCaseForm(QMainWindow):
         layout.setContentsMargins(30, 30, 30, 30)
 
         # Titre du formulaire
-        title = QLabel(f"Modification du Dossier - Matricule: {self.matricule}")
+        title = QLabel(f"Modification du Dossier {self.num_dossier} - Matricule: {self.matricule}")
         title.setFont(QFont('Helvetica', 24, QFont.Weight.Bold))
         title.setStyleSheet("color: #FFFFFF; margin-bottom: 20px;")
         layout.addWidget(title)
@@ -399,7 +410,7 @@ class EditCaseForm(QMainWindow):
         return section
 
     def create_case_info_section(self):
-        """Crée la section des informations du dossier (table sanctions)"""
+        """Crée la section des informations du dossier (table main_tab)"""
         container = QWidget()
         layout = QFormLayout()
         layout.setSpacing(20)
@@ -442,7 +453,7 @@ class EditCaseForm(QMainWindow):
         return container
 
     def create_suspect_info_section(self):
-        """Crée la section des informations du mis en cause (table gendarmes)"""
+        """Crée la section des informations du mis en cause (table main_tab)"""
         container = QWidget()
         layout = QFormLayout()
         layout.setSpacing(15)
@@ -470,13 +481,13 @@ class EditCaseForm(QMainWindow):
 
         # Grade
         self.grade = QComboBox()
-        self.grade.addItems(["ESO", "MDL", "MDC", "ADJ", "ADC", "ACM"])
+        self.grade.addItems(RANKS_ITEMS)
         self.grade.setStyleSheet(styles['COMBO_BOX'])
         layout.addRow(self.create_form_row("Grade", self.grade))
 
         # Sexe
         self.sexe = QComboBox()
-        self.sexe.addItems(["M", "F"])
+        self.sexe.addItems(GENDER_ITEMS)
         self.sexe.setStyleSheet(styles['COMBO_BOX'])
         layout.addRow(self.create_form_row("Sexe", self.sexe))
 
@@ -534,8 +545,6 @@ class EditCaseForm(QMainWindow):
 
         print("Connexion du bouton de recherche")  # Debug
         search_button.clicked.connect(self.on_unite_search)
-        print("Bouton connecté")  # Debug
-
         unite_layout.addWidget(search_button)
 
         # Ajout au layout principal avec le widget container
@@ -559,7 +568,7 @@ class EditCaseForm(QMainWindow):
         layout.addRow(self.create_form_row("Années de service", self.annee_service))
 
         self.situation_matrimoniale = QComboBox()
-        self.situation_matrimoniale.addItems(["CELIBATAIRE", "MARIE(E)", "VEUF(VE)", "DIVORCE(E)"])
+        self.situation_matrimoniale.addItems(MATRIMONIAL_ITEMS)
         self.situation_matrimoniale.setStyleSheet(styles['COMBO_BOX'])
         layout.addRow(self.create_form_row("Situation matrimoniale", self.situation_matrimoniale))
 
@@ -572,7 +581,7 @@ class EditCaseForm(QMainWindow):
         return container
 
     def create_fault_info_section(self):
-        """Crée la section des informations sur la faute (table sanctions)"""
+        """Crée la section des informations sur la faute (table main_tab)"""
         container = QWidget()
         layout = QFormLayout()
         layout.setSpacing(15)
@@ -591,14 +600,7 @@ class EditCaseForm(QMainWindow):
 
         # Faute commise
         self.faute_commise = QComboBox()
-        self.faute_commise.addItems([
-            "ABANDON DE POSTE",
-            "NEGLIGENCE",
-            "CORRUPTION",
-            "ABSENCE IRREGULIERE",
-            "ABSENCE IRREGULIERE PROLONGEE",
-            "FAUTE DE COMPORTEMENT"
-        ])
+        self.faute_commise.addItems(FAULT_ITEMS)
         self.faute_commise.setStyleSheet(styles['COMBO_BOX'])
         layout.addRow(self.create_form_row("Faute commise", self.faute_commise))
 
@@ -610,7 +612,7 @@ class EditCaseForm(QMainWindow):
 
         # Statut
         self.statut = QComboBox()
-        self.statut.addItems(["EN COURS", "PUNI", "RADIE", "AVERTI"])
+        self.statut.addItems(STATUT_ITEMS)
         self.statut.currentTextChanged.connect(self.on_statut_change)
         self.statut.setStyleSheet(styles['COMBO_BOX'])
         layout.addRow(self.create_form_row("Statut du dossier", self.statut))
@@ -664,30 +666,30 @@ class EditCaseForm(QMainWindow):
                 size_animation.setStartValue(section.width())
                 size_animation.setEndValue(section.width() * 2.2)
                 section.setStyleSheet("""
-                    QFrame {
-                        background: white;
-                        border-radius: 10px;
-                        padding: 20px;
-                        border: 1px solid #2196f3;
-                        opacity: 1;
-                        z-index: 1000;
-                        position: relative;
-                    }
-                """)
+                        QFrame {
+                            background: white;
+                            border-radius: 10px;
+                            padding: 20px;
+                            border: 1px solid #2196f3;
+                            opacity: 1;
+                            z-index: 1000;
+                            position: relative;
+                        }
+                    """)
                 section.raise_()
             else:
                 size_animation.setStartValue(section.width())
                 size_animation.setEndValue(section.width() // 2.5)
                 section.setStyleSheet("""
-                    QFrame {
-                        background: #f5f7fa;
-                        border-radius: 10px;
-                        padding: 20px;
-                        border: none;
-                        opacity: 0.5;
-                        z-index: 1;
-                    }
-                """)
+                        QFrame {
+                            background: #f5f7fa;
+                            border-radius: 10px;
+                            padding: 20px;
+                            border: none;
+                            opacity: 0.5;
+                            z-index: 1;
+                        }
+                    """)
                 section.lower()
 
             animation_group.addAnimation(size_animation)
@@ -858,160 +860,147 @@ class EditCaseForm(QMainWindow):
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
 
-                # Charger les données de la table sanctions
+                # Charger les données de la table main_tab
                 cursor.execute("""
-                    SELECT * FROM sanctions 
-                    WHERE matricule = ?
-                """, (self.matricule,))
-                sanctions_data = cursor.fetchone()
+                    SELECT * FROM main_tab 
+                    WHERE matricule = ? AND numero_dossier = ?
+                """, (self.matricule, self.num_dossier))
+                main_sanction_data = cursor.fetchone()
 
-                # Charger les données de la table gendarmes
-                cursor.execute("""
-                    SELECT * FROM gendarmes 
-                    WHERE mle = ?
-                """, (str(self.matricule),))  # Conversion en string car mle est TEXT
-                gendarmes_data = cursor.fetchone()
+                if main_sanction_data:
+                    main_dict = dict(main_sanction_data)
 
-                if sanctions_data and gendarmes_data:
+                    # Section 1 : Informations du Dossier (depuis main_tab)
+                    self.num_dossier.setText(str(main_dict.get('numero_dossier', '')))
+                    self.annee_punition.setText(str(main_dict.get('annee_punition', '')))
+
+                    # Gestion de la date d'enregistrement
+                    date_enr = str(main_dict.get('date_enr', ''))
+                    if date_enr:
+                        try:
+                            self.date_enr.setDate(QDate.fromString(date_enr, "yyyy-MM-dd"))
+                        except Exception as e:
+                            print(f"Erreur lors de la conversion de la date d'enregistrement: {e}")
+
+                    self.numero_ordre.setText(str(main_dict.get('numero_ordre', '')))
+
+                    # Section 2 : Informations du Mis en Cause
+                    self.matricule_field.setText(main_dict.get('matricule', ''))
+                    self.nom_prenoms.setText(main_dict.get('nom_prenoms', ''))
+
+                    # Valeurs numériques depuis main_tab
                     try:
-                        sanctions_dict = dict(sanctions_data)
-                        gendarmes_dict = dict(gendarmes_data)
+                        # Age
+                        age_value = main_dict.get('age')
+                        self.age.setValue(int(age_value) if age_value is not None else 0)
 
-                        # Section 1 : Informations du Dossier (depuis sanctions)
-                        self.num_dossier.setText(str(sanctions_dict.get('numero_dossier', '')))
-                        self.annee_punition.setText(str(sanctions_dict.get('annee_punition', '')))
+                        # Nombre d'enfants
+                        nb_enfants_value = main_dict.get('nb_enfants')
+                        self.nb_enfants.setValue(int(nb_enfants_value) if nb_enfants_value is not None else 0)
 
-                        # Gestion de la date d'enregistrement
-                        date_enr = str(sanctions_dict.get('date_enr', ''))
-                        if date_enr:
-                            try:
-                                self.date_enr.setDate(QDate.fromString(date_enr, "yyyy-MM-dd"))
-                            except Exception as e:
-                                print(f"Erreur lors de la conversion de la date d'enregistrement: {e}")
+                        # Années de service
+                        annee_service_value = main_dict.get('annee_service')
+                        self.annee_service.setValue(
+                            int(annee_service_value) if annee_service_value is not None else 0)
+                    except (ValueError, TypeError) as e:
+                        print(f"Erreur de conversion des valeurs numériques gendarmes: {str(e)}")
 
-                        self.numero_ordre.setText(str(sanctions_dict.get('numero_ordre', '')))
+                    # Gestion des ComboBox
+                    self.grade.setCurrentText(main_dict.get('grade', ''))
+                    self.sexe.setCurrentText(main_dict.get('sexe', ''))
 
-                        # Section 2 : Informations du Mis en Cause (depuis gendarmes)
-                        self.matricule_field.setText(str(gendarmes_dict.get('mle', '')))
-                        self.nom_prenoms.setText(gendarmes_dict.get('nom_prenoms', ''))
-
-                        # Valeurs numériques (depuis gendarmes)
+                    # Gestion de la date de naissance
+                    date_naissance = str(main_dict.get('date_naissance', ''))
+                    if date_naissance:
                         try:
-                            # Age
-                            age_value = gendarmes_dict.get('age')
-                            self.age.setValue(int(age_value) if age_value is not None else 0)
+                            self.date_naissance.setDate(QDate.fromString(date_naissance, "yyyy-MM-dd"))
+                        except Exception as e:
+                            print(f"Erreur lors de la conversion de la date de naissance: {e}")
 
-                            # Nombre d'enfants
-                            nb_enfants_value = gendarmes_dict.get('nb_enfants')
-                            self.nb_enfants.setValue(int(nb_enfants_value) if nb_enfants_value is not None else 0)
+                    # Chargement direct de la structure sans passer par la hiérarchie
+                    self.type_affectation.blockSignals(True)
+                    self.regions.blockSignals(True)
+                    self.legions.blockSignals(True)
+                    self.unite.blockSignals(True)
 
-                            # Années de service
-                            annee_service_value = gendarmes_dict.get('annee_service')
-                            self.annee_service.setValue(
-                                int(annee_service_value) if annee_service_value is not None else 0)
-                        except (ValueError, TypeError) as e:
-                            print(f"Erreur de conversion des valeurs numériques gendarmes: {str(e)}")
+                    # Récupérer les valeurs existantes
+                    current_region = main_dict.get('regions', '')
+                    current_legion = main_dict.get('legions', '')
+                    current_unite = main_dict.get('unite', '')
 
-                        # Gestion des ComboBox
-                        self.grade.setCurrentText(gendarmes_dict.get('grade', ''))
-                        self.sexe.setCurrentText(gendarmes_dict.get('sexe', ''))
+                    # Ajouter les valeurs existantes si elles ne sont pas dans les listes
+                    if current_region and current_region not in [self.regions.itemText(i) for i in
+                                                                 range(self.regions.count())]:
+                        self.regions.addItem(current_region)
+                    if current_legion and current_legion not in [self.legions.itemText(i) for i in
+                                                                 range(self.legions.count())]:
+                        self.legions.addItem(current_legion)
+                    if current_unite and current_unite not in [self.unite.itemText(i) for i in
+                                                               range(self.unite.count())]:
+                        self.unite.addItem(current_unite)
 
-                        # Gestion de la date de naissance
-                        date_naissance = str(gendarmes_dict.get('date_naissance', ''))
-                        if date_naissance:
-                            try:
-                                self.date_naissance.setDate(QDate.fromString(date_naissance, "yyyy-MM-dd"))
-                            except Exception as e:
-                                print(f"Erreur lors de la conversion de la date de naissance: {e}")
+                    # Sélectionner les valeurs
+                    self.regions.setCurrentText(current_region)
+                    self.legions.setCurrentText(current_legion)
+                    self.unite.setCurrentText(current_unite)
 
-                        # Chargement direct de la structure sans passer par la hiérarchie
-                        self.type_affectation.blockSignals(True)
-                        self.regions.blockSignals(True)
-                        self.legions.blockSignals(True)
-                        self.unite.blockSignals(True)
+                    # Réactiver les signaux
+                    self.type_affectation.blockSignals(False)
+                    self.regions.blockSignals(False)
+                    self.legions.blockSignals(False)
+                    self.unite.blockSignals(False)
 
-                        # Récupérer les valeurs existantes
-                        current_region = gendarmes_dict.get('regions', '')
-                        current_legion = gendarmes_dict.get('legions', '')
-                        current_unite = gendarmes_dict.get('unite', '')
+                    # Informations supplémentaires
+                    self.subdiv.setText(str(main_dict.get('subdiv', '')))
 
-                        # Ajouter les valeurs existantes si elles ne sont pas dans les listes
-                        if current_region and current_region not in [self.regions.itemText(i) for i in
-                                                                     range(self.regions.count())]:
-                            self.regions.addItem(current_region)
-                        if current_legion and current_legion not in [self.legions.itemText(i) for i in
-                                                                     range(self.legions.count())]:
-                            self.legions.addItem(current_legion)
-                        if current_unite and current_unite not in [self.unite.itemText(i) for i in
-                                                                   range(self.unite.count())]:
-                            self.unite.addItem(current_unite)
-
-                        # Sélectionner les valeurs
-                        self.regions.setCurrentText(current_region)
-                        self.legions.setCurrentText(current_legion)
-                        self.unite.setCurrentText(current_unite)
-
-                        # Réactiver les signaux
-                        self.type_affectation.blockSignals(False)
-                        self.regions.blockSignals(False)
-                        self.legions.blockSignals(False)
-                        self.unite.blockSignals(False)
-
-                        # Informations supplémentaires
-                        self.subdiv.setText(str(gendarmes_dict.get('subdiv', '')))
-
-                        # Date d'entrée GIE
-                        date_entree = str(gendarmes_dict.get('date_entree_gie', ''))
-                        if date_entree:
-                            try:
-                                self.date_entree_gie.setDate(QDate.fromString(date_entree, "yyyy-MM-dd"))
-                            except Exception as e:
-                                print(f"Erreur lors de la conversion de la date d'entrée GIE: {e}")
-
-                        self.situation_matrimoniale.setCurrentText(gendarmes_dict.get('situation_matrimoniale', ''))
-
-                        # Section 3 : Informations sur la Faute (depuis sanctions)
-                        date_faits = str(sanctions_dict.get('date_faits', ''))
-                        if date_faits:
-                            try:
-                                self.date_faits.setDate(QDate.fromString(date_faits, "yyyy-MM-dd"))
-                            except Exception as e:
-                                print(f"Erreur lors de la conversion de la date des faits: {e}")
-
-                        self.faute_commise.setCurrentText(sanctions_dict.get('faute_commise', ''))
-
-                        # Conversion de la catégorie
+                    # Date d'entrée GIE
+                    date_entree = str(main_dict.get('date_entree_gie', ''))
+                    if date_entree:
                         try:
-                            categorie_value = sanctions_dict.get('categorie')
-                            self.categorie.setValue(int(categorie_value) if categorie_value is not None else 1)
-                        except (ValueError, TypeError) as e:
-                            print(f"Erreur de conversion de la catégorie: {str(e)}")
-                            self.categorie.setValue(1)
+                            self.date_entree_gie.setDate(QDate.fromString(date_entree, "yyyy-MM-dd"))
+                        except Exception as e:
+                            print(f"Erreur lors de la conversion de la date d'entrée GIE: {e}")
 
-                        self.statut.setCurrentText(sanctions_dict.get('statut', ''))
-                        self.ref_statut.setText(sanctions_dict.get('reference_statut', ''))
-                        self.taux_jar.setText(str(sanctions_dict.get('taux_jar', '')))
+                    self.situation_matrimoniale.setCurrentText(main_dict.get('situation_matrimoniale', ''))
 
-                        # Conversion du comité
+                    # Section 3 : Informations sur la Faute (depuis main_tab)
+                    date_faits = str(main_dict.get('date_faits', ''))
+                    if date_faits:
                         try:
-                            comite_value = sanctions_dict.get('comite')
-                            self.comite.setValue(int(comite_value) if comite_value is not None else 0)
-                        except (ValueError, TypeError) as e:
-                            print(f"Erreur de conversion du comité: {str(e)}")
-                            self.comite.setValue(0)
+                            self.date_faits.setDate(QDate.fromString(date_faits, "yyyy-MM-dd"))
+                        except Exception as e:
+                            print(f"Erreur lors de la conversion de la date des faits: {e}")
 
-                        self.annee_faits.setText(str(sanctions_dict.get('annee_faits', '')))
+                    self.faute_commise.setCurrentText(main_dict.get('faute_commise', ''))
 
-                        # Mise à jour de l'interface selon le statut
-                        self.on_statut_change(sanctions_dict.get('statut', ''))
+                    # Conversion de la catégorie
+                    try:
+                        categorie_value = main_dict.get('categorie')
+                        self.categorie.setValue(int(categorie_value) if categorie_value is not None else 1)
+                    except (ValueError, TypeError) as e:
+                        print(f"Erreur de conversion de la catégorie: {str(e)}")
+                        self.categorie.setValue(1)
 
-                    except Exception as e:
-                        print(f"Erreur lors du traitement des données : {str(e)}")
-                        raise
+                    self.statut.setCurrentText(main_dict.get('statut', ''))
+                    self.ref_statut.setText(main_dict.get('reference_statut', ''))
+                    self.taux_jar.setText(str(main_dict.get('taux_jar', '')))
+
+                    # Conversion du comité
+                    try:
+                        comite_value = main_dict.get('comite')
+                        self.comite.setValue(int(comite_value) if comite_value is not None else 0)
+                    except (ValueError, TypeError) as e:
+                        print(f"Erreur de conversion du comité: {str(e)}")
+                        self.comite.setValue(0)
+
+                    self.annee_faits.setText(str(main_dict.get('annee_faits', '')))
+
+                    # Mise à jour de l'interface selon le statut
+                    self.on_statut_change(main_dict.get('statut', ''))
 
                 else:
                     QMessageBox.warning(self, "Erreur",
-                                        f"Aucune donnée trouvée pour le matricule {self.matricule}")
+                                        f"Aucune donnée trouvée pour le matricule {self.matricule} et le numéro de dossier {self.num_dossier}")
                     self.close()
 
         except Exception as e:
@@ -1036,14 +1025,14 @@ class EditCaseForm(QMainWindow):
 
             # Préparation des données
             form_data = {
-                # Section Info Dossier (table sanctions)
+                # Section Info Dossier (table main_tab)
                 'numero_dossier': self.num_dossier.text(),
                 'annee_punition': self.annee_punition.text(),
                 'numero_ordre': self.numero_ordre.text(),
                 'date_enr': self.date_enr.date().toString("yyyy-MM-dd"),
                 'matricule': self.matricule,
 
-                # Section Info Faute (table sanctions)
+                # Section Info Faute (table main_tab)
                 'date_faits': self.date_faits.date().toString("yyyy-MM-dd"),
                 'faute_commise': self.faute_commise.currentText(),
                 'categorie': self.categorie.value(),
@@ -1053,8 +1042,7 @@ class EditCaseForm(QMainWindow):
                 'comite': self.comite.value(),
                 'annee_faits': int(self.annee_faits.text()),
 
-                # Section Info Mis en cause (table gendarmes)
-                'mle': str(self.matricule),  # Conversion en string car mle est TEXT
+                # Section Info Mis en cause (table main_tab)
                 'nom_prenoms': self.nom_prenoms.text().strip(),
                 'grade': self.grade.currentText(),
                 'sexe': self.sexe.currentText(),
@@ -1073,9 +1061,9 @@ class EditCaseForm(QMainWindow):
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
 
-                # 1. Mise à jour de la table sanctions
+                # Mise à jour de la table main_tab
                 cursor.execute("""
-                    UPDATE sanctions SET
+                    UPDATE main_tab SET
                         numero_dossier = ?,
                         annee_punition = ?,
                         numero_ordre = ?,
@@ -1087,27 +1075,7 @@ class EditCaseForm(QMainWindow):
                         reference_statut = ?,
                         taux_jar = ?,
                         comite = ?,
-                        annee_faits = ?
-                    WHERE matricule = ?
-                """, (
-                    form_data['numero_dossier'],
-                    form_data['annee_punition'],
-                    form_data['numero_ordre'],
-                    form_data['date_enr'],
-                    form_data['faute_commise'],
-                    form_data['date_faits'],
-                    form_data['categorie'],
-                    form_data['statut'],
-                    form_data['reference_statut'],
-                    form_data['taux_jar'],
-                    form_data['comite'],
-                    form_data['annee_faits'],
-                    form_data['matricule']
-                ))
-
-                # 2. Mise à jour de la table gendarmes
-                cursor.execute("""
-                    UPDATE gendarmes SET
+                        annee_faits = ?,
                         nom_prenoms = ?,
                         grade = ?,
                         sexe = ?,
@@ -1121,8 +1089,20 @@ class EditCaseForm(QMainWindow):
                         annee_service = ?,
                         situation_matrimoniale = ?,
                         nb_enfants = ?
-                    WHERE mle = ?
+                    WHERE matricule = ? AND numero_dossier = ?
                 """, (
+                    form_data['numero_dossier'],
+                    form_data['annee_punition'],
+                    form_data['numero_ordre'],
+                    form_data['date_enr'],
+                    form_data['faute_commise'],
+                    form_data['date_faits'],
+                    form_data['categorie'],
+                    form_data['statut'],
+                    form_data['reference_statut'],
+                    form_data['taux_jar'],
+                    form_data['comite'],
+                    form_data['annee_faits'],
                     form_data['nom_prenoms'],
                     form_data['grade'],
                     form_data['sexe'],
@@ -1136,7 +1116,8 @@ class EditCaseForm(QMainWindow):
                     form_data['annee_service'],
                     form_data['situation_matrimoniale'],
                     form_data['nb_enfants'],
-                    form_data['mle']
+                    form_data['matricule'],
+                    self.num_dossier
                 ))
 
                 conn.commit()
@@ -1238,5 +1219,4 @@ class EditCaseForm(QMainWindow):
                 return True
 
         return False
-
 
