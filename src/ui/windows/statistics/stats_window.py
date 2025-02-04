@@ -195,7 +195,7 @@ class StatistiquesWindow(QMainWindow):
             },
             {
                 "text": "Tendances par année",
-                "icon": "../resources/icons/trend.png",
+                "icon": "../resources/icons/trends.png",
                 "callback": self.show_yearly_trends
             }
         ]
@@ -247,7 +247,7 @@ class StatistiquesWindow(QMainWindow):
                 # 1. Total des dossiers de l'année
                 total_query = """
                     SELECT COUNT(DISTINCT numero_dossier) 
-                    FROM sanctions 
+                    FROM main_tab 
                     WHERE strftime('%Y', date_enr) = ?
                 """
                 cursor = conn.cursor()
@@ -257,11 +257,10 @@ class StatistiquesWindow(QMainWindow):
 
                 # 2. Grade le plus sanctionné
                 grade_query = """
-                    SELECT g.grade, COUNT(DISTINCT s.numero_dossier) as count
-                    FROM sanctions s
-                    JOIN gendarmes g ON s.matricule = g.mle
-                    WHERE strftime('%Y', s.date_enr) = ?
-                    GROUP BY g.grade
+                    SELECT m.grade, COUNT(DISTINCT m.numero_dossier) AS count
+                    FROM main_tab m
+                    WHERE strftime('%Y', m.date_enr) = ?
+                    GROUP BY m.grade
                     ORDER BY count DESC
                     LIMIT 1
                 """
@@ -275,17 +274,16 @@ class StatistiquesWindow(QMainWindow):
                     WITH service_ranges AS (
                         SELECT 
                             CASE 
-                                WHEN g.annee_service BETWEEN 0 AND 5 THEN '0-5ans'
-                                WHEN g.annee_service BETWEEN 6 AND 10 THEN '6-10ans'
-                                WHEN g.annee_service BETWEEN 11 AND 15 THEN '11-15ans'
-                                WHEN g.annee_service BETWEEN 16 AND 20 THEN '16-20ans'
-                                WHEN g.annee_service BETWEEN 21 AND 25 THEN '21-25ans'
-                                WHEN g.annee_service > 25 THEN '25+ans'
-                            END as range,
-                            COUNT(DISTINCT s.numero_dossier) as count
-                        FROM sanctions s
-                        JOIN gendarmes g ON s.matricule = g.mle
-                        WHERE strftime('%Y', s.date_enr) = ?
+                                WHEN m.annee_service BETWEEN 0 AND 5 THEN '0-5ans'
+                                WHEN m.annee_service BETWEEN 6 AND 10 THEN '6-10ans'
+                                WHEN m.annee_service BETWEEN 11 AND 15 THEN '11-15ans'
+                                WHEN m.annee_service BETWEEN 16 AND 20 THEN '16-20ans'
+                                WHEN m.annee_service BETWEEN 21 AND 25 THEN '21-25ans'
+                                WHEN m.annee_service > 25 THEN '25+ans'
+                            END AS range,
+                            COUNT(DISTINCT m.numero_dossier) AS count
+                        FROM main_tab m
+                        WHERE strftime('%Y', m.date_enr) = ?
                         GROUP BY range
                     )
                     SELECT range, count
@@ -301,11 +299,10 @@ class StatistiquesWindow(QMainWindow):
 
                 # 4. Subdivision la plus sanctionnée
                 subdiv_query = """
-                    SELECT g.subdiv, COUNT(DISTINCT s.numero_dossier) as count
-                    FROM sanctions s
-                    JOIN gendarmes g ON s.matricule = g.mle
-                    WHERE strftime('%Y', s.date_enr) = ?
-                    GROUP BY g.subdiv
+                    SELECT m.subdiv, COUNT(DISTINCT m.numero_dossier) as count
+                    FROM main_tab m
+                    WHERE strftime('%Y', m.date_enr) = ?
+                    GROUP BY m.subdiv
                     ORDER BY count DESC
                     LIMIT 1
                 """
@@ -317,7 +314,7 @@ class StatistiquesWindow(QMainWindow):
                 # 5. Nombre de dossiers d'absence irrégulière prolongée
                 absence_query = """
                     SELECT COUNT(DISTINCT numero_dossier)
-                    FROM sanctions 
+                    FROM main_tab 
                     WHERE strftime('%Y', date_enr) = ?
                     AND faute_commise = 'ABSENCE IRREGULIERE PROLONGEE'
                 """
@@ -345,7 +342,7 @@ class StatistiquesWindow(QMainWindow):
                             WHEN '12' THEN 'Décembre'
                         END as mois_nom,
                         COUNT(DISTINCT numero_dossier) as count
-                    FROM sanctions
+                    FROM main_tab
                     WHERE strftime('%Y', date_enr) = ?
                     GROUP BY mois
                     ORDER BY mois
@@ -377,7 +374,7 @@ class StatistiquesWindow(QMainWindow):
                 ax.set_xlim(-0.5, current_month - 0.5)
 
                 # Rotation des labels de mois pour meilleure lisibilité
-                plt.xticks(rotation=45, ha='right')
+                plt.xticks(rotation=30, ha='right')
 
                 # Personnalisation finale
                 ax.grid(True, linestyle='--', alpha=0.1)
@@ -557,24 +554,24 @@ class StatistiquesWindow(QMainWindow):
                     # Requête modifiée pour éviter les doublons
                     cursor.execute("""
                         WITH unique_sanctions AS (
-                            SELECT DISTINCT 
+                            SELECT 
                                 numero_dossier,
-                                MIN(matricule) as matricule,
-                                MIN(date_enr) as date_enr,
-                                MIN(unite) as unite,
-                                MIN(subdivision) as subdivision
-                            FROM sanctions
-                            GROUP BY numero_dossier
+                                matricule,
+                                date_enr,
+                                unite,
+                                subdivision
+                            FROM main_tab m1
+                            WHERE date_enr = (SELECT MIN(date_enr) FROM main_tab m2 WHERE m1.numero_dossier = m2.numero_dossier)
                         )
                         SELECT COUNT(*) as total_sanctions
-                        FROM unique_sanctions
+                        FROM unique_sanctions;
                     """)
                     total_sanctions = cursor.fetchone()[0]
 
                     # Total des gendarmes sanctionnés
                     cursor.execute("""
                         SELECT COUNT(DISTINCT matricule)
-                        FROM sanctions
+                        FROM main_tab
                     """)
                     total_gendarmes = cursor.fetchone()[0]
 
@@ -603,77 +600,60 @@ class StatistiquesWindow(QMainWindow):
     def get_statistics_data(self):
         """Récupère et organise les données pour les statistiques"""
         try:
-            # Utiliser la même requête que la liste exhaustive
+            # Requête mise à jour avec toutes les colonnes directement issues de main_tab
             sanctions_query = """
             SELECT 
-                s.id,
-                s.date_enr,
-                s.matricule,
-                s.date_faits,
-                s.faute_commise,
-                s.categorie,
-                s.statut,
-                s.numero_dossier,
-                s.annee_punition
-            FROM sanctions s
+                id,
+                date_enr,
+                matricule,
+                date_faits,
+                faute_commise,
+                categorie,
+                statut,
+                numero_dossier,
+                annee_punition,
+                nom_prenoms,
+                grade,
+                subdiv,
+                annee_service,
+                situation_matrimoniale
+            FROM main_tab
             WHERE 1=1
             """
 
             with self.db_manager.get_connection() as conn:
-                # Récupérer les données des sanctions
-                sanctions_df = pd.read_sql_query(sanctions_query, conn)
+                # Récupérer directement toutes les données en une seule requête
+                stats_df = pd.read_sql_query(sanctions_query, conn)
 
-                # Récupérer les données des gendarmes pour chaque matricule unique
-                gendarmes_data = []
-                unique_matricules = sanctions_df['matricule'].unique()
-
-                for matricule in unique_matricules:
-                    gendarme_query = """
-                    SELECT 
-                        mle,
-                        nom_prenoms,
-                        grade,
-                        subdiv,
-                        annee_service,
-                        situation_matrimoniale
-                    FROM gendarmes 
-                    WHERE mle = ?
-                    """
-                    gendarme_df = pd.read_sql_query(gendarme_query, conn, params=[matricule])
-                    if not gendarme_df.empty:
-                        gendarmes_data.append(gendarme_df.iloc[0])
-
-                gendarmes_df = pd.DataFrame(gendarmes_data)
-
-                # Fusionner les données
-                stats_df = sanctions_df.merge(
-                    gendarmes_df,
-                    left_on='matricule',
-                    right_on='mle',
-                    how='left'
-                )
-
-                return stats_df
+            return stats_df
 
         except Exception as e:
             print(f"Erreur dans get_statistics_data: {str(e)}")
             return None
 
     def calculate_statistics(self):
-        """Calcule les différentes statistiques"""
+        """Calcule les différentes statistiques sur les sanctions"""
         df = self.get_statistics_data()
-        if df is not None:
+
+        if df is None or df.empty:
+            print("⚠️ Aucune donnée disponible pour les statistiques.")
+            return None
+
+        try:
             stats = {
                 'total_sanctions': len(df),
                 'unique_gendarmes': df['matricule'].nunique(),
-                'par_categorie': df['categorie'].value_counts().to_dict(),
-                'par_grade': df['grade'].value_counts().to_dict(),
-                'par_subdivision': df['subdiv'].value_counts().to_dict(),
-                'par_annee': df['annee_punition'].value_counts().to_dict(),
-                'par_statut': df['statut'].value_counts().to_dict(),
+                'par_categorie': df['categorie'].value_counts().to_dict() if 'categorie' in df else {},
+                'par_grade': df['grade'].value_counts().to_dict() if 'grade' in df else {},
+                'par_subdivision': df['subdiv'].value_counts().to_dict() if 'subdiv' in df else {},
+                'par_annee': df['annee_punition'].value_counts().to_dict() if 'annee_punition' in df else {},
+                'par_statut': df['statut'].value_counts().to_dict() if 'statut' in df else {},
             }
             return stats
-        return None
+
+        except Exception as e:
+            print(f"❌ Erreur lors du calcul des statistiques : {str(e)}")
+            return None
 
     # Dans StatistiquesWindow, ajouter :
     from .yearly_trends_window import YearlyTrendsWindow
