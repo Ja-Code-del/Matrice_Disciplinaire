@@ -19,6 +19,8 @@ from src.ui.windows.statistics import StatistiquesWindow
 class NewCaseForm(QMainWindow):
     """Formulaire de création d'un nouveau dossier de sanction"""
 
+    case_added = pyqtSignal()
+
     def __init__(self, db_manager):
         """
                 Initialise le formulaire
@@ -26,7 +28,6 @@ class NewCaseForm(QMainWindow):
                     db_manager: Instance du gestionnaire de base de données
                 """
         super().__init__()
-        self.case_added = pyqtSignal()
         self.db_manager = db_manager
         self.setWindowTitle("Page enregistrement de dossier")
         self.setMinimumSize(1200, 800)
@@ -933,92 +934,94 @@ class NewCaseForm(QMainWindow):
                 return
 
             form_data = {
-                # Section Info Dossier (table main_tab)
                 'numero_dossier': self.num_dossier.text(),
-                'annee_punition': int(self.annee_punition.text()),
-                'date_enr': self.date_enr.date().toString("dd/MM/yyyy"),
-                'numero_ordre': int(self.num_enr.text()),
+                'annee_punition': int(self.annee_punition.text()) if self.annee_punition.text().isdigit() else 0,
+                'numero_ordre': int(self.num_enr.text()) if self.num_enr.text().isdigit() else 0,
+                'date_enr': self.date_enr.text() if isinstance(self.date_enr,
+                                                               QLineEdit) else self.date_enr.date().toString(
+                    "dd/MM/yyyy"),
 
-                'matricule': int(self.matricule.text()),
+                'matricule': int(self.matricule.text()) if self.matricule.text().isdigit() else 0,
                 'nom_prenoms': f"{self.nom.text()} {self.prenoms.text()}",
                 'grade': self.grade.currentText(),
-                'date_naissance': self.date_naissance.text(),
-                'age': self.age.value(),
                 'sexe': self.sexe.currentText(),
-                'regions': self.region.currentText(),
-                'subdiv': self.subdivision.currentText(),
-                'legions': self.legion.currentText(),
+                'age': self.age.value(),
+                'date_naissance': self.date_naissance.text() if isinstance(self.date_naissance,
+                                                                           QLineEdit) else self.date_naissance.date().toString(
+                    "dd/MM/yyyy"),
                 'unite': self.unite.currentText(),
+                'legions': self.legion.currentText(),
+                'subdiv': self.subdivision.currentText(),
+                'regions': self.region.currentText(),
                 'date_entree_gie': self.date_entree_gie.text() or '01/01/1900',
                 'annee_service': self.annee_service.value(),
                 'situation_matrimoniale': self.situation_matrimoniale.currentText(),
                 'nb_enfants': self.nb_enfants.value(),
-
-                'date_faits': self.date_faits.date().toString("dd/MM/yyyy"),
                 'faute_commise': self.faute_commise.currentText(),
+                'date_faits': self.date_faits.date().toString("dd/MM/yyyy"),
                 'categorie': self.categorie.text(),
                 'statut': self.statut.currentText(),
                 'reference_statut': self.ref_statut.text(),
                 'taux_jar': self.taux_jar.value(),
-                'comite': int(self.comite.text()),
-                'annee_faits': int(self.annee_faits.text()),
+                'comite': int(self.comite.text()) if self.comite.text().isdigit() else 0,
+                'annee_faits': int(self.annee_faits.text()) if self.annee_faits.text().isdigit() else 0,
+                'numero_arrete': self.num_arrete.text() if self.statut.currentText() == "RADIE" else "NEANT",
                 'numero_decision': self.num_decision.text() if self.statut.currentText() == "RADIE" else "NEANT",
-                'numero_arrete': self.num_arrete.text() if self.statut.currentText() == "RADIE" else "NEANT"
             }
 
-            with self.db_manager.get_connection() as conn:
-                cursor = conn.cursor()
+            try:
+                with self.db_manager.get_connection() as conn:
+                    cursor = conn.cursor()
 
-                cursor.execute("SELECT COUNT(*) FROM main_tab WHERE numero_dossier = ?",
-                               (form_data['numero_dossier'],))
-                if cursor.fetchone()[0] > 0:
-                    QMessageBox.warning(self, "Erreur",
-                                        f"Le numéro de dossier {form_data['numero_dossier']} existe déjà.")
-                    return
+                    cursor.execute("SELECT COUNT(*) FROM main_tab WHERE numero_dossier = ?",
+                                   (form_data['numero_dossier'],))
+                    if cursor.fetchone()[0] > 0:
+                        QMessageBox.warning(self, "Erreur",
+                                            f"Le numéro de dossier {form_data['numero_dossier']} existe déjà.")
+                        return
 
-                cursor.execute("""
-                    INSERT INTO main_tab (
-                        numero_dossier, annee_punition, numero_ordre, date_enr,
-                        matricule,nom_prenoms, grade, age, date_naissance, unite, legions, subdiv,
-                        regions, date_entree_gie, annee_service, situation_matrimoniale,
-                        nb_enfants, faute_commise, date_faits, categorie,
-                        statut, reference_statut, taux_jar, comite, annee_faits, numero_arrete, numero_decision
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    form_data['numero_dossier'],
-                    form_data['annee_punition'],
-                    form_data['numero_ordre'],
-                    form_data['date_enr'],
-                    form_data['matricule'],
-                    form_data['nom_prenoms'],
-                    form_data['grade'],
-                    form_data['age'],
-                    form_data['date_naissance'],
-                    form_data['unite'],
-                    form_data['legions'],
-                    form_data['subdiv'],
-                    form_data['regions'],
-                    form_data['date_entree_gie'],
-                    form_data['annee_service'],
-                    form_data['situation_matrimoniale'],
-                    form_data['nb_enfants'],
-                    form_data['date_faits'],
-                    form_data['faute_commise'],
-                    form_data['categorie'],
-                    form_data['statut'],
-                    form_data['reference_statut'],
-                    form_data['taux_jar'],
-                    form_data['comite'],
-                    form_data['annee_faits'],
-                    form_data['numero_arrete'],
-                    form_data['numero_decision']
-                ))
+                    cursor.execute("""
+                        INSERT INTO main_tab (
+                            numero_dossier, 
+                            annee_punition, 
+                            numero_ordre, 
+                            date_enr,
+                            matricule, 
+                            nom_prenoms, 
+                            grade,
+                            sexe, 
+                            age, 
+                            date_naissance, 
+                            unite, 
+                            legions, 
+                            subdiv,
+                            regions, 
+                            date_entree_gie, 
+                            annee_service, 
+                            situation_matrimoniale,
+                            nb_enfants, 
+                            faute_commise, 
+                            date_faits, 
+                            categorie,
+                            statut, 
+                            reference_statut, 
+                            taux_jar, 
+                            comite, 
+                            annee_faits, 
+                            numero_arrete, 
+                            numero_decision
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, tuple(form_data.values()))
 
-                conn.commit()
+                    conn.commit()
 
-            QMessageBox.information(self, "Succès", "Dossier enregistré avec succès!")
-            self.case_added.emit()  # Émettre le signal
-            self.close()
+                QMessageBox.information(self, "Succès", "Dossier enregistré avec succès!")
+                self.case_added.emit()  # Emit signal
+                self.close()
+
+            except Exception as db_error:
+                QMessageBox.critical(self, "Erreur", f"Problème de connexion à la base de données : {str(db_error)}")
+                return
 
         except Exception as e:
             QMessageBox.critical(self, "Erreur", f"Erreur lors de l'enregistrement : {str(e)}")
@@ -1080,3 +1083,6 @@ class NewCaseForm(QMainWindow):
             if result:
                 return result[0]
             raise ValueError(f"Gendarme avec matricule {matricule} non trouvé")
+
+
+

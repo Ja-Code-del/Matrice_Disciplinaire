@@ -13,7 +13,7 @@ from src.database.db_manager import DatabaseManager
 from src.ui.styles.styles import Styles
 from src.database.models import  MainTabRepository
 from src.ui.windows.import_etat_window import ImportEtatCompletWindow
-from src.ui.forms.edit_gendarme_form import SearchMatriculeDialog, EditCaseForm
+from src.ui.forms.edit_gendarme_form import SearchDossierDialog, EditCaseForm
 from .forms.delete_case_dialog import DeleteCaseDialog
 from .handlers.stats_handler import StatsHandler
 from src.ui.widgets.user_info_widget import UserInfoWidget
@@ -403,7 +403,7 @@ class MainGendarmeApp(QMainWindow):
             """)
 
     def edit_gendarme(self):
-        dialog = SearchMatriculeDialog(self.db_manager, self)
+        dialog = SearchDossierDialog(self.db_manager, self)
         if dialog.exec():
             matricule_str = dialog.get_matricule()
             try:
