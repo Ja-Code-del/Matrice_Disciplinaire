@@ -65,7 +65,7 @@ class StatsHandler(QObject):
                 raise Exception("La base de données n'est pas connectée")
 
             print("4. Vérification des tables...")
-            required_tables = ['sanctions', 'gendarmes']
+            required_tables = ['main_tab']
             for table in required_tables:
                 print(f"   Vérification de la table {table}...")
                 if not self.main_window.db_manager.table_exists(table):

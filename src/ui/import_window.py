@@ -85,6 +85,17 @@ class ImportWindow(QMainWindow):
             for col in date_columns:
                 df[col] = df[col].apply(adapt_date)
 
+            # Extraire l'année pour les colonnes qui doivent être des années
+            df['ANNEE DES FAITS'] = df['ANNEE DES FAITS'].fillna(0).astype(int)  # Corrige float64 en int64
+
+            # Convertir `AGE` en nombre entier
+            df['AGE'] = pd.to_numeric(df['AGE'], errors='coerce').fillna(0).astype(int)
+
+            # Vérifier si certaines colonnes censées être numériques contiennent des valeurs erronées
+            cols_to_int = ['ANNEE DE PUNITION', 'N° ORDRE', 'MLE', 'AGE', 'ANNEE DE SERVICE', 'NB ENF', 'N° CAT']
+            for col in cols_to_int:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+
             success_count = 0
             error_count = 0
 
@@ -131,21 +142,21 @@ class ImportWindow(QMainWindow):
             # Connexion à la base de données
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
-
                 query = '''
                         INSERT INTO main_tab (
                             numero_dossier, annee_punition, numero_ordre, date_enr, matricule,
-                            nom_prenoms, grade, sexe, date_naissance, age, unite, legions,
+                            nom_prenoms, grade, sexe, age, date_naissance, unite, legions,
                             subdiv, regions, date_entree_gie, annee_service, situation_matrimoniale,
                             nb_enfants, faute_commise, date_faits, categorie, statut,
                             reference_statut, taux_jar, comite, annee_faits
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     '''
 
-                # Exécution en batch avec executemany() et transaction
+                # Exécution avec executemany() et transaction
                 try:
                     cursor.executemany(query, data)
                     conn.commit()
+                    self.progress_bar.setValue(100)
                     self.status_label.setText("Import terminé avec succès!")
                     QMessageBox.information(self, "Succès", "Les données ont été importées avec succès!")
                 except Exception as e:
@@ -153,8 +164,6 @@ class ImportWindow(QMainWindow):
                     QMessageBox.critical(self, "Erreur", f"Erreur lors de l'import : {str(e)}")
                     self.status_label.setText("Erreur lors de l'import")
                     print(f"Erreur détaillée : {str(e)}")
-
-            self.progress_bar.setValue(100)
 
             # Supprimer le fichier CSV temporaire
             os.remove(csv_file)

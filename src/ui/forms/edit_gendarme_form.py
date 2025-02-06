@@ -1032,22 +1032,12 @@ class EditCaseForm(QMainWindow):
                 'date_enr': self.date_enr.date().toString("yyyy-MM-dd"),
                 'matricule': self.matricule,
 
-                # Section Info Faute (table main_tab)
-                'date_faits': self.date_faits.date().toString("yyyy-MM-dd"),
-                'faute_commise': self.faute_commise.currentText(),
-                'categorie': self.categorie.value(),
-                'statut': self.statut.currentText(),
-                'reference_statut': self.ref_statut.text() if self.statut.currentText() == "RADIE" else "",
-                'taux_jar': self.taux_jar.text(),
-                'comite': self.comite.value(),
-                'annee_faits': int(self.annee_faits.text()),
-
                 # Section Info Mis en cause (table main_tab)
                 'nom_prenoms': self.nom_prenoms.text().strip(),
                 'grade': self.grade.currentText(),
                 'sexe': self.sexe.currentText(),
-                'date_naissance': self.date_naissance.date().toString("yyyy-MM-dd"),
                 'age': self.age.value(),
+                'date_naissance': self.date_naissance.date().toString("yyyy-MM-dd"),
                 'unite': self.unite.currentText(),
                 'legions': self.legions.currentText(),
                 'subdiv': self.subdiv.text(),
@@ -1055,7 +1045,17 @@ class EditCaseForm(QMainWindow):
                 'date_entree_gie': self.date_entree_gie.date().toString("yyyy-MM-dd"),
                 'annee_service': self.annee_service.value(),
                 'situation_matrimoniale': self.situation_matrimoniale.currentText(),
-                'nb_enfants': self.nb_enfants.value()
+                'nb_enfants': self.nb_enfants.value(),
+
+                # Section Info Faute (table main_tab)
+                'faute_commise': self.faute_commise.currentText(),
+                'date_faits': self.date_faits.date().toString("yyyy-MM-dd"),
+                'categorie': self.categorie.value(),
+                'statut': self.statut.currentText(),
+                'reference_statut': self.ref_statut.text() if self.statut.currentText() == "RADIE" else "",
+                'taux_jar': self.taux_jar.text(),
+                'comite': self.comite.value(),
+                'annee_faits': int(self.annee_faits.text())
             }
 
             with self.db_manager.get_connection() as conn:

@@ -1,7 +1,7 @@
 import os
 import sqlite3
 from contextlib import contextmanager
-import pandas as pd
+
 
 
 # Fonction pour vérifier la présence des colonnes
@@ -52,7 +52,7 @@ class DatabaseManager:
                 sexe TEXT
             )''')
 
-            # Table principale : la matrice
+            # Table principale
             cursor.execute('''CREATE TABLE IF NOT EXISTS main_tab (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 numero_dossier TEXT,

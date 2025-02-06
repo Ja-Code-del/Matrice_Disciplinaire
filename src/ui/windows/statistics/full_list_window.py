@@ -253,33 +253,40 @@ class FullListWindow(QMainWindow):
 
         main_layout.addLayout(export_layout)
 
-    def get_gendarme_info(self, matricule):
+    def get_gendarme_info(self, matricule, numero_dossier=None):
         """Récupère les informations d'un gendarme à partir de son matricule."""
         try:
-            gendarme_query = """
-            SELECT 
-                nom_prenoms,
-                grade,
-                subdiv,
-                annee_service,
-                situation_matrimoniale
-            FROM gendarmes 
-            WHERE mle = ?
-            """
-            gendarme_params = [matricule]
+            if numero_dossier:
+                gendarme_query = """
+                        SELECT 
+                            nom_prenoms, grade, subdiv, annee_service,
+                            situation_matrimoniale, numero_dossier
+                        FROM main_tab 
+                        WHERE matricule = ? AND numero_dossier = ?
+                        """
+                params = [matricule, numero_dossier]
+            else:
+                gendarme_query = """
+                        SELECT 
+                            nom_prenoms, grade, subdiv, annee_service,
+                            situation_matrimoniale, numero_dossier
+                        FROM main_tab 
+                        WHERE matricule = ?
+                        """
+                params = [matricule]
 
             # Ajout des filtres spécifiques aux gendarmes
             if self.filters["grade"].currentText() != "Tous(tes)":
                 gendarme_query += " AND grade = ?"
-                gendarme_params.append(self.filters["grade"].currentText())
+                params.append(self.filters["grade"].currentText())
 
             if self.filters["subdiv"].currentText() != "Tous(tes)":
                 gendarme_query += " AND subdiv = ?"
-                gendarme_params.append(self.filters["subdiv"].currentText())
+                params.append(self.filters["subdiv"].currentText())
 
             if self.filters["situation"].currentText() != "Tous(tes)":
                 gendarme_query += " AND situation_matrimoniale = ?"
-                gendarme_params.append(self.filters["situation"].currentText())
+                params.append(self.filters["situation"].currentText())
 
             if self.filters["service"].currentText() != "Tous(tes)":
                 service_text = self.filters["service"].currentText()
@@ -288,19 +295,19 @@ class FullListWindow(QMainWindow):
                     if "ANS" in service_text:
                         service_years = int(service_text.split()[0])
                         gendarme_query += " AND annee_service = ?"
-                        gendarme_params.append(service_years)
+                        params.append(service_years)
                     elif "-" in service_text:  # Pour les tranches comme "0-5"
                         start, end = map(int, service_text.split("-"))
                         gendarme_query += " AND annee_service BETWEEN ? AND ?"
-                        gendarme_params.extend([start, end])
+                        params.extend([start, end])
                 except ValueError as e:
                     print(f"Erreur de conversion de la tranche d'années: {e}")
 
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute(gendarme_query, gendarme_params)
+                cursor.execute(gendarme_query, params)
                 result = cursor.fetchone()
-                return result if result else ("", "", "", "", "")
+                return result if result else ("", "", "", "", "", "")
 
         except Exception as e:
             print(f"Erreur dans get_gendarme_info: {str(e)}")
@@ -328,7 +335,7 @@ class FullListWindow(QMainWindow):
                     s.categorie,
                     s.statut,
                     s.numero_dossier
-                FROM sanctions s
+                FROM main_tab s
                 WHERE s.matricule LIKE ?
                 ORDER BY s.id DESC
                 """
@@ -344,11 +351,8 @@ class FullListWindow(QMainWindow):
                     s.categorie,
                     s.statut,
                     s.numero_dossier
-                FROM sanctions s
-                WHERE s.matricule IN (
-                    SELECT mle FROM gendarmes 
-                    WHERE nom_prenoms LIKE ?
-                )
+                FROM main_tab s
+                WHERE nom_prenoms LIKE ?
                 ORDER BY s.id DESC
                 """
                 params = [f"%{text}%"]
@@ -365,7 +369,7 @@ class FullListWindow(QMainWindow):
                 filtered_count = 0
                 for i, sanction in enumerate(sanctions_results):
                     # Récupérer les infos du gendarme
-                    gendarme_info = self.get_gendarme_info(sanction[2])  # matricule est à l'index 2
+                    gendarme_info = self.get_gendarme_info(sanction[2], sanction[7])  # matricule est à l'index 2 et numero_dossier, 7
 
                     # Création de la ligne complète
                     row_data = [
@@ -415,13 +419,13 @@ class FullListWindow(QMainWindow):
 
         for i, sanction in enumerate(sanctions_results):
             # Récupérer les infos du gendarme
-            gendarme_info = self.get_gendarme_info(sanction[1])  # matricule est à l'index 1
+            gendarme_info = self.get_gendarme_info(sanction[2], sanction[7])  # matricule est à l'index 2
 
             # Même logique de remplissage que dans load_data
             row_data = [
                 sanction[0],  # ID
-                self.format_date(sanction[2]),  # Date d'enr
-                sanction[1],  # Matricule
+                self.format_date(sanction[1]),  # Date d'enr
+                sanction[2],  # Matricule
                 gendarme_info[0],  # Nom et Prénoms
                 gendarme_info[1],  # Grade
                 gendarme_info[2],  # Subdivision
@@ -456,7 +460,7 @@ class FullListWindow(QMainWindow):
                 cursor = conn.cursor()
                 print("\nDébug chargement des filtres:")
                 # Grades
-                cursor.execute("SELECT DISTINCT grade FROM gendarmes ORDER BY grade")
+                cursor.execute("SELECT DISTINCT grade FROM main_tab ORDER BY grade")
                 grades = cursor.fetchall()
                 self.filters["grade"].addItems([g[0] for g in grades if g[0]])
                 print(f"Grades chargés: {[g[0] for g in grades if g[0]]}")
@@ -465,27 +469,27 @@ class FullListWindow(QMainWindow):
                 self.filters["subdiv"].addItems(SUBDIVISIONS)
 
                 # Fautes commises
-                cursor.execute("SELECT DISTINCT faute_commise FROM sanctions ORDER BY faute_commise")
+                cursor.execute("SELECT DISTINCT faute_commise FROM main_tab ORDER BY faute_commise")
                 fautes = cursor.fetchall()
                 self.filters["faute"].addItems([f[0] for f in fautes if f[0]])
 
                 # Situation matrimoniale
-                cursor.execute("SELECT DISTINCT situation_matrimoniale FROM gendarmes ORDER BY situation_matrimoniale")
+                cursor.execute("SELECT DISTINCT situation_matrimoniale FROM main_tab ORDER BY situation_matrimoniale")
                 situations = cursor.fetchall()
                 self.filters["situation"].addItems([s[0] for s in situations if s[0]])
 
                 # Années
-                cursor.execute("SELECT DISTINCT annee_punition FROM sanctions ORDER BY annee_punition DESC")
+                cursor.execute("SELECT DISTINCT annee_punition FROM main_tab ORDER BY annee_punition DESC")
                 annees = cursor.fetchall()
                 self.filters["annee"].addItems([str(a[0]) for a in annees if a[0]])
 
                 # Statuts
-                cursor.execute("SELECT DISTINCT statut FROM sanctions ORDER BY statut")
+                cursor.execute("SELECT DISTINCT statut FROM main_tab ORDER BY statut")
                 statuts = cursor.fetchall()
                 self.filters["statut"].addItems([s[0] for s in statuts if s[0]])
 
                 # Catégories
-                cursor.execute("SELECT DISTINCT categorie FROM sanctions ORDER BY categorie")
+                cursor.execute("SELECT DISTINCT categorie FROM main_tab ORDER BY categorie")
                 categories = cursor.fetchall()
                 self.filters["categorie"].addItems([str(c[0]) for c in categories if c[0]])
 
@@ -502,35 +506,35 @@ class FullListWindow(QMainWindow):
         try:
             # 1. Requête pour les sanctions (données principales)
             sanctions_query = """
-            SELECT 
-                s.id,
-                s.date_enr,
-                s.matricule,
-                s.date_faits,
-                s.faute_commise,
-                s.categorie,
-                s.statut,
-                s.numero_dossier
-            FROM sanctions s
-            WHERE 1=1
-            """
+                SELECT 
+                    id,
+                    date_enr,
+                    matricule, 
+                    date_faits,
+                    faute_commise,
+                    categorie,
+                    statut,
+                    numero_dossier
+                FROM main_tab
+                WHERE 1=1
+                """
             params = []
 
             # Application des filtres pour sanctions
             if self.filters["faute"].currentText() != "Tous(tes)":
-                sanctions_query += " AND s.faute_commise = ?"
+                sanctions_query += " AND main_tab.faute_commise = ?"
                 params.append(self.filters["faute"].currentText())
 
             if self.filters["annee"].currentText() != "Tous(tes)":
-                sanctions_query += " AND s.annee_punition = ?"
+                sanctions_query += " AND main_tab.annee_punition = ?"
                 params.append(int(self.filters["annee"].currentText()))
 
             if self.filters["statut"].currentText() != "Tous(tes)":
-                sanctions_query += " AND s.statut = ?"
+                sanctions_query += " AND main_tab.statut = ?"
                 params.append(self.filters["statut"].currentText())
 
             if self.filters["categorie"].currentText() != "Tous(tes)":
-                sanctions_query += " AND s.categorie = ?"
+                sanctions_query += " AND main_tab.categorie = ?"
                 params.append(self.filters["categorie"].currentText())
 
             # Exécution de la requête principale
@@ -552,7 +556,7 @@ class FullListWindow(QMainWindow):
             filtered_count = 0
             for i, sanction in enumerate(sanctions_results):
                 # Récupérer les infos du gendarme avec filtres
-                gendarme_info = self.get_gendarme_info(sanction[2])  # Utilisation de la méthode de classe
+                gendarme_info = self.get_gendarme_info(sanction[2], sanction[7])  # Utilisation de la méthode de classe
 
                 # Si les infos du gendarme sont vides à cause des filtres, continuer
                 if not any(gendarme_info):
@@ -658,7 +662,7 @@ class FullListWindow(QMainWindow):
             # Remplissage des données
             filtered_count = 0
             for i, sanction in enumerate(sanctions_results):
-                gendarme_info = self.get_gendarme_info(sanction[2])
+                gendarme_info = self.get_gendarme_info(sanction[2], sanction[7])
 
                 # Si les filtres sur gendarme excluent cet enregistrement, passer
                 if not any(gendarme_info):
