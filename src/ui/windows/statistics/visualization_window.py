@@ -1,5 +1,7 @@
 # src/ui/windows/statistics/visualization_window.py
 import os
+import openpyxl
+from openpyxl.drawing.image import Image
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (QFileDialog, QDialog, QMessageBox, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFrame,
                              QLabel,
@@ -1217,9 +1219,8 @@ class VisualizationWindow(QMainWindow):
 
     # Méthodes d'export
     def export_excel(self):
-        """Exporte les données vers Excel."""
+        """Exporte les données vers Excel avec headers de ligne et de colonne."""
         try:
-            # Nom du fichier par défaut
             default_name = f"statistiques_excel_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
             file_path, _ = QFileDialog.getSaveFileName(
                 self,
@@ -1228,51 +1229,101 @@ class VisualizationWindow(QMainWindow):
                 "Excel Files (*.xlsx)"
             )
 
-            if not file_path:  # L'utilisateur a annulé
+            if not file_path:
                 return
 
-            # Création du writer Excel
             with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-                # Récupération des données du tableau
-                data = []
-                headers = []
+                # Si nous avons un pivot_df, l'utiliser directement
+                if hasattr(self, 'pivot_df'):
+                    # Export du DataFrame pivot avec ses index
+                    self.pivot_df.to_excel(writer, sheet_name='Données')
+                    worksheet = writer.sheets['Données']
 
-                # En-têtes
-                for j in range(self.table.columnCount()):
-                    headers.append(self.table.horizontalHeaderItem(j).text())
+                    # Mise en forme des colonnes
+                    for idx, col in enumerate(self.pivot_df.columns, start=1):
+                        col_letter = get_column_letter(idx + 1)  # +1 car la première colonne contient les index
+                        max_length = max(
+                            self.pivot_df[col].astype(str).apply(len).max(),
+                            len(str(col))
+                        ) + 2
+                        worksheet.column_dimensions[col_letter].width = max_length
 
-                # Données
-                for i in range(self.table.rowCount()):
-                    row = []
-                    for j in range(self.table.columnCount()):
-                        item = self.table.item(i, j)
-                        row.append(item.text() if item else "")
-                    data.append(row)
-
-                # Création du DataFrame
-                df = pd.DataFrame(data, columns=headers)
-
-                # Export vers Excel avec mise en forme
-                df.to_excel(writer, sheet_name='Données', index=False)
-                worksheet = writer.sheets['Données']
-
-                # Ajustement des colonnes
-                for idx, col in enumerate(df.columns):
-                    max_length = max(
-                        df[col].astype(str).apply(len).max(),
-                        len(str(col))
+                    # Mise en forme de la colonne d'index
+                    max_index_length = max(
+                        max(len(str(idx)) for idx in self.pivot_df.index),
+                        len(str(self.pivot_df.index.name)) if self.pivot_df.index.name else 0
                     ) + 2
-                    # Convertir en largeur Excel
-                    worksheet.column_dimensions[get_column_letter(idx + 1)].width = max_length
+                    worksheet.column_dimensions['A'].width = max_index_length
 
-                # Style pour les totaux
-                for row in worksheet.iter_rows():
-                    for cell in row:
-                        if 'TOTAL' in str(cell.value):
-                            cell.font = Font(bold=True)
-                            cell.fill = PatternFill(start_color="808080",
-                                                    end_color="808080",
-                                                    fill_type="solid")
+                    # Style pour les totaux (lignes et colonnes)
+                    for row in worksheet.iter_rows():
+                        for cell in row:
+                            if 'TOTAL' in str(cell.value):
+                                cell.font = Font(bold=True)
+                                cell.fill = PatternFill(
+                                    start_color="808080",
+                                    end_color="808080",
+                                    fill_type="solid"
+                                )
+
+                # Export des données du graphique si disponibles
+                if hasattr(self, 'df'):
+                    self.df.to_excel(writer, sheet_name='Données Graphique', index=False)
+                    graph_sheet = writer.sheets['Données Graphique']
+
+                    # Mise en forme de la feuille graphique
+                    for idx, col in enumerate(self.df.columns, start=1):
+                        max_length = max(
+                            self.df[col].astype(str).apply(len).max(),
+                            len(str(col))
+                        ) + 2
+                        graph_sheet.column_dimensions[get_column_letter(idx)].width = max_length
+
+                    # Feuille de configuration
+                    info_df = pd.DataFrame({
+                        'Configuration': [
+                            'Axe X',
+                            'Axe Y',
+                            'Sélection',
+                            'Type de graphique'
+                        ],
+                        'Valeur': [
+                            f"{self.config['x_axis']['field']}",
+                            f"{self.config['y_axis']['field']}",
+                            f"{self.config['subject_selection']['field']} - {self.config['subject_selection']['value']}",
+                            self.config.get('graph_type', 'Non spécifié')
+                        ]
+                    })
+                    info_df.to_excel(writer, sheet_name='Configuration', index=False)
+
+                    # Ajustement des colonnes de la feuille de configuration
+                    config_sheet = writer.sheets['Configuration']
+                    for column in config_sheet.columns:
+                        max_length = 0
+                        for cell in column:
+                            try:
+                                max_length = max(max_length, len(str(cell.value)))
+                            except:
+                                pass
+                        config_sheet.column_dimensions[get_column_letter(column[0].column)].width = max_length + 2
+
+                        # Ajouter une nouvelle feuille pour le graphique
+                        if hasattr(self, 'graph_widget'):
+                            workbook = writer.book
+                            graph_sheet = workbook.create_sheet("Graphique")
+
+                            # Ajouter le graphique
+                            img = openpyxl.drawing.image.Image(temp_img_path)
+                            img.anchor = 'B2'  # Position du graphique
+                            graph_sheet.add_image(img)
+
+                            # Ajuster la hauteur de la ligne et la largeur de la colonne
+                            graph_sheet.row_dimensions[2].height = 300
+                            graph_sheet.column_dimensions['B'].width = 60
+
+            # Supprimer le fichier temporaire
+            if os.path.exists(temp_img_path):
+                os.remove(temp_img_path)
 
             QMessageBox.information(
                 self,
@@ -1281,11 +1332,16 @@ class VisualizationWindow(QMainWindow):
             )
 
         except Exception as e:
+            print(f"Erreur détaillée: {str(e)}")
+            if os.path.exists(temp_img_path):
+                os.remove(temp_img_path)
             QMessageBox.critical(
                 self,
                 "Erreur",
                 f"Erreur lors de l'export Excel:\n{str(e)}"
             )
+
+
 
     def export_pdf(self):
         """Exporte les données vers PDF avec mise en forme."""
