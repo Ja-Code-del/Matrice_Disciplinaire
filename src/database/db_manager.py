@@ -15,7 +15,7 @@ def check_required_columns(df, required_columns):
 
 
 class DatabaseManager:
-    def __init__(self, db_name="gendarmes.db"):
+    def __init__(self, db_name="gend.db"):
         # Trouver le répertoire racine du projet
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         # Construire le chemin vers la DB
@@ -39,8 +39,16 @@ class DatabaseManager:
             # Suppression des tables existantes si elles existent
             cursor.execute("DROP TABLE IF EXISTS main_tab")
 
+            # Table gendarme
+            cursor.execute('''CREATE TABLE IF NOT EXISTS gendarmes (
+                matricule TEXT PRIMARY KEY
+                nom_prenoms TEXT,
+                sexe TEXT,
+                date_entree_gie DATE,
+                nb_enfants INTEGER
+            )''')
 
-            # Table des gendarmes
+            # Table gendarmes_etat
             cursor.execute('''CREATE TABLE IF NOT EXISTS gendarmes_etat (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 matricule TEXT UNIQUE,
@@ -49,42 +57,39 @@ class DatabaseManager:
                 date_naissance DATE,
                 lieu_naissance TEXT,
                 date_entree_service DATE,
-                sexe TEXT
+                sexe TEXT,
+                FOREIGN KEY(matricule) REFERENCES gendarmes(matricule)
             )''')
 
-            # Table principale
-            cursor.execute('''CREATE TABLE IF NOT EXISTS main_tab (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                numero_dossier TEXT,
-                annee_punition INTEGER,
-                numero_ordre INTEGER,
-                date_enr DATE,
-                matricule INTEGER,
-                nom_prenoms TEXT,
-                grade TEXT,
-                sexe TEXT,
-                date_naissance TEXT,
-                age INTEGER,
-                unite TEXT,
-                legions TEXT,
-                subdiv TEXT,
-                regions TEXT,
-                date_entree_gie TEXT,
-                annee_service INTEGER,
-                situation_matrimoniale TEXT,
-                nb_enfants INTEGER,
-                faute_commise TEXT,
-                date_faits DATE,
-                categorie INTEGER,
-                statut TEXT,
-                reference_statut TEXT,
-                taux_jar TEXT,
-                comite INTEGER,
-                annee_faits INTEGER,
-                numero_arrete,
-                numero_decision,
-                FOREIGN KEY (matricule) REFERENCES gendarmes_etat(matricule)
+            # Table Dossier
+            cursor.execute('''CREATE TABLE IF NOT EXISTS Dossiers(
+            numero_inc INTEGER,
+            matricule_dossier TEXT UNIQUE,
+            reference TEXT UNIQUE,
+            date_enr DATE,
+            date_faits DATE,
+            numero_annee INTEGER,
+            annee_enr INTEGER,
+            grade_id INTEGER,
+            situation_mat_id INTEGER,
+            unite_id INTEGER,
+            legion_id INTEGER,
+            subdiv_id INTEGER,
+            rg_id INTEGER,
+            faute_id INTEGER,
+        
+            PRIMARY KEY(numero_inc, matricule_dossier, reference),
+            FOREIGN KEY(matricule_dossier) REFERENCES gendarmes(matricule),
+            FOREIGN KEY(grade_id) REFERENCES Grade(id_grade),
+            FOREIGN KEY(situation_mat_id) REFERENCES Situation_mat(id_sit_mat),
+            FOREIGN KEY(unite_id) REFERENCES Unite(id_unite),
+            FOREIGN KEY(legion_id) REFERENCES Legion(id_legion),
+            FOREIGN KEY(subdiv_id) REFERENCES Subdiv(id_subdiv),
+            FOREIGN KEY(rg_id) REFERENCES Regions(id_rg),
+            FOREIGN KEY(faute_id) REFERENCES Faute(id_faute)
             )''')
+
+            
 
             conn.commit()
 

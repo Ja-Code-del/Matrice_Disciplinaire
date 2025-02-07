@@ -4,20 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="added SQLALCHEMY">
+    <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/matrice copy.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/matrice.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/matrice_last.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/matrix.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/matrix.xlsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/database/db_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/db_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/handlers/stats_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/handlers/stats_handler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/import_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/import_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/statistiques_20241108_220935.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/statistiques_test .pptx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/~$matrix.xlsx" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,6 +22,11 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="new_version" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
@@ -75,7 +70,7 @@
     "Python.test.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "new__db",
+    "git-widget-placeholder": "new__version",
     "last_opened_file_path": "/Users/bretwalda/PycharmProjects/Matrice_Disciplinaire/src/data/gendarmerie",
     "run.code.analysis.last.selected.profile": "pProject Default",
     "settings.editor.selected.configurable": "preferences.lookFeel"
@@ -528,7 +523,7 @@
     <MESSAGE value="Works on deletion. Next I aim to add refreshing parameter for stats after deletion" />
     <MESSAGE value="Working into db_manager.py &#10;Changes : got new one table for all datas called main_tab&lt;&#10;Not achieved... just need to sleep :)" />
     <MESSAGE value="added SQLALCHEMY" />
-    <option name="LAST_COMMIT_MESSAGE" value="added SQLALCHEMY" />
+    <option name="LAST_COMMIT_MESSAGE" value="" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
