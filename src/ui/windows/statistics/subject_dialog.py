@@ -223,7 +223,7 @@ class SubjectDialog(QDialog):
 
                     else:
                         # Récupérer les valeurs de la base de données
-                        table = "gendarmes" if field in ["situation_matrimoniale", "annee_service"] else "sanctions"
+                        table = "main_tab"
                         query = f"SELECT DISTINCT {field} FROM {table} WHERE {field} IS NOT NULL ORDER BY {field}"
                         cursor.execute(query)
                         values = cursor.fetchall()

@@ -6,18 +6,12 @@
   <component name="ChangeListManager">
     <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="added SQLALCHEMY">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/matrice copy.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/matrice.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/matrice_last.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/matrix.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/matrix.xlsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/database/db_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/db_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/handlers/stats_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/handlers/stats_handler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/import_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/import_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/full_list_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/statistiques_20241108_220935.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/statistiques_test .pptx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/~$matrix.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/stats_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/subject_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/subject_dialog.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/table_config_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/table_config_dialog.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/visualization_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/windows/statistics/yearly_trends_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/windows/statistics/yearly_trends_window.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,6 +26,11 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="new_version" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{

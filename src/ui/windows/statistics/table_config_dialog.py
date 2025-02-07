@@ -139,7 +139,7 @@ class TableConfigDialog(QDialog):
                 # Récupérer tous les grades disponibles
                 with self.db_manager.get_connection() as conn:
                     cursor = conn.cursor()
-                    cursor.execute("SELECT DISTINCT grade FROM gendarmes ORDER BY grade")
+                    cursor.execute("SELECT DISTINCT grade FROM main_tab ORDER BY grade")
                     grades = cursor.fetchall()
                     for grade in grades:
                         if grade[0]:  # Ignorer les valeurs NULL
@@ -148,8 +148,7 @@ class TableConfigDialog(QDialog):
                 # Récupérer les valeurs de la base de données
                 with self.db_manager.get_connection() as conn:
                     cursor = conn.cursor()
-                    table = "gendarmes" if field in ["situation_matrimoniale", "annee_service",
-                                                     "grade"] else "sanctions"
+                    table = "main_tab"
                     query = f"SELECT DISTINCT {field} FROM {table} WHERE {field} IS NOT NULL ORDER BY {field}"
                     cursor.execute(query)
                     values = cursor.fetchall()

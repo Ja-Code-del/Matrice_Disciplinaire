@@ -248,7 +248,7 @@ class StatistiquesWindow(QMainWindow):
                 total_query = """
                     SELECT COUNT(DISTINCT numero_dossier) 
                     FROM main_tab 
-                    WHERE strftime('%Y', date_enr) = ?
+                    WHERE annee_punition = ?
                 """
                 cursor = conn.cursor()
                 cursor.execute(total_query, (str(current_year),))

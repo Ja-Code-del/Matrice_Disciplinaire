@@ -176,228 +176,145 @@ class VisualizationWindow(QMainWindow):
 
         main_layout.addLayout(export_layout)
 
+    def get_gendarme_info(self, matricule, numero_dossier):
+        """Récupère les informations d'un gendarme pour un dossier spécifique."""
+        try:
+            gendarme_query = """
+            SELECT 
+                grade,
+                subdiv,
+                annee_service,
+                situation_matrimoniale
+            FROM main_tab 
+            WHERE matricule = ? AND numero_dossier = ?
+            """
+            params = [matricule, numero_dossier]
+
+            with self.db_manager.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(gendarme_query, params)
+                result = cursor.fetchone()
+                return result if result else ("", "", "", "")
+
+        except Exception as e:
+            print(f"Erreur dans get_gendarme_info: {str(e)}")
+            return ("", "", "", "")
+
     def load_data(self):
         """Charge et affiche les données selon la configuration."""
         try:
             with self.db_manager.get_connection() as conn:
-                # Récupérer la configuration complète
                 subject_selection = self.config.get('subject_selection')
                 if not subject_selection:
                     raise Exception("Aucun sujet d'analyse sélectionné")
 
-                print("\nConfiguration:", self.config)  # Debug
+                # Requête de base pour obtenir les sanctions
+                sanctions_query = """
+                SELECT 
+                    id,
+                    matricule,
+                    numero_dossier,
+                    date_enr,
+                    date_faits,
+                    faute_commise,
+                    categorie,
+                    statut,
+                    annee_punition,
+                    annee_faits
+                FROM main_tab
+                """
 
-                # Définir les champs de chaque table
-                sanctions_fields = ['faute_commise', 'categorie', 'statut', 'annee_punition', 'annee_faits']
-                gendarmes_fields = ['grade', 'subdiv', 'situation_matrimoniale', 'annee_service']
-
-                # Initialiser les variables pour les requêtes
-                gendarmes_where = ""
-                gendarmes_params = []
-                sanctions_where = ""
-                sanctions_params = []
-
+                params = []
                 if not subject_selection['value'].startswith('Tous'):
                     field = subject_selection['field']
                     value = subject_selection['value']
+                    sanctions_query += f" WHERE {field} = ?"
+                    params.append(value)
 
-                    if field in gendarmes_fields:
-                        gendarmes_where = f" WHERE g.{field} = ?"
-                        gendarmes_params = [value]
-                        # Requête pour obtenir les gendarmes (filtrée ou non)
-                    gendarmes_query = f"""
-                    SELECT 
-                        mle,
-                        grade,
-                        subdiv,
-                        annee_service,
-                        situation_matrimoniale
-                    FROM gendarmes g
-                    {gendarmes_where}
-                    """
-                    gendarmes_df = pd.read_sql_query(gendarmes_query, conn, params=gendarmes_params)
-                    print(f"Nombre de gendarmes: {len(gendarmes_df)}")
+                # Exécuter la requête pour obtenir les sanctions
+                sanctions_df = pd.read_sql_query(sanctions_query, conn, params=params)
 
-                    # Construction de la requête pour les sanctions uniques
-                    sanctions_query = """
-                    WITH unique_sanctions AS (
-                        SELECT 
-                            MIN(s.id) as first_id,
-                            COALESCE(s.numero_dossier, 'SANS_NUMERO_' || MIN(s.id)) as unique_dossier,
-                            s.matricule,
-                            s.date_enr,
-                            s.date_faits,
-                            s.faute_commise,
-                            s.categorie,
-                            s.statut,
-                            s.annee_punition,
-                            s.annee_faits,
-                            COUNT(*) as sanctions_count
-                        FROM sanctions s
-                        """
+                # Créer une liste pour stocker toutes les lignes de données
+                data_rows = []
 
-                    # Si le sujet vient des sanctions, ajouter le WHERE
-                    if field in sanctions_fields:
-                        sanctions_where = f" WHERE s.{field} = ?"
-                        sanctions_params = [value]
-                        sanctions_query += sanctions_where
+                # Pour chaque sanction, récupérer les infos du gendarme
+                for _, row in sanctions_df.iterrows():
+                    gendarme_info = self.get_gendarme_info(row['matricule'], row['numero_dossier'])
 
-                    # Continuer la requête des sanctions
-                    sanctions_query += """
-                    GROUP BY COALESCE(s.numero_dossier, 'SANS_NUMERO_' || s.id),
-                             s.matricule,
-                             s.date_enr,
-                             s.date_faits,
-                             s.faute_commise,
-                             s.categorie,
-                             s.statut,
-                             s.annee_punition,
-                             s.annee_faits
-                    )
-                    SELECT * FROM unique_sanctions
-                    """
-                    print("\nRequête sanctions:", sanctions_query)  # Debug
-                    print("Paramètres sanctions:", sanctions_params)  # Debug
-                    print("Requête gendarmes:", gendarmes_query)  # Debug
-                    print("Paramètres gendarmes:", gendarmes_params)  # Debug
+                    data_row = {
+                        'id': row['id'],
+                        'matricule': row['matricule'],
+                        'numero_dossier': row['numero_dossier'],
+                        'date_enr': row['date_enr'],
+                        'date_faits': row['date_faits'],
+                        'faute_commise': row['faute_commise'],
+                        'categorie': row['categorie'],
+                        'statut': row['statut'],
+                        'annee_punition': row['annee_punition'],
+                        'annee_faits': row['annee_faits'],
+                        'grade': gendarme_info[0],
+                        'subdiv': gendarme_info[1],
+                        'annee_service': gendarme_info[2],
+                        'situation_matrimoniale': gendarme_info[3]
+                    }
+                    data_rows.append(data_row)
 
-                    # Exécuter la requête des sanctions
-                    sanctions_df = pd.read_sql_query(sanctions_query, conn, params=sanctions_params)
-                    print(f"\nNombre de sanctions uniques: {len(sanctions_df)}")
+                # Créer le DataFrame final
+                df = pd.DataFrame(data_rows)
 
-                    # Convertir les colonnes pour la fusion
-                    sanctions_df['matricule'] = sanctions_df['matricule'].astype(str)
-                    gendarmes_df['mle'] = gendarmes_df['mle'].astype(str)
+                if df.empty:
+                    raise Exception("Aucune donnée disponible")
 
-                    print("\nDébug avant fusion:")
-                    print(f"Nombre de sanctions uniques: {len(sanctions_df)}")
-                    print(f"Colonnes sanctions: {sanctions_df.columns}")
-                    print(f"Colonnes gendarmes: {gendarmes_df.columns}")
+                # Suite du code pour le traitement des années de service et la création des graphiques
+                # [Le reste du code reste identique]
 
-                    # Fusion des données
-                    if field in gendarmes_fields:
-                        # Si le sujet vient des gendarmes, on fait d'abord la fusion
-                        df = sanctions_df.merge(
-                            gendarmes_df,
-                            left_on='matricule',
-                            right_on='mle',
-                            how='inner'  # On ne garde que les sanctions des gendarmes filtrés
-                        )
-                    else:
-                        # Sinon, fusion normale
-                        df = sanctions_df.merge(
-                            gendarmes_df,
-                            left_on='matricule',
-                            right_on='mle',
-                            how='left'
-                        )
+                # Traitement des années de service
+                if any(config["field"] == "annee_service" for config in
+                       [self.config["x_axis"], self.config["y_axis"]]):
+                    service_categories = ['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
+                                          '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS', 'Non spécifié']
 
-                    # S'assurer de l'unicité des enregistrements après la fusion
-                    df = df.drop_duplicates(subset=['first_id', 'unique_dossier'])
-                    print("\nDébug après fusion et déduplication:")
-                    print(f"Nombre total d'enregistrements: {len(df)}")
+                    df['annee_service'] = pd.to_numeric(df['annee_service'], errors='coerce')
 
-                    # Vérification des doublons éventuels
-                    doublons = df[df.duplicated(['first_id', 'unique_dossier'], keep=False)]
-                    if not doublons.empty:
-                        print("\nDoublons trouvés:")
-                        print(doublons[['first_id', 'unique_dossier', 'matricule', 'mle']])
-
-                    if df is None or df.empty:
-                        raise Exception("Aucune donnée disponible")
-
-                    # Modifier le traitement des années de service
-                    if any(config["field"] == "annee_service" for config in
-                           [self.config["x_axis"], self.config["y_axis"]]):
-                        # Définir les catégories à l'avance avec "Non spécifié"
-                        service_categories = ['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
-                                              '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS', 'Non spécifié']
-
-                        # Conversion en catégories
-                        df['annee_service'] = pd.to_numeric(df['annee_service'], errors='coerce')
-
-                        # Création des tranches avec gestion des valeurs nulles
-                        df['service_range'] = pd.cut(
-                            df['annee_service'],
-                            bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
-                            labels=service_categories[:-1],  # Exclure "Non spécifié"
-                            include_lowest=True
-                        )
-
-                        # Remplacer les NaN par "Non spécifié"
-                        df['service_range'] = df['service_range'].cat.add_categories(['Non spécifié'])
-                        df.loc[df['service_range'].isna(), 'service_range'] = 'Non spécifié'
-
-                    # Traitement spécial pour les années de service si nécessaire
-                    # if any(config["field"] == "annee_service"
-                    #        for config in [self.config["x_axis"], self.config["y_axis"]]):
-                    #     # S'assurer que annee_service est numérique
-                    #     df['annee_service'] = pd.to_numeric(df['annee_service'], errors='coerce')
-                    #
-                    #     # Créer d'abord un masque pour les valeurs nulles/invalides
-                    #     null_mask = df['annee_service'].isna()
-                    #
-                    #     # Si aucune valeur nulle, pas besoin de catégorie "Non spécifié"
-                    #     if not null_mask.any():
-                    #         df['service_range'] = pd.cut(
-                    #             df['annee_service'],
-                    #             bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
-                    #             labels=['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
-                    #                     '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS'],
-                    #             include_lowest=True
-                    #         )
-                    #     else:
-                    #         # Créer les tranches pour les valeurs valides
-                    #         df.loc[~null_mask, 'service_range'] = pd.cut(
-                    #             df.loc[~null_mask, 'annee_service'],
-                    #             bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
-                    #             labels=['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
-                    #                     '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS'],
-                    #             include_lowest=True
-                    #         )
-                    #         # Attribuer "Non spécifié" aux valeurs nulles/invalides
-                    #         df.loc[null_mask, 'service_range'] = 'Non spécifié'
-
-                    # Préparation des données pour les axes
-                    x_config = self.config["x_axis"]
-                    y_config = self.config["y_axis"]
-
-                    # Déterminer les valeurs des axes
-                    if x_config["field"] == "annee_service":
-                        x_values = df['service_range']
-                    else:
-                        x_values = df[x_config["field"]]
-
-                    if y_config["field"] == "annee_service":
-                        y_values = df['service_range']
-                    else:
-                        y_values = df[y_config["field"]]
-
-                    # Création du tableau croisé
-                    pivot_df = pd.crosstab(
-                        index=y_values,
-                        columns=x_values,
-                        dropna=True,
-                        margins=True,
-                        margins_name='TOTAL'
+                    df['service_range'] = pd.cut(
+                        df['annee_service'],
+                        bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
+                        labels=service_categories[:-1],
+                        include_lowest=True
                     )
 
-                    # Préparation des données pour les graphiques
-                    graph_df = pd.DataFrame({
-                        'x_value': x_values,
-                        'y_value': y_values
-                    })
-                    graph_df = graph_df.groupby(['x_value', 'y_value'], observed=True).size().reset_index(
-                        name='count')
+                    df['service_range'] = df['service_range'].cat.add_categories(['Non spécifié'])
+                    df.loc[df['service_range'].isna(), 'service_range'] = 'Non spécifié'
 
-                    self.df = graph_df
-                    self.pivot_df = pivot_df
-                    self.update_table(pivot_df)
+                # Préparation des données pour les axes
+                x_config = self.config["x_axis"]
+                y_config = self.config["y_axis"]
+
+                x_values = df['service_range'] if x_config["field"] == "annee_service" else df[x_config["field"]]
+                y_values = df['service_range'] if y_config["field"] == "annee_service" else df[y_config["field"]]
+
+                pivot_df = pd.crosstab(
+                    index=y_values,
+                    columns=x_values,
+                    dropna=True,
+                    margins=True,
+                    margins_name='TOTAL'
+                )
+
+                graph_df = pd.DataFrame({
+                    'x_value': x_values,
+                    'y_value': y_values
+                })
+                graph_df = graph_df.groupby(['x_value', 'y_value'], observed=True).size().reset_index(name='count')
+
+                self.df = graph_df
+                self.pivot_df = pivot_df
+                self.update_table(pivot_df)
 
         except Exception as e:
             print(f"Error in load_data: {str(e)}")
             import traceback
-            traceback.print_exc()  # Pour avoir plus de détails sur l'erreur
+            traceback.print_exc()
             QMessageBox.critical(
                 self,
                 "Erreur",

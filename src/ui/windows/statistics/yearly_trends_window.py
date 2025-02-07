@@ -162,30 +162,31 @@ class YearlyTrendsWindow(QMainWindow):
         cursor = conn.cursor()
         cursor.execute("""
             SELECT COUNT(DISTINCT numero_dossier)
-            FROM sanctions
-            WHERE strftime('%Y', date_enr) = ?
+            FROM main_tab
+            WHERE annee_punition = ?
         """, (str(self.year),))
         total = cursor.fetchone()[0]
 
         self.sanctions_card.title_label.setText("Total des sanctions")
         self.sanctions_card.value_label.setText(str(total))
         self.sanctions_card.title_label.setStyleSheet("font-size: 18px; font-weight: bold;")
-        self.sanctions_card.value_label.setStyleSheet("font-size: 40px; font-weight: bold;")
+        self.sanctions_card.value_label.setStyleSheet("font-size: 56px; font-weight: bold;")
 
     # Implémenter les autres méthodes _update_*_card()...
+
+
     def _update_grade_card(self, conn):
         query = """
-        SELECT g.grade, COUNT(DISTINCT s.numero_dossier) as count,
-               ROUND(COUNT(DISTINCT s.numero_dossier) * 100.0 / 
-               (SELECT COUNT(DISTINCT numero_dossier) FROM sanctions 
-                WHERE strftime('%Y', date_enr) = ?), 2) as percentage
-        FROM sanctions s
-        JOIN gendarmes g ON s.matricule = g.mle
-        WHERE strftime('%Y', s.date_enr) = ?
-        GROUP BY g.grade
-        ORDER BY count DESC
-        LIMIT 1
-        """
+           SELECT grade, COUNT(DISTINCT numero_dossier) as count,
+                  ROUND(COUNT(DISTINCT numero_dossier) * 100.0 / 
+                  (SELECT COUNT(DISTINCT numero_dossier) FROM main_tab 
+                   WHERE annee_punition = ?), 2) as percentage
+           FROM main_tab
+           WHERE annee_punition = ?
+           GROUP BY grade
+           ORDER BY count DESC
+           LIMIT 1
+           """
 
         cursor = conn.cursor()
         cursor.execute(query, (str(self.year), str(self.year)))
@@ -200,17 +201,16 @@ class YearlyTrendsWindow(QMainWindow):
 
     def _update_subdiv_card(self, conn):
         query = """
-       SELECT g.subdiv, COUNT(DISTINCT s.numero_dossier) as count,
-              ROUND(COUNT(DISTINCT s.numero_dossier) * 100.0 / 
-              (SELECT COUNT(DISTINCT numero_dossier) FROM sanctions 
-               WHERE strftime('%Y', date_enr) = ?), 2) as percentage
-       FROM sanctions s
-       JOIN gendarmes g ON s.matricule = g.mle 
-       WHERE strftime('%Y', s.date_enr) = ?
-       GROUP BY g.subdiv
-       ORDER BY count DESC
-       LIMIT 1
-       """
+           SELECT subdiv, COUNT(DISTINCT numero_dossier) as count,
+                  ROUND(COUNT(DISTINCT numero_dossier) * 100.0 / 
+                  (SELECT COUNT(DISTINCT numero_dossier) FROM main_tab 
+                   WHERE annee_punition = ?), 2) as percentage
+           FROM main_tab
+           WHERE annee_punition = ?
+           GROUP BY subdiv
+           ORDER BY count DESC
+           LIMIT 1
+           """
 
         cursor = conn.cursor()
         cursor.execute(query, (str(self.year), str(self.year)))
@@ -225,28 +225,27 @@ class YearlyTrendsWindow(QMainWindow):
 
     def _update_age_card(self, conn):
         query = """
-       WITH service_ranges AS (
-           SELECT 
-               CASE 
-                   WHEN g.annee_service BETWEEN 0 AND 5 THEN '0-5 ans'
-                   WHEN g.annee_service BETWEEN 6 AND 10 THEN '6-10 ans'
-                   WHEN g.annee_service BETWEEN 11 AND 15 THEN '11-15 ans'
-                   WHEN g.annee_service BETWEEN 16 AND 20 THEN '16-20 ans'
-                   WHEN g.annee_service BETWEEN 21 AND 25 THEN '21-25 ans'
-                   ELSE '25+ ans'
-               END as tranche,
-               COUNT(DISTINCT s.numero_dossier) as count
-           FROM sanctions s
-           JOIN gendarmes g ON s.matricule = g.mle
-           WHERE strftime('%Y', s.date_enr) = ?
-           GROUP BY tranche
-       )
-       SELECT tranche, count, 
-              ROUND(count * 100.0 / SUM(count) OVER(), 2) as percentage
-       FROM service_ranges
-       ORDER BY count DESC
-       LIMIT 1
-       """
+           WITH service_ranges AS (
+               SELECT 
+                   CASE 
+                       WHEN annee_service BETWEEN 0 AND 5 THEN '0-5 ans'
+                       WHEN annee_service BETWEEN 6 AND 10 THEN '6-10 ans'
+                       WHEN annee_service BETWEEN 11 AND 15 THEN '11-15 ans'
+                       WHEN annee_service BETWEEN 16 AND 20 THEN '16-20 ans'
+                       WHEN annee_service BETWEEN 21 AND 25 THEN '21-25 ans'
+                       ELSE '25+ ans'
+                   END as tranche,
+                   COUNT(DISTINCT numero_dossier) as count
+               FROM main_tab
+               WHERE annee_punition = ?
+               GROUP BY tranche
+           )
+           SELECT tranche, count, 
+                  ROUND(count * 100.0 / SUM(count) OVER(), 2) as percentage
+           FROM service_ranges
+           ORDER BY count DESC
+           LIMIT 1
+           """
 
         cursor = conn.cursor()
         cursor.execute(query, (str(self.year),))
@@ -261,16 +260,16 @@ class YearlyTrendsWindow(QMainWindow):
 
     def _update_faute_card(self, conn):
         query = """
-       SELECT faute_commise, COUNT(DISTINCT numero_dossier) as count,
-              ROUND(COUNT(DISTINCT numero_dossier) * 100.0 / 
-              (SELECT COUNT(DISTINCT numero_dossier) FROM sanctions 
-               WHERE strftime('%Y', date_enr) = ?), 2) as percentage
-       FROM sanctions
-       WHERE strftime('%Y', date_enr) = ?
-       GROUP BY faute_commise
-       ORDER BY count DESC
-       LIMIT 1
-       """
+           SELECT faute_commise, COUNT(DISTINCT numero_dossier) as count,
+                  ROUND(COUNT(DISTINCT numero_dossier) * 100.0 / 
+                  (SELECT COUNT(DISTINCT numero_dossier) FROM main_tab 
+                  WHERE annee_punition = ?), 2) as percentage
+           FROM main_tab
+           WHERE annee_punition = ?
+           GROUP BY faute_commise
+           ORDER BY count DESC
+           LIMIT 1
+           """
 
         cursor = conn.cursor()
         cursor.execute(query, (str(self.year), str(self.year)))
@@ -285,17 +284,17 @@ class YearlyTrendsWindow(QMainWindow):
 
     def _update_mois_card(self, conn):
         query = """
-       SELECT strftime('%m', date_enr) as mois, 
-              COUNT(DISTINCT numero_dossier) as count,
-              ROUND(COUNT(DISTINCT numero_dossier) * 100.0 / 
-              (SELECT COUNT(DISTINCT numero_dossier) FROM sanctions 
-               WHERE strftime('%Y', date_enr) = ?), 2) as percentage
-       FROM sanctions
-       WHERE strftime('%Y', date_enr) = ?
-       GROUP BY mois
-       ORDER BY count DESC
-       LIMIT 1
-       """
+           SELECT strftime('%m', date_enr) as mois, 
+                  COUNT(DISTINCT numero_dossier) as count,
+                  ROUND(COUNT(DISTINCT numero_dossier) * 100.0 / 
+                  (SELECT COUNT(DISTINCT numero_dossier) FROM main_tab 
+                   WHERE annee_punition = ?), 2) as percentage
+           FROM main_tab
+           WHERE annee_punition = ?
+           GROUP BY mois
+           ORDER BY count DESC
+           LIMIT 1
+           """
 
         mois_dict = {
             '01': 'Janvier', '02': 'Février', '03': 'Mars', '04': 'Avril',
@@ -316,23 +315,19 @@ class YearlyTrendsWindow(QMainWindow):
 
     def _update_region_card(self, conn):
         query = """
-       WITH region_counts AS (
-           SELECT g.regions, COUNT(DISTINCT s.numero_dossier) as count
-           FROM gendarmes g
-           LEFT JOIN sanctions s ON CAST(s.matricule AS TEXT) = g.mle 
-               AND strftime('%Y', s.date_enr) = ?
-           WHERE g.regions IS NOT NULL
-           GROUP BY g.regions
-       )
-       SELECT regions, count,
-              ROUND(count * 100.0 / (SELECT SUM(count) FROM region_counts), 2) as percentage
-       FROM region_counts
-       ORDER BY count ASC
-       LIMIT 1
-       """
+           SELECT regions, COUNT(DISTINCT numero_dossier) as count,
+                  ROUND(COUNT(DISTINCT numero_dossier) * 100.0 / 
+                  (SELECT COUNT(DISTINCT numero_dossier) FROM main_tab 
+                   WHERE (annee_punition = ?) AND regions IS NOT NULL), 2) as percentage
+           FROM main_tab
+           WHERE (annee_punition = ?) AND regions IS NOT NULL
+           GROUP BY regions
+           ORDER BY count ASC
+           LIMIT 1
+           """
 
         cursor = conn.cursor()
-        cursor.execute(query, (str(self.year),))
+        cursor.execute(query, (str(self.year), str(self.year)))
         region, count, percentage = cursor.fetchone()
 
         self.region_card.title_label.setText("Région la moins exposée")

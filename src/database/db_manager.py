@@ -39,8 +39,7 @@ class DatabaseManager:
             # Suppression des tables existantes si elles existent
             cursor.execute("DROP TABLE IF EXISTS main_tab")
 
-
-            # Table des gendarmes
+            # Table des donnees des gendarmes
             cursor.execute('''CREATE TABLE IF NOT EXISTS gendarmes_etat (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 matricule TEXT UNIQUE,
