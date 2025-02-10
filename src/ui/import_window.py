@@ -51,6 +51,8 @@ class ImportWindow(QMainWindow):
 
         # Création de la base de données
         self.db_manager.create_tables()
+        # Creation des index dans la BD
+        self.db_manager.create_indexes()
 
     def import_excel(self):
         """Importe les données depuis le fichier Excel"""
