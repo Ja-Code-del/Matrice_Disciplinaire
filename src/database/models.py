@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, List, Dict, Any
 
 
@@ -75,6 +75,96 @@ class MainTab:
             'numero_arrete': self.numero_arrete,
             'numero_decision': self.numero_decision
         }
+
+@dataclass
+class Gendarmes:
+    """Classe représentant un enregistrement de la table Gendarmes"""
+    id_gendarme : Optional[int] = None
+    matricule : str = ""
+    nom_prenoms : str = ""
+    sexe : str = ""
+    date_entree_gie : date = None
+    nb_enfants : Optional[int] = None
+
+@dataclass
+class Statut:
+    """Classe représentant un enregistrement de la table Statut"""
+    id_statut : Optional[int] = None
+    lib_statut : str = ""
+
+@dataclass
+class Type_sanctions:
+    """Classe représentant un enregistrement de la table Type_sanctions"""
+    id_type_sanction : Optional[int] = None
+    lib_type_sanction : str = ""
+
+@dataclass
+class Dossiers:
+    """Classe représentant un enregistrement de la table Dossiers"""
+    numero_inc : int = None
+    id_dossier : str = ""
+    matricule_dossier : str = ""
+    reference : str = ""
+    date_enr : date = None
+    date_faits : date = None
+    numero_annee : int = None
+    annee_enr : int = None
+    sanction_id : int = None
+    grade_id : int = None
+    situation_mat_id : int = None
+    unite_id : int = None
+    legion_id : int = None
+    subdiv_id : int = None
+    rg_id : int = None
+    faute_id : int = None
+    libelle : int = None
+    statut_id : int = None
+
+@dataclass
+class Sanctions:
+    """Classe représentant un enregistrement de la table Sanctions"""
+    id_sanction
+    type_sanction_id
+    num_inc
+    taux
+    numero_decision
+    numero_arrete
+    annee_radiation
+    ref_statut
+    comite
+
+@dataclass
+class Fautes:
+    """Classe représentant un enregistrement de la table Fautes"""
+
+@dataclass
+class Categories:
+    """Classe représentant un enregistrement de la table Categories"""
+
+@dataclass
+class Grades:
+    """Classe représentant un enregistrement de la table Grades"""
+
+@dataclass
+class Sit_mat:
+    """Classe représentant un enregistrement de la table Sit_mat"""
+
+@dataclass
+class Unite:
+    """Classe représentant un enregistrement de la table Unite"""
+
+@dataclass
+class Legion:
+    """Classe représentant un enregistrement de la table Legion"""
+
+@dataclass
+class Subdiv:
+    """Classe représentant un enregistrement de la table Subdiv"""
+
+@dataclass
+class Region:
+    """Classe représentant un enregistrement de la table Region"""
+
 
 
 class MainTabRepository:
