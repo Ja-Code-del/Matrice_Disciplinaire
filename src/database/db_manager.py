@@ -137,10 +137,10 @@ class DatabaseManager:
                 id_faute INTEGER PRIMARY KEY AUTOINCREMENT,
                 lib_faute TEXT NOT NULL UNIQUE,
                 cat_id INTEGER NOT NULL,
-                FOREIGN KEY cat_id REFERENCES categories(id_categorie)
+                FOREIGN KEY cat_id REFERENCES Categories(id_categorie)
             )''')
 
-            cursor.execute('''CREATE TABLE IF NOT EXISTS categories(
+            cursor.execute('''CREATE TABLE IF NOT EXISTS Categories(
                 id_categorie INTEGER PRIMARY KEY AUTOINCREMENT,
                 lib_categorie TEXT NOT NULL UNIQUE
             )''')
@@ -187,6 +187,46 @@ class DatabaseManager:
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_sanctions_num_inc ON Sanctions(num_inc)')
 
             conn.commit()
+
+    def add_gendarmes(self, ):
+        """Add a gendarme info to the database"""
+
+    def add_statut(self):
+        """Add statuts"""
+
+    def add_type_sanctions(self):
+        """Add sanctions type"""
+
+    def add_dossiers(self):
+        """Add a case infos"""
+
+    def add_sanctions(self):
+        """Add sanctions infos"""
+
+    def add_faults_info(self):
+        """Add faults"""
+
+    def add_categorie(self):
+        """Add categories"""
+
+    def add_grades(self):
+        """Add grades"""
+
+    def add_sit_mat(self):
+        """Add matrimonial situation"""
+
+    def add_unite(self):
+        """Add units"""
+
+    def add_legion(self):
+        """Add legions"""
+
+    def add_subdiv(self):
+        """Add subdiv"""
+
+    def add_region(self):
+        """Add region"""
+
 
     def is_connected(self):
         """Vérifie si la connexion à la base de données est active."""
