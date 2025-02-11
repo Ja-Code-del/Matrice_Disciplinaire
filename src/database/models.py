@@ -1,80 +1,8 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from datetime import datetime, date
 from typing import Optional, List, Dict, Any
 
-
-@dataclass
-class MainTab:
-    """Classe représentant un enregistrement de la table main_tab"""
-    id: Optional[int] = None
-    numero_dossier: str = ""
-    annee_punition: Optional[int] = None
-    numero_ordre: Optional[int] = None
-    date_enr: str = ""
-    matricule: Optional[int] = None
-    nom_prenoms: str = ""
-    grade: str = ""
-    sexe: str = ""
-    date_naissance: str = ""
-    age: Optional[int] = None
-    unite: str = ""
-    legions: str = ""
-    subdiv: str = ""
-    regions: str = ""
-    date_entree_gie: str = ""
-    annee_service: Optional[int] = None
-    situation_matrimoniale: str = ""
-    nb_enfants: Optional[int] = None
-    faute_commise: str = ""
-    date_faits: str = ""
-    categorie: Optional[int] = None
-    statut: str = ""
-    reference_statut: str = ""
-    taux_jar: str = ""
-    comite: Optional[int] = None
-    annee_faits: Optional[int] = None
-    numero_arrete: str = ""
-    numero_decision: str = ""
-
-    @classmethod
-    def from_db_row(cls, row: tuple, column_names: list):
-        """Crée une instance de MainTab à partir d'une ligne de la base de données"""
-        data = dict(zip(column_names, row))
-        return cls(**data)
-
-    def to_dict(self):
-        """Convertit l'instance en dictionnaire"""
-        return {
-            'id': self.id,
-            'numero_dossier': self.numero_dossier,
-            'annee_punition': self.annee_punition,
-            'numero_ordre': self.numero_ordre,
-            'date_enr': self.date_enr,
-            'matricule': self.matricule,
-            'nom_prenoms': self.nom_prenoms,
-            'grade': self.grade,
-            'sexe': self.sexe,
-            'date_naissance': self.date_naissance,
-            'age': self.age,
-            'unite': self.unite,
-            'legions': self.legions,
-            'subdiv': self.subdiv,
-            'regions': self.regions,
-            'date_entree_gie': self.date_entree_gie,
-            'annee_service': self.annee_service,
-            'situation_matrimoniale': self.situation_matrimoniale,
-            'nb_enfants': self.nb_enfants,
-            'faute_commise': self.faute_commise,
-            'date_faits': self.date_faits,
-            'categorie': self.categorie,
-            'statut': self.statut,
-            'reference_statut': self.reference_statut,
-            'taux_jar': self.taux_jar,
-            'comite': self.comite,
-            'annee_faits': self.annee_faits,
-            'numero_arrete': self.numero_arrete,
-            'numero_decision': self.numero_decision
-        }
+#TODO : AJOUTER LES AUTRES CLASSES ET LES METHODES
 
 @dataclass
 class Gendarmes:
@@ -85,6 +13,10 @@ class Gendarmes:
     sexe : str = ""
     date_entree_gie : date = None
     nb_enfants : Optional[int] = None
+
+    def to_dict(self):
+        """Retourne un dictionnaire sans les clés nulles"""
+        return {k: v for k, v in asdict(self).items() if v is not None}
 
 @dataclass
 class Statut:
@@ -123,15 +55,15 @@ class Dossiers:
 @dataclass
 class Sanctions:
     """Classe représentant un enregistrement de la table Sanctions"""
-    id_sanction
-    type_sanction_id
-    num_inc
-    taux
-    numero_decision
-    numero_arrete
-    annee_radiation
-    ref_statut
-    comite
+    id_sanction : int = None
+    type_sanction_id : int = None
+    num_inc : int = None
+    taux : str = ""
+    numero_decision : str = ""
+    numero_arrete : str = ""
+    annee_radiation : int = None
+    ref_statut : str = ""
+    comite : str = ""
 
 @dataclass
 class Fautes:
