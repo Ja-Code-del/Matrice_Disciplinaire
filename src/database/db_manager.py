@@ -188,45 +188,41 @@ class DatabaseManager:
 
             conn.commit()
 
-    def add_gendarmes(self, ):
-        """Add a gendarme info to the database"""
+    def add_data(self, table, data):
+        """
+        Ajoute des données dans n'importe quelle table
+        :param table: Nom de la table
+        :param data: Dictionnaire {colonne: valeur}
+        """
+        columns = ', '.join(data.keys())  # Ex: "numero_inc, id_dossier"
+        placeholders = ', '.join(['?' for _ in data])  # Ex: "?, ?"
+        values = tuple(data.values())  # Ex: ("1", "1/2025")
 
-    def add_statut(self):
-        """Add statuts"""
+        query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
 
-    def add_type_sanctions(self):
-        """Add sanctions type"""
+        try:
+            self.cursor.execute(query, values)
+            self.conn.commit()
+        except sqlite3.IntegrityError as e:
+            print(f"⚠ Erreur d'insertion dans {table}: {e}")
 
-    def add_dossiers(self):
-        """Add a case infos"""
-
-    def add_sanctions(self):
-        """Add sanctions infos"""
-
-    def add_faults_info(self):
-        """Add faults"""
-
-    def add_categorie(self):
-        """Add categories"""
-
-    def add_grades(self):
-        """Add grades"""
-
-    def add_sit_mat(self):
-        """Add matrimonial situation"""
-
-    def add_unite(self):
-        """Add units"""
-
-    def add_legion(self):
-        """Add legions"""
-
-    def add_subdiv(self):
-        """Add subdiv"""
-
-    def add_region(self):
-        """Add region"""
-
+    def get_foreign_key_id(self, table, column, value):
+        """
+        Récupère l'ID d'une valeur dans une table étrangère, l'ajoute si elle n'existe pas.
+        :param table: Nom de la table étrangère
+        :param column: Colonne contenant la valeur recherchée
+        :param value: Valeur à rechercher
+        :return: ID de la valeur
+        """
+        self.cursor.execute(f"SELECT id_{table.lower()} FROM {table} WHERE {column} = ?", (value,))
+        result = self.cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            # Ajouter la valeur si elle n'existe pas
+            self.cursor.execute(f"INSERT INTO {table} ({column}) VALUES (?)", (value,))
+            self.conn.commit()
+            return self.cursor.lastrowid  # Récupérer l'ID nouvellement inséré
 
     def is_connected(self):
         """Vérifie si la connexion à la base de données est active."""
