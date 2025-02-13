@@ -2,7 +2,9 @@ import os
 import sqlite3
 from contextlib import contextmanager
 
-
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Fonction pour vérifier la présence des colonnes
 def check_required_columns(df, required_columns):
@@ -20,16 +22,20 @@ class DatabaseManager:
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         # Construire le chemin vers la DB
         self.db_name = os.path.join(project_root, db_name)
-        print(f"Chemin complet de la DB: {self.db_name}")  # Debug
+        logger.info(f"Chemin complet de la DB: {self.db_name}")
+        #print(f"Chemin complet de la DB: {self.db_name}")  # Debug
 
     @contextmanager
     def get_connection(self):
         """Crée et gère la connexion à la base de données"""
-        conn = sqlite3.connect(self.db_name)
         try:
-            yield conn
+            self.conn = sqlite3.connect(self.db_name)
+            yield self.conn
+        except sqlite3.Error as e:
+            print(f"Erreur de connexion à la base de données: {e}")
+            raise
         finally:
-            conn.close()
+            self.conn.close()
 
     def create_tables(self):
         """Crée les tables de la base de données"""
@@ -56,8 +62,10 @@ class DatabaseManager:
                 id_gendarme INTEGER PRIMARY KEY AUTOINCREMENT,
                 matricule TEXT,
                 nom_prenoms TEXT,
+                age INTEGER,
                 sexe TEXT,
                 date_entree_gie DATE,
+                annee_service INTEGER, 
                 nb_enfants INTEGER,
                 FOREIGN KEY (matricule) REFERENCES gendarmes_etat(matricule) ON DELETE CASCADE
             )''')
@@ -190,19 +198,34 @@ class DatabaseManager:
 
     def add_data(self, table, data):
         """
-        Ajoute des données dans n'importe quelle table
-        :param table: Nom de la table
-        :param data: Dictionnaire {colonne: valeur}
-        """
-        columns = ', '.join(data.keys())  # Ex: "numero_inc, id_dossier"
-        placeholders = ', '.join(['?' for _ in data])  # Ex: "?, ?"
-        values = tuple(data.values())  # Ex: ("1", "1/2025")
+            Ajoute des données dans une table spécifique.
 
+            Args:
+                table (str): Nom de la table
+                data (Dict[str, Any]): Dictionnaire des données {colonne: valeur}
+
+            Raises:
+                sqlite3.IntegrityError: Si violation de contrainte d'intégrité
+            """
+
+
+        # Validation du nom de la table
+        allowed_tables = {'Gendarmes', 'Dossiers', 'Sanctions'}  # etc
+        if table not in allowed_tables:
+            raise ValueError(f"Table {table} non autorisée")
+
+        columns = ', '.join(f'"{k}"' for k in data.keys()) # Ex: "numero_inc, id_dossier"
+        placeholders = ', '.join(['?' for _ in data]) # Ex: "?, ?"
         query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
 
+        values = tuple(data.values())  # Ex: ("1", "1/2025")
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+
         try:
-            self.cursor.execute(query, values)
-            self.conn.commit()
+            cursor.execute(query, values)
+            conn.commit()
         except sqlite3.IntegrityError as e:
             print(f"⚠ Erreur d'insertion dans {table}: {e}")
 
@@ -214,15 +237,43 @@ class DatabaseManager:
         :param value: Valeur à rechercher
         :return: ID de la valeur
         """
-        self.cursor.execute(f"SELECT id_{table.lower()} FROM {table} WHERE {column} = ?", (value,))
-        result = self.cursor.fetchone()
-        if result:
-            return result[0]
-        else:
-            # Ajouter la valeur si elle n'existe pas
-            self.cursor.execute(f"INSERT INTO {table} ({column}) VALUES (?)", (value,))
-            self.conn.commit()
-            return self.cursor.lastrowid  # Récupérer l'ID nouvellement inséré
+
+        # Dictionnaire des tables autorisées et de leurs colonnes clés
+        valid_tables = {
+            "Statut": "id_statut",
+            "Type_sanctions": "id_type_sanction",
+            "Fautes": "id_faute",
+            "Categories": "id_categorie",
+            "Grade": "id_grade",
+            "Sit_mat": "id_sit_mat",
+            "Unite": "id_unite",
+            "Legion": "id_legion",
+            "Subdiv": "id_subdiv",
+            "Region": "id_rg"
+        }
+
+        # Vérification de la validité de la table
+        if table not in valid_tables:
+            raise ValueError(f"Table non autorisée : {table}")
+
+        id_column = valid_tables[table]  # Récupération du nom de l'ID dans la table
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Vérifier si la valeur existe déjà
+            query = f"SELECT {id_column} FROM {table} WHERE {column} = ?"
+            cursor.execute(query, (value,))
+            result = cursor.fetchone()
+
+            if result:
+                return result[0]
+            else:
+                # Insérer la nouvelle valeur
+                insert_query = f"INSERT INTO {table} ({column}) VALUES (?)"
+                cursor.execute(insert_query, (value,))
+                conn.commit()
+                return cursor.lastrowid  # Retourne l'ID inséré
 
     def is_connected(self):
         """Vérifie si la connexion à la base de données est active."""
@@ -261,3 +312,7 @@ class DatabaseManager:
         except Exception as e:
             print(f"Erreur lors du comptage des enregistrements de {table_name}: {str(e)}")
             return 0
+
+    def close(self):
+        """Ferme la connexion"""
+        self.conn.close()

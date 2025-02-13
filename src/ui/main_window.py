@@ -11,7 +11,7 @@ from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QAction
 from src.database.db_manager import DatabaseManager
 from src.ui.styles.styles import Styles
-from src.database.models import  MainTabRepository
+from src.database.models import  GendarmesRepository, DossiersRepository, SanctionsRepository
 from src.ui.windows.import_etat_window import ImportEtatCompletWindow
 from src.ui.forms.edit_gendarme_form import SearchDossierDialog, EditCaseForm
 from .forms.delete_case_dialog import DeleteCaseDialog
@@ -38,7 +38,9 @@ class MainGendarmeApp(QMainWindow):
 
         # Initialisation des gestionnaires de données
         self.db_manager = DatabaseManager()
-        self.main_repository = MainTabRepository(self.db_manager)
+        self.gendarme_repository = GendarmesRepository(self.db_manager)
+        self.dossier_repository = DossiersRepository(self.db_manager)
+        self.sanction_repository = SanctionsRepository(self.db_manager)
 
         # Initialisation du gestionnaire de statistiques
         self.stats_handler = StatsHandler(self)
@@ -69,7 +71,7 @@ class MainGendarmeApp(QMainWindow):
         """Initialise interface utilisateur"""
         self.setWindowTitle("Matrice disciplinaire des Gendarmes")
         self.setMinimumSize(1000, 750)
-        self.resize(1024, 768)
+        self.resize(1280, 800)
 
         # Widget principal
         main_widget = QWidget()

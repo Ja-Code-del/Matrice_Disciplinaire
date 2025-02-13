@@ -1,7 +1,10 @@
 from PyQt6.QtWidgets import QApplication
-from src.ui.windows.auth.login_window import LoginWindow
+
+from src.database.init_db import initialize_reference_tables
+#from src.ui.windows.auth.login_window import LoginWindow
 from src.ui.main_window import MainGendarmeApp
 from src.database.auth_manager import AuthManager
+
 import sys
 
 def init_application():
@@ -12,7 +15,7 @@ def init_application():
 
 def main():
     app = QApplication(sys.argv)
-
+    initialize_reference_tables()
     #Fenetre principale
     main_window = MainGendarmeApp()
     main_window.show()

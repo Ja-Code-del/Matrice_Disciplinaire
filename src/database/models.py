@@ -2,14 +2,14 @@ from dataclasses import dataclass, asdict
 from datetime import datetime, date
 from typing import Optional, List, Dict, Any
 
-#TODO : AJOUTER LES AUTRES CLASSES ET LES METHODES
 
 @dataclass
 class Gendarmes:
     """Classe représentant un enregistrement de la table Gendarmes"""
-    id_gendarme : Optional[int] = None
+    id_gendarme : int = None
     matricule : str = ""
     nom_prenoms : str = ""
+    age : int = None
     sexe : str = ""
     date_entree_gie : date = None
     nb_enfants : Optional[int] = None
@@ -18,17 +18,10 @@ class Gendarmes:
         """Retourne un dictionnaire sans les clés nulles"""
         return {k: v for k, v in asdict(self).items() if v is not None}
 
-@dataclass
-class Statut:
-    """Classe représentant un enregistrement de la table Statut"""
-    id_statut : Optional[int] = None
-    lib_statut : str = ""
-
-@dataclass
-class Type_sanctions:
-    """Classe représentant un enregistrement de la table Type_sanctions"""
-    id_type_sanction : Optional[int] = None
-    lib_type_sanction : str = ""
+class GendarmesRepository:
+    """Classe pour gerer les opérations dans la table gendarme"""
+    def __init__(self, db_manager):
+        self.db_manager = db_manager
 
 @dataclass
 class Dossiers:
@@ -49,8 +42,17 @@ class Dossiers:
     subdiv_id : int = None
     rg_id : int = None
     faute_id : int = None
-    libelle : int = None
+    libelle : str = ""
     statut_id : int = None
+
+    def to_dict(self):
+        """Retourne un dictionnaire sans les clés nulles"""
+        return {k: v for k, v in asdict(self).items() if v is not None}
+
+class DossiersRepository:
+    """Classe pour gerer les méthodes dans Dossiers"""
+    def __init__(self, db_manager):
+        self.db_manager = db_manager
 
 @dataclass
 class Sanctions:
@@ -65,102 +67,114 @@ class Sanctions:
     ref_statut : str = ""
     comite : str = ""
 
+    def to_dict(self):
+        """Retourne un dictionnaire sans les clés nulles"""
+        return {k: v for k, v in asdict(self).items() if v is not None}
+
+class SanctionsRepository:
+    """Classe pour gérer les opérations dans Sanctions"""
+    def __init__(self, db_manager):
+        self.db_manager = db_manager
+
+@dataclass
+class Statut:
+    """Classe représentant un enregistrement de la table Statut"""
+    id_statut : int = None
+    lib_statut : str = ""
+
+    def to_dict(self):
+        """Retourne un dictionnaire sans les clés nulles"""
+        return {k: v for k, v in asdict(self).items() if v is not None}
+
+@dataclass
+class Type_sanctions:
+    """Classe représentant un enregistrement de la table Type_sanctions"""
+    id_type_sanction : int = None
+    lib_type_sanction : str = ""
+
+    def to_dict(self):
+        """Retourne un dictionnaire sans les clés nulles"""
+        return {k: v for k, v in asdict(self).items() if v is not None}
+
 @dataclass
 class Fautes:
     """Classe représentant un enregistrement de la table Fautes"""
+    id_faute : int = None
+    lib_faute : str = ""
+    cat_id : int = None
+
+    def to_dict(self):
+        """Retourne un dictionnaire sans les clés nulles"""
+        return {k: v for k, v in asdict(self).items() if v is not None}
 
 @dataclass
 class Categories:
     """Classe représentant un enregistrement de la table Categories"""
+    id_categorie : int = None
+    lib_categorie : str = ""
+
+    def to_dict(self):
+        """Retourne un dictionnaire sans les clés nulles"""
+        return {k: v for k, v in asdict(self).items() if v is not None}
 
 @dataclass
 class Grades:
     """Classe représentant un enregistrement de la table Grades"""
+    id_grade: int = None
+    lib_grade: str = ""
 
+    def to_dict(self):
+        """Retourne un dictionnaire sans les clés nulles"""
+        return {k: v for k, v in asdict(self).items() if v is not None}
 @dataclass
 class Sit_mat:
     """Classe représentant un enregistrement de la table Sit_mat"""
+    id_sit_mat: int = None
+    lib_sit_mat: str = ""
+
+    def to_dict(self):
+        """Retourne un dictionnaire sans les clés nulles"""
+        return {k: v for k, v in asdict(self).items() if v is not None}
 
 @dataclass
 class Unite:
     """Classe représentant un enregistrement de la table Unite"""
+    id_unite: int = None
+    lib_unite: str = ""
+
+    def to_dict(self):
+        """Retourne un dictionnaire sans les clés nulles"""
+        return {k: v for k, v in asdict(self).items() if v is not None}
 
 @dataclass
 class Legion:
     """Classe représentant un enregistrement de la table Legion"""
+    id_legion: int = None
+    lib_legion: str = ""
+
+    def to_dict(self):
+        """Retourne un dictionnaire sans les clés nulles"""
+        return {k: v for k, v in asdict(self).items() if v is not None}
 
 @dataclass
 class Subdiv:
     """Classe représentant un enregistrement de la table Subdiv"""
+    id_subdiv: int = None
+    lib_subdiv: str = ""
+
+    def to_dict(self):
+        """Retourne un dictionnaire sans les clés nulles"""
+        return {k: v for k, v in asdict(self).items() if v is not None}
 
 @dataclass
 class Region:
     """Classe représentant un enregistrement de la table Region"""
+    id_rg: int = None
+    lib_rg: str = ""
 
-
-
-class MainTabRepository:
-    """Classe pour gérer les opérations sur la table main_tab"""
-
-    def __init__(self, db_manager):
-        self.db_manager = db_manager
-
-    def get_all(self) -> List[MainTab]:
-        """Récupère tous les enregistrements de la table main_tab"""
-        with self.db_manager.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM main_tab ORDER BY nom_prenoms")
-            columns = [description[0] for description in cursor.description]
-            return [MainTab.from_db_row(row, columns) for row in cursor.fetchall()]
-
-    def get_by_numero_dossier(self, numero_dossier: str) -> Optional[MainTab]:
-        """Récupère un enregistrement par son numéro de dossier"""
-        with self.db_manager.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM main_tab WHERE numero_dossier = ?", (numero_dossier,))
-            row = cursor.fetchone()
-            if row:
-                columns = [description[0] for description in cursor.description]
-                return MainTab.from_db_row(row, columns)
-        return None
-
-    def get_by_matricule(self, matricule: int) -> List[MainTab]:
-        """Récupère les enregistrements par matricule"""
-        with self.db_manager.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM main_tab WHERE matricule = ?", (matricule,))
-            columns = [description[0] for description in cursor.description]
-            return [MainTab.from_db_row(row, columns) for row in cursor.fetchall()]
-
-    def get_by_name(self, name: str) -> List[MainTab]:
-        """Récupère les enregistrements par nom et prénoms"""
-        with self.db_manager.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM main_tab WHERE nom_prenoms LIKE ?", (f"%{name}%",))
-            columns = [description[0] for description in cursor.description]
-            return [MainTab.from_db_row(row, columns) for row in cursor.fetchall()]
-
-    def get_statistics(self) -> dict:
-        """Récupère des statistiques générales"""
-        with self.db_manager.get_connection() as conn:
-            cursor = conn.cursor()
-            stats = {}
-
-            # Nombre total de gendarmes (distincts par matricule)
-            cursor.execute("SELECT COUNT(DISTINCT matricule) FROM main_tab")
-            stats['total_gendarmes'] = cursor.fetchone()[0]
-
-            # Nombre total de sanctions
-            cursor.execute("SELECT COUNT(*) FROM main_tab")
-            stats['total_sanctions'] = cursor.fetchone()[0]
-
-            # Moyenne des sanctions par gendarme
-            if stats['total_gendarmes'] > 0:
-                stats['moyenne_sanctions'] = stats['total_sanctions'] / stats['total_gendarmes']
-            else:
-                stats['moyenne_sanctions'] = 0
-
-            return stats
+    def to_dict(self):
+        """Retourne un dictionnaire sans les clés nulles"""
+        return {k: v for k, v in asdict(self).items() if v is not None}
 
 
 @dataclass

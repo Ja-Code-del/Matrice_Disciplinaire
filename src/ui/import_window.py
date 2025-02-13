@@ -11,7 +11,7 @@ import pandas as pd
 class ImportWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Import des données gendarmes")
+        self.setWindowTitle("IMPORT DU FICHIER EXCEL")
         self.setMinimumSize(600, 400)
         self.db_manager = DatabaseManager()
 
@@ -78,61 +78,60 @@ class ImportWindow(QMainWindow):
             # Supprimer les doublons avant conversion en CSV
             df = df.drop_duplicates()
 
+            required_columns = {'REFERENCE', 'ANNEE DE PUNITION', 'N° ORDRE', 'N° ANNEE', 'ID DOSSIER', 'DATE ENR', 'MLE',
+                               'NOM ET PRENOMS', 'GRADE', 'SEXE', 'DATE DE NAISSANCE', 'AGE', 'UNITE', 'LEGIONS', 'SUBDIV',
+                               'REGIONS', 'DATE D\'ENTREE GIE', 'ANNEE DE SERVICE', 'SITUATION MATRIMONIALE', 'NB ENF',
+                               'FAUTE COMMISE', 'DATE DES FAITS', 'LIBELLE', 'N° CAT', 'TYPE SANCTION', 'REFERENCE DU STATUT',
+                               'N° DECISION', 'N° ARRETE', 'TAUX (JAR)', 'ANNEE DES FAITS', 'ANNEE RADIATION', 'COMITE',
+                               'STATUT DOSSIER'}
+
+            if not required_columns.issubset(df.columns):
+                QMessageBox.critical(self, "Erreur", f"Le fichier Excel doit contenir les colonnes: {required_columns}")
+                return
+
             # Créer un fichier CSV temporaire
             csv_file = file_name.replace('.xlsx', '.csv').replace('.xls', '.csv')
             df.to_csv(csv_file, index=False, sep=';', encoding='utf-8')
 
             # Convertir les colonnes de dates
-            date_columns = ['DATE ENR', 'DATE DE NAISSANCE', 'DATE D\'ENTREE GIE', 'DATE DES FAITS']
+            date_columns = ['DATE ENR', 'DATE DE NAISSANCE', 'DATE D\'ENTREE GIE', 'DATE DES FAITS', ]
             for col in date_columns:
                 df[col] = df[col].apply(adapt_date)
 
             # Extraire l'année pour les colonnes qui doivent être des années
             df['ANNEE DES FAITS'] = df['ANNEE DES FAITS'].fillna(0).astype(int)  # Corrige float64 en int64
+            df['ANNEE RADIATION'] = df['ANNEE RADIATION'].fillna(0).astype(int)
 
             # Convertir `AGE` en nombre entier
             df['AGE'] = pd.to_numeric(df['AGE'], errors='coerce').fillna(0).astype(int)
 
             # Vérifier si certaines colonnes censées être numériques contiennent des valeurs erronées
-            cols_to_int = ['ANNEE DE PUNITION', 'N° ORDRE', 'MLE', 'AGE', 'ANNEE DE SERVICE', 'NB ENF', 'N° CAT']
+            cols_to_int = ['ANNEE DE PUNITION', 'N° ORDRE', 'MLE', 'AGE', 'ANNEE DE SERVICE', 'NB ENF', 'N° CAT',
+                           'ANNEE DES FAITS', 'ANNEE RADIATION']
             for col in cols_to_int:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
 
             success_count = 0
             error_count = 0
 
+            db = DatabaseManager()
+
             # Préparation des données sous forme de liste de tuples pour executemany()
             data = []
             for _, row in df.iterrows():
                 try:
-                    data.append((
-                        str(row['N° DOSSIER']),
-                        int(row['ANNEE DE PUNITION']) if pd.notna(row['ANNEE DE PUNITION']) else None,
-                        int(row['N° ORDRE']) if pd.notna(row['N° ORDRE']) else None,
-                        row['DATE ENR'] if pd.notna(row['DATE ENR']) else None,
-                        int(row['MLE']) if pd.notna(row['MLE']) else None,
-                        str(row['NOM ET PRENOMS']) if pd.notna(row['NOM ET PRENOMS']) else None,
-                        str(row['GRADE']) if pd.notna(row['GRADE']) else None,
-                        str(row['SEXE']) if pd.notna(row['SEXE']) else None,
-                        row['DATE DE NAISSANCE'] if pd.notna(row['DATE DE NAISSANCE']) else None,
-                        int(row['AGE']) if pd.notna(row['AGE']) else None,
-                        str(row['UNITE']) if pd.notna(row['UNITE']) else None,
-                        str(row['LEGIONS']) if pd.notna(row['LEGIONS']) else None,
-                        str(row['SUBDIV']) if pd.notna(row['SUBDIV']) else None,
-                        str(row['REGIONS']) if pd.notna(row['REGIONS']) else None,
-                        row['DATE D\'ENTREE GIE'] if pd.notna(row['DATE D\'ENTREE GIE']) else None,
-                        int(row['ANNEE DE SERVICE']) if pd.notna(row['ANNEE DE SERVICE']) else None,
-                        str(row['SITUATION MATRIMONIALE']) if pd.notna(row['SITUATION MATRIMONIALE']) else None,
-                        int(row['NB ENF']) if pd.notna(row['NB ENF']) else None,
-                        str(row['FAUTE COMMISE']) if pd.notna(row['FAUTE COMMISE']) else None,
-                        row['DATE DES FAITS'] if pd.notna(row['DATE DES FAITS']) else None,
-                        int(row['N° CAT']) if pd.notna(row['N° CAT']) else None,
-                        str(row['STATUT']) if pd.notna(row['STATUT']) else None,
-                        str(row['REFERENCE DU STATUT']) if pd.notna(row['REFERENCE DU STATUT']) else None,
-                        str(row['TAUX (JAR)']) if pd.notna(row['TAUX (JAR)']) else None,
-                        str(row['COMITE']) if pd.notna(row['COMITE']) else None,
-                        int(row['ANNEE DES FAITS']) if pd.notna(row['ANNEE DES FAITS']) else None
-                    ))
+                    # Vérifier et récupérer les IDs des clés étrangères
+                    statut_id = db.get_foreign_key_id("Statut", "lib_statut", row["Statut"])
+                    sanction_id = db.get_foreign_key_id("Type_sanctions", "lib_type_sanction", row["Type de Sanction"])
+                    grade_id = db.get_foreign_key_id("Grade", "lib_grade", row["Grade"])
+                    faute_id = db.get_foreign_key_id("Fautes", "lib_faute", row["Faute"])
+
+                    #TODO AJOUTER LES LIGNES POUR LES AUTRES TABLES DE REFERENCE ET CONTINUER A MODIFIER IMPORT AVEC
+                    # NOTAMMMENT LA METHODE ADD_DATA
+
+                    if not (statut_id and sanction_id and grade_id and faute_id):
+                        raise ValueError("Une ou plusieurs valeurs de référence sont inconnues.")
+
                     success_count += 1
                 except Exception as e:
                     error_count += 1

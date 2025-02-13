@@ -310,7 +310,7 @@ STRUCTURE_UNITE = {
                     "EM-1°RG",
                     "EM-2°RG",
                     "EM-3°RG",
-                    "EM-4°RG",
+                    "EM-4°RG"
                 ]
             }
         },
@@ -612,6 +612,9 @@ STRUCTURE_CSG = {
             "BIRGN",
             "ESH",
             "ULCIR",
+            "BSR1",
+            "BSR2",
+            "BSR3",
             "GDR",
             "BRRO"
         ],
