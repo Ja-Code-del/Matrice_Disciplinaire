@@ -10,6 +10,34 @@ def insert_if_empty(db, table, column, values):
     """
     db = DatabaseManager()
 
+    print("🔄 Initialisation des tables de référence...")
+
+    # Étape 1 : Insérer les catégories (DOIT être fait avant les fautes)
+    print("🔄 Traitement de la table Categories...")
+    categories = {3: CATEGORIES_ITEMS[2], 2: CATEGORIES_ITEMS[2] , 4: CATEGORIES_ITEMS[3]}  # Juste pour info, on stocke les libellés
+    for cat_id, lib_categorie in categories.items():
+        db.add_data("Categories", {"id_categorie": cat_id, "lib_categorie": lib_categorie})
+        print(f"✅ Catégorie {cat_id} ({lib_categorie}) ajoutée à Categories")
+
+    # Étape 2 : Insérer les fautes avec les bonnes catégories (numériques)
+    print("🔄 Traitement de la table Fautes...")
+    fautes = [
+        ("ABSENCE IRREGULIERE PROLONGEE", 3),
+        ("FAUTE CONTRE L'HONNEUR", 2),
+        ("NON - RESPECT DES CONSIGNES", 3),
+        ("ABSENCE IRREGULIERE", 3),
+        ("ABANDON DE POSTE", 3),
+        ("FAUTE DE COMPORTEMENT", 4),
+        ("FAUTE ET NEGLIGENCE PROFESSIONNELLE", 3)
+    ]
+
+    for lib_faute, cat_id in fautes:
+        try:
+            db.add_data("Fautes", {"lib_faute": lib_faute, "cat_id": cat_id})
+            print(f"✅ {lib_faute} ajouté à Fautes (catégorie {cat_id})")
+        except Exception as e:
+            print(f"❌ Erreur lors de l'insertion de '{lib_faute}' : {e}")
+
     print(f"🔄 Traitement de la table {table}...")
     for value in values:
         try:
@@ -22,23 +50,6 @@ def insert_if_empty(db, table, column, values):
         except Exception as e:
             print(f"  ❌ Erreur lors de l'insertion de '{value}' dans {table}: {str(e)}")
             raise
-
-
-# def insert_if_empty(db, table, column, values):
-#     """
-#     Insère les valeurs dans `table` si elles n'existent pas.
-#     :param db: Instance de DBManager
-#     :param table: Nom de la table
-#     :param column: Nom de la colonne contenant les valeurs
-#     :param values: Liste des valeurs à insérer
-#     """
-#
-#     db = DatabaseManager()
-#
-#     for value in values:
-#         if not db.get_foreign_key_id(table, column, value):  # Vérifie si la valeur existe déjà
-#             db.add_data(table, {column: value})
-#             print(f"✅ {value} ajouté à {table}")
 
 def initialize_reference_tables():
     """Remplit les tables de référence si elles sont vides"""

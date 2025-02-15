@@ -6,15 +6,6 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Fonction pour vérifier la présence des colonnes
-def check_required_columns(df, required_columns):
-    """Vérifie si les colonnes requises sont présentes dans le DataFrame"""
-    missing_columns = [col for col in required_columns if col not in df.columns]
-    if missing_columns:
-        print(f"Colonnes manquantes dans le fichier : {missing_columns}")
-        return False
-    return True
-
 
 class DatabaseManager:
     def __init__(self, db_name="gend.db"):
@@ -85,7 +76,7 @@ class DatabaseManager:
             # Table Dossiers
             cursor.execute('''CREATE TABLE IF NOT EXISTS Dossiers(
                 numero_inc INTEGER PRIMARY KEY AUTOINCREMENT,
-                id_dossier TEXT NOT NULL,
+                id_dossier TEXT,
                 matricule_dossier TEXT NOT NULL,
                 reference TEXT UNIQUE NOT NULL,
                 date_enr DATE NOT NULL,
@@ -115,14 +106,13 @@ class DatabaseManager:
                 FOREIGN KEY(statut_id) REFERENCES Statut(id_statut)
             )''')
 
-            cursor.execute('''CREATE TRIGGER generate_id_dossier AFTER
-                INSERT ON Dossiers
-                BEGIN
-                    UPDATE Dossiers
-                    SET id_dossier = NEW.numero_inc || '/' || NEW.annee_enr
-                    WHERE numero_inc = NEW.numero_inc AND matricule_dossier = NEW.matricule_dossier
-                END
-            )''')
+            # cursor.execute('''CREATE TRIGGER generate_id_dossier AFTER
+            #     INSERT ON Dossiers
+            #     BEGIN
+            #         UPDATE Dossiers
+            #         SET id_dossier = NEW.numero_inc || '/' || NEW.annee_enr
+            #         WHERE numero_inc = NEW.numero_inc AND matricule_dossier = NEW.matricule_dossier;
+            #     END''')
 
 
             # Table Sanctions
@@ -144,44 +134,80 @@ class DatabaseManager:
             cursor.execute('''CREATE TABLE IF NOT EXISTS Fautes(
                 id_faute INTEGER PRIMARY KEY AUTOINCREMENT,
                 lib_faute TEXT NOT NULL UNIQUE,
-                cat_id INTEGER NOT NULL,
-                FOREIGN KEY cat_id REFERENCES Categories(id_categorie)
+                cat_id INTEGER,
+                FOREIGN KEY (cat_id) REFERENCES Categories(id_categorie)
             )''')
 
+            #Table Categories
             cursor.execute('''CREATE TABLE IF NOT EXISTS Categories(
                 id_categorie INTEGER PRIMARY KEY AUTOINCREMENT,
                 lib_categorie TEXT NOT NULL UNIQUE
             )''')
 
+            #Table Grade
             cursor.execute('''CREATE TABLE IF NOT EXISTS Grade(
                 id_grade INTEGER PRIMARY KEY AUTOINCREMENT,
                 lib_grade TEXT NOT NULL UNIQUE
             )''')
 
+            #Table Situation matrimoniale
             cursor.execute('''CREATE TABLE IF NOT EXISTS Sit_mat(
                 id_sit_mat INTEGER PRIMARY KEY AUTOINCREMENT,
                 lib_sit_mat TEXT NOT NULL UNIQUE
             )''')
 
+            #Table Unite
             cursor.execute('''CREATE TABLE IF NOT EXISTS Unite(
                 id_unite INTEGER PRIMARY KEY AUTOINCREMENT,
                 lib_unite TEXT NOT NULL UNIQUE
             )''')
 
+            #Table Legion
             cursor.execute('''CREATE TABLE IF NOT EXISTS Legion(
                 id_legion INTEGER PRIMARY KEY AUTOINCREMENT,
                 lib_legion TEXT NOT NULL UNIQUE
             )''')
 
+            #Table Subdiv
             cursor.execute('''CREATE TABLE IF NOT EXISTS Subdiv(
                 id_subdiv  INTEGER PRIMARY KEY AUTOINCREMENT,
                 lib_subdiv TEXT NOT NULL UNIQUE
             )''')
 
+            #Table region
             cursor.execute('''CREATE TABLE IF NOT EXISTS Region(
                 id_rg  INTEGER PRIMARY KEY AUTOINCREMENT,
                 lib_rg TEXT NOT NULL UNIQUE
             )''')
+
+            self.ensure_triggers()
+
+            conn.commit()
+
+    def ensure_triggers(self):
+        """Assure la création des triggers nécessaires"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Vérifier si le trigger existe
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='trigger' AND name='generate_id_dossier'
+            """)
+
+            if not cursor.fetchone():
+                # Créer le trigger s'il n'existe pas
+                cursor.execute('''CREATE TRIGGER generate_id_dossier AFTER
+                    INSERT ON Dossiers
+                    BEGIN
+                        UPDATE Dossiers
+                        SET id_dossier = NEW.numero_inc || '/' || NEW.annee_enr
+                        WHERE numero_inc = NEW.numero_inc AND matricule_dossier = NEW.matricule_dossier;
+                    END''')
+
+                logger.info("Trigger generate_id_dossier créé avec succès")
+            else:
+                logger.info("Trigger generate_id_dossier existe déjà")
 
             conn.commit()
 
@@ -198,36 +224,45 @@ class DatabaseManager:
 
     def add_data(self, table, data):
         """
-            Ajoute des données dans une table spécifique.
+        Ajoute des données dans une table spécifique.
 
-            Args:
-                table (str): Nom de la table
-                data (Dict[str, Any]): Dictionnaire des données {colonne: valeur}
+        Args:
+            table (str): Nom de la table
+            data (Dict[str, Any]): Dictionnaire des données {colonne: valeur}
 
-            Raises:
-                sqlite3.IntegrityError: Si violation de contrainte d'intégrité
-            """
+        Raises:
+            ValueError: Si la table n'est pas autorisée
+            sqlite3.IntegrityError: Si une contrainte d'intégrité est violée
+        """
 
+        # Liste blanche des tables autorisées
+        allowed_tables = {
+            "Gendarmes", "Statut", "Type_sanctions", "Fautes",
+            "Categories", "Grade", "Sit_mat", "Unite", "Legion", "Subdiv",
+            "Region", "Dossiers", "Sanctions"
+        }
 
-        # Validation du nom de la table
-        allowed_tables = {'Gendarmes', 'Dossiers', 'Sanctions'}  # etc
+        # Vérification si la table est autorisée
         if table not in allowed_tables:
-            raise ValueError(f"Table {table} non autorisée")
+            raise ValueError(f"Table '{table}' non autorisée")
 
-        columns = ', '.join(f'"{k}"' for k in data.keys()) # Ex: "numero_inc, id_dossier"
-        placeholders = ', '.join(['?' for _ in data]) # Ex: "?, ?"
+        if not data:
+            raise ValueError("Les données fournies sont vides")
+
+        columns = ', '.join(f'"{col}"' for col in data.keys())  # Protection des noms de colonnes
+        placeholders = ', '.join(['?' for _ in data])  # Génération des placeholders pour éviter l'injection SQL
         query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
-
-        values = tuple(data.values())  # Ex: ("1", "1/2025")
+        values = tuple(data.values())
 
         with self.get_connection() as conn:
             cursor = conn.cursor()
-
-        try:
-            cursor.execute(query, values)
-            conn.commit()
-        except sqlite3.IntegrityError as e:
-            print(f"⚠ Erreur d'insertion dans {table}: {e}")
+            try:
+                cursor.execute(query, values)
+                conn.commit()
+                return cursor.lastrowid  # Retourne l'ID de la ligne insérée si applicable
+            except sqlite3.IntegrityError as e:
+                print(f"⚠ Erreur d'insertion dans {table}: {e}")
+                return None  # Retourne None en cas d'erreur d'intégrité
 
     def get_foreign_key_id(self, table, column, value):
         """

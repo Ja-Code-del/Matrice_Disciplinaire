@@ -6,14 +6,7 @@ FAULT_ITEMS = [
             "ABSENCE IRREGULIERE",
             "ABANDON DE POSTE",
             "FAUTE DE COMPORTEMENT",
-            "EVASION GARDE A VUE",
-            "FAUTE PROFESSIONNELLE",
-            "EXTORSION DE FONDS",
-            "TENTATIVE D'EXTORSION DE FONDS",
-            "INDISCIPLINE",
-            "NEGLIGENCE PROFESSIONNELLE",
-            "IMPRUDENCE",
-            "PERTE D'ARME"
+            "FAUTE ET NEGLIGENCE PROFESSIONNELLE"
         ]
 
 MATRIMONIAL_ITEMS = ["CELIBATAIRE", "MARIE(E)", "VEUF(VE)", "DIVORCE(E)"]

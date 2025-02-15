@@ -78,6 +78,39 @@ def calculate_age(birth_date):
         print(f"Erreur lors du calcul de l'âge pour la date {birth_date}: {str(e)}")
         return None
 
+def compute_values(row):
+    """Calcule l'âge et la durée de service à partir des dates"""
+    # Utilisation de date_faits au lieu de today
+    if "date_faits" in row and pd.notna(row["date_faits"]):
+        try:
+            reference_date = pd.to_datetime(row["date_faits"]).date()
+        except Exception as e:
+            print(f"⚠ Erreur dans la lecture de date_faits : {e}")
+            return None, None
+    else:
+        print("⚠ La colonne date_faits est manquante ou vide")
+        return None, None
+
+    # Calcul de l'âge (si la date de naissance est fournie)
+    age = None
+    if "date_naissance" in row and pd.notna(row["date_naissance"]):
+        try:
+            birth_date = pd.to_datetime(row["date_naissance"]).date()
+            age = reference_date.year - birth_date.year - ((reference_date.month, reference_date.day) < (birth_date.month, birth_date.day))
+        except Exception as e:
+            print(f"⚠ Erreur dans le calcul de l'âge : {e}")
+
+    # Calcul de la durée de service (si la date d'entrée est fournie)
+    duree_service = None
+    if "date_entree_service" in row and pd.notna(row["date_entree_service"]):
+        try:
+            entry_date = pd.to_datetime(row["date_entree_service"]).date()
+            duree_service = reference_date.year - entry_date.year - ((reference_date.month, reference_date.day) < (entry_date.month, entry_date.day))
+        except Exception as e:
+            print(f"⚠ Erreur dans le calcul de la durée de service : {e}")
+
+    return age, duree_service
+
 
 def parse_annee_service(val):
     """

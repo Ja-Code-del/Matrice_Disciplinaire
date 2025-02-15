@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime
 
 import pandas as pd
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
@@ -38,30 +39,21 @@ class MainGendarmeApp(QMainWindow):
 
         # Initialisation des gestionnaires de données
         self.db_manager = DatabaseManager()
-        self.gendarme_repository = GendarmesRepository(self.db_manager)
-        self.dossier_repository = DossiersRepository(self.db_manager)
-        self.sanction_repository = SanctionsRepository(self.db_manager)
+        self.gendarmes_repo = GendarmesRepository(self.db_manager)
+        self.dossiers_repo = DossiersRepository(self.db_manager)
+        self.sanctions_repo = SanctionsRepository(self.db_manager)
 
         # Initialisation du gestionnaire de statistiques
         self.stats_handler = StatsHandler(self)
 
         # Définition des champs d'information
         self.info_fields = [
-            ('numero_dossier', 'N° de dossier'),
             ('matricule', 'Matricule'),
             ('nom_prenoms', 'Nom et Prénoms'),
-            ('grade', 'Grade'),
             ('sexe', 'Sexe'),
             ('date_naissance', 'Date de naissance'),
-            ('age', 'Age'),
-            ('unite', 'Unité'),
-            ('legions', 'Légion'),
-            ('subdiv', 'Subdivision'),
-            ('regions', 'Région'),
             ('date_entree_gie', 'Date d\'entrée GIE'),
-            ('annee_service', 'Années de service'),
-            ('situation_matrimoniale', 'Situation matrimoniale'),
-            ('nb_enfants', 'Nombre d\'enfants')
+            ('lieu_naissance', 'LIEU DE NAISSANCE')
         ]
 
         # Initialisation de l'interface
@@ -113,7 +105,7 @@ class MainGendarmeApp(QMainWindow):
         layout.addWidget(search_group)
         layout.addWidget(self.logo_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        # Déplacement de la barre d'outils à gauche
+        # barre d'outils à gauche
         dock_widget = QDockWidget("MENU", self)
         dock_widget.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
         dock_widget.setMinimumWidth(220)
@@ -255,9 +247,23 @@ class MainGendarmeApp(QMainWindow):
         self.sanctions_group.setFont(QFont('Helvetica', 18, QFont.Weight.Bold))
 
         self.sanctions_table = QTableWidget()
-        self.sanctions_table.setColumnCount(9)
-        headers = ["N° ORDRE", "N° Dossier", "Faute commise", "Date des faits", "Catégorie faute",
-                   "Statut", "Référence du statut", "Taux (JAR)", "Comité", "Année des faits"]
+        self.sanctions_table.setColumnCount(14)
+        headers = [
+            "N° ORDRE",
+            "REFERENCE",
+            "GRADE",
+            "UNITE",
+            "LEGION",
+            "SUBDIVISION",
+            "REGION",
+            "SITUATION MAT.",
+            "FAUTE COMMISE",
+            "DATE FAITS",
+            "CAT.FAUTE",
+            "TYPE SANCTION",
+            "TAUX (JAR)",
+            "COMITE"
+        ]
         self.sanctions_table.setHorizontalHeaderLabels(headers)
         #self.sanctions_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         # adapte la largeur des colonnes
@@ -290,75 +296,96 @@ class MainGendarmeApp(QMainWindow):
         self.user_info_layout.addWidget(user_info)
 
     def search_gendarme(self):
-        """Recherche un gendarme selon le critère sélectionné"""
+        """Recherche un gendarme et affiche ses dossiers disciplinaires"""
         search_text = self.search_input.text().strip()
         if not search_text:
             QMessageBox.warning(self, "Erreur", "Veuillez entrer un critère de recherche")
             return
 
         try:
-            with self.db_manager.get_connection() as conn:
-                cursor = conn.cursor()
+            # Récupération des dossiers selon le critère de recherche
+            if self.search_type.currentText() == "Matricule (MLE)":
+                dossiers = self.dossiers_repo.get_dossiers_by_matricule(search_text)
+            else:
+                dossiers = self.dossiers_repo.get_dossiers_by_name(search_text)
 
-                # Requête pour le gendarme
-                if self.search_type.currentText() == "Matricule (MLE)":
-                    where_clause = "WHERE matricule = ?"
-                else:
-                    where_clause = "WHERE nom_prenoms LIKE ?"
-                    search_text = f"%{search_text}%"
+            if not dossiers:
+                QMessageBox.information(self, "Résultat", "Aucun dossier trouvé.")
+                return
 
-                cursor.execute(f"SELECT * FROM main_tab {where_clause}", (search_text,))
-                gendarmes = cursor.fetchall()
-                #print(gendarmes)
-                if gendarmes:
-                    self.logo_label.setVisible(False)
-                    self.info_group.setVisible(True)
-                    self.sanctions_group.setVisible(True)
+            # Masquer le logo et afficher les tableaux
+            self.logo_label.setVisible(False)
+            self.info_group.setVisible(True)
+            self.sanctions_group.setVisible(True)
 
-                    # Affichage des informations du gendarme
-                    for gendarme in gendarmes:
-                        field_names = [description[0] for description in cursor.description]
-                        for field_name, value in zip(field_names, gendarme):
-                            if field_name in self.info_labels:
-                                if field_name in ['date_naissance', 'date_entree_gie'] and value:
-                                    try:
-                                        date_obj = pd.to_datetime(value)
-                                        formatted_value = date_obj.strftime('%d/%m/%Y')
-                                        self.info_labels[field_name].setText(formatted_value)
-                                    except Exception as date_error:
-                                        print(f"Erreur de formatage de la date pour {field_name}: {date_error}")
-                                        self.info_labels[field_name].setText(str(value))
-                                else:
-                                    self.info_labels[field_name].setText(str(value if value is not None else ""))
+            # Récupérer les informations du gendarme en utilisant le matricule du premier dossier
+            gendarme = self.gendarmes_repo.get_by_matricule(str(search_text))
+            if gendarme:
+                self._afficher_info_gendarme(gendarme)
 
-                    # Requête pour les sanctions
-                    cursor.execute("""
-                        SELECT id, numero_dossier, faute_commise, date_faits, categorie, statut, reference_statut, taux_jar, comite, 
-                        annee_faits   FROM main_tab
-                        WHERE matricule = ?
-                        ORDER BY date_faits DESC
-                    """, (search_text,))
-                    sanctions = cursor.fetchall()
-                    for sanction in sanctions:
-                        print(sanction)
-                    #print(f"Sanction trouvée pour {gendarme[1:]}: {sanctions}")  # DEBUG: Vérifier les sanctions
+            # Afficher les dossiers dans le tableau
+            self._afficher_dossiers(dossiers)
 
-                    # Remplir la table des sanctions
-                    self.sanctions_table.setColumnCount(len(sanctions[0]))
-                    self.sanctions_table.setRowCount(len(sanctions))
-                    for row, sanction in enumerate(sanctions):
-                        for col, value in enumerate(sanction[:9]):
-                            item = QTableWidgetItem(str(value if value is not None else ""))
-                            self.sanctions_table.setItem(row, col, item)
-
-                else:
-                    QMessageBox.information(self, "Résultat", "Aucun gendarme trouvé.")
-
-        except sqlite3.Error as db_error:
-            QMessageBox.critical(self, "Erreur de base de données", f"Erreur : {db_error}")
-            print(f"Erreur de base de données : {db_error}")
         except Exception as e:
-            QMessageBox.critical(self, "Erreur", str(e))
+            QMessageBox.critical(self, "Erreur", f"Une erreur est survenue: {str(e)}")
+            print(f"Erreur détaillée : {str(e)}")
+
+    def _afficher_info_gendarme(self, gendarme):
+        """Affiche les informations du gendarme"""
+        for field_id, label in self.info_labels.items():
+            value = getattr(gendarme, field_id, None)
+
+            # Formatage spécial pour les dates
+            if field_id in ['date_naissance', 'date_entree_gie'] and value:
+                try:
+                    formatted_value = value.strftime('%d/%m/%Y')
+                    label.setText(formatted_value)
+                except Exception as e:
+                    print(f"Erreur date {field_id}: {e}")
+                    label.setText(str(value))
+            else:
+                label.setText(str(value if value is not None else ""))
+
+    def _afficher_dossiers(self, dossiers):
+        """Affiche les dossiers dans le tableau des sanctions"""
+        self.sanctions_table.setRowCount(len(dossiers))
+
+        for row, dossier in enumerate(dossiers):
+            # Formatage de la date si c'est une chaîne
+            if dossier['date_faits']:
+                try:
+                    # Convertir la date du format SQLite en format français
+                    date_obj = datetime.strptime(dossier['date_faits'], '%Y-%m-%d')
+                    date_formatted = date_obj.strftime('%d/%m/%Y')
+                except:
+                    date_formatted = dossier['date_faits']
+            else:
+                date_formatted = ""
+
+            colonnes = [
+                str(dossier['numero_inc']),
+                dossier['reference'],
+                dossier['lib_grade'] or "",
+                dossier['lib_unite'] or "",
+                dossier['lib_legion'] or "",
+                dossier['lib_subdiv'] or "",
+                dossier['lib_rg'] or "",
+                dossier['lib_sit_mat'] or "",
+                dossier['lib_faute'] or "",
+                date_formatted,
+                dossier['id_categorie'] or "",
+                dossier['lib_type_sanction'] or "",
+                dossier['taux'] or "",
+                dossier['comite'] or ""
+            ]
+
+            # Remplissage de la ligne
+            for col, valeur in enumerate(colonnes):
+                item = QTableWidgetItem(str(valeur))
+                self.sanctions_table.setItem(row, col, item)
+
+        # Ajuster la largeur des colonnes au contenu
+        self.sanctions_table.resizeColumnsToContents()
 
     def apply_theme(self):
         """Applique le thème actuel à tous les widgets"""
