@@ -2,6 +2,8 @@ from dataclasses import dataclass, asdict
 from datetime import datetime, date
 from typing import Optional, List, Dict, Any
 
+from src.database.db_manager import logger
+
 
 @dataclass
 class Gendarmes:
@@ -41,6 +43,19 @@ class Gendarmes:
     def get_formatted_date_entree(self):
         """Retourne la date d'entrée formatée"""
         return self.format_date(self.date_entree_gie)
+
+@dataclass
+class GendarmeSearchResult:
+    """Classe pour stocker les résultats de recherche d'un gendarme"""
+    matricule: str
+    nom: str
+    prenoms: str
+    date_naissance: Optional[date]
+    date_entree_service: Optional[date]
+    sexe: str
+    lieu_naissance: str
+    nb_enfants: Optional[int]
+    annee_service: Optional[int]
 
 class GendarmesRepository:
     """Classe pour gerer les opérations dans la table gendarme"""
@@ -90,6 +105,70 @@ class GendarmesRepository:
 
                 return Gendarmes(**gendarme_dict)
             return None
+
+    def search_by_matricule(self, matricule: str) -> Optional[GendarmeSearchResult]:
+        """
+        Recherche un gendarme par son matricule dans les tables gendarmes_etat et Gendarmes
+        Args:
+            matricule: Matricule du gendarme
+        Returns:
+            GendarmeSearchResult ou None si non trouvé
+        """
+        try:
+            with self.db_manager.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT 
+                        ge.matricule,
+                        ge.nom,
+                        ge.prenoms,
+                        ge.date_naissance,
+                        ge.date_entree_service,
+                        ge.sexe,
+                        ge.lieu_naissance,
+                        g.nb_enfants,
+                        g.annee_service
+                    FROM gendarmes_etat ge
+                    LEFT JOIN Gendarmes g ON ge.matricule = g.matricule
+                    WHERE ge.matricule = ?
+                """, (matricule,))
+
+                result = cursor.fetchone()
+                if not result:
+                    return None
+
+                # Conversion des dates
+                date_naissance = None
+                date_entree = None
+
+                if result[3]:  # date_naissance
+                    try:
+                        date_naissance = datetime.strptime(result[3], '%Y-%m-%d').date()
+                    except:
+                        pass
+
+                if result[4]:  # date_entree_service
+                    try:
+                        date_entree = datetime.strptime(result[4], '%Y-%m-%d').date()
+                    except:
+                        pass
+
+                return GendarmeSearchResult(
+                    matricule=result[0],
+                    nom=result[1] or "",
+                    prenoms=result[2] or "",
+                    date_naissance=date_naissance,
+                    date_entree_service=date_entree,
+                    sexe=result[5] or "",
+                    lieu_naissance=result[6] or "",
+                    nb_enfants=result[7],
+                    annee_service=result[8]
+                )
+
+        except Exception as e:
+            logger.error(f"Erreur lors de la recherche du gendarme : {str(e)}")
+            raise
+
 
 
 @dataclass
@@ -252,7 +331,7 @@ class DossiersRepository:
                     r.lib_rg,
                     sm.lib_sit_mat,
                     f.lib_faute,
-                    c.lib_categorie,
+                    c.id_categorie,
                     ts.lib_type_sanction,
                     sa.taux,
                     sa.comite

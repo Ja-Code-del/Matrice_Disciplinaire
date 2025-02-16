@@ -82,7 +82,7 @@ class MainGendarmeApp(QMainWindow):
         search_group.setFont(QFont('Helvetica', 24, QFont.Weight.Bold))
         search_layout = QHBoxLayout()
         self.search_type = QComboBox()
-        self.search_type.addItems(["Matricule (MLE)", "Nom"])
+        self.search_type.addItems(["Matricule (MLE)"])
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Entrez votre recherche...")
         search_button = QPushButton("Rechercher")
@@ -319,9 +319,9 @@ class MainGendarmeApp(QMainWindow):
             self.sanctions_group.setVisible(True)
 
             # Récupérer les informations du gendarme en utilisant le matricule du premier dossier
-            gendarme = self.gendarmes_repo.get_by_matricule(str(search_text))
-            if gendarme:
-                self._afficher_info_gendarme(gendarme)
+            gendarme_by_mat = self.gendarmes_repo.get_by_matricule(str(search_text))
+            if gendarme_by_mat:
+                self._afficher_info_gendarme(gendarme_by_mat)
 
             # Afficher les dossiers dans le tableau
             self._afficher_dossiers(dossiers)

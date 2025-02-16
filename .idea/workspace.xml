@@ -5,15 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="added SQLALCHEMY">
-      <change afterPath="$PROJECT_DIR$/src/ui/excel_import.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/utils/combobox_handler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/matrix copy.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/matrix copy.xlsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/data/gendarmerie/utilities.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/gendarmerie/utilities.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/database/db_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/db_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/database/init_db.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/init_db.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/database/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/handlers/stats_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/handlers/stats_handler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/import_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/import_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/utils/date_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/date_utils.py" afterDir="false" />
     </list>
