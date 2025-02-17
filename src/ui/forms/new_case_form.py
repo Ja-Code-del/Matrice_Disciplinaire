@@ -83,6 +83,22 @@ class NewCaseForm(QMainWindow):
         # Configuration des combobox hiérarchiques
         self.setup_unite_hierarchy()
 
+    # Ajout des méthodes de gestion
+    def setup_sanction_fields(self):
+        """Configure les champs liés aux sanctions"""
+        # Configuration initiale du type de sanction
+        self.combo_handler.setup_db_combobox(
+            self.type_sanction,
+            "Type_sanctions",
+            "lib_type_sanction",
+            "id_type_sanction",
+            order_by="lib_type_sanction"
+        )
+
+        # Connexion des signaux
+        self.statut.currentTextChanged.connect(self.on_statut_change)
+        self.type_sanction.currentTextChanged.connect(self.on_type_sanction_change)
+
     def setup_unite_hierarchy(self):
         """Configure la hiérarchie unité -> région -> subdivision -> légion"""
         # Chargement initial des unités
@@ -177,6 +193,9 @@ class NewCaseForm(QMainWindow):
 
         # Configuration des combobox
         self.setup_comboboxes()
+
+        #Configuration champs de sanctions
+        self.setup_sanction_fields()
 
         # Configuration des champs de radiation
         self.setup_radiation_fields()
@@ -400,6 +419,7 @@ class NewCaseForm(QMainWindow):
             #self.switch_section(self.current_section)
             self.update_navigation()
 
+    #PREMIERE SECTION
     def create_case_info_section(self):
         """Crée le contenu de la section Informations du Dossier"""
         container = QWidget()
@@ -720,6 +740,26 @@ class NewCaseForm(QMainWindow):
         self.statut.setStyleSheet(self.styles['COMBO_BOX'])
         layout.addRow(create_row("Statut du dossier", self.statut))
 
+        # Type de sanction (initialement désactivé)
+        self.type_sanction = QComboBox()
+        self.type_sanction.setEnabled(False)  # Désactivé par défaut
+        self.type_sanction.setStyleSheet(self.styles['COMBO_BOX'])
+        layout.addRow(create_row("Type de sanction", self.type_sanction))
+
+        # Décision de radiation
+        self.num_decision = QLineEdit()
+        self.num_decision.setEnabled(False)
+        self.num_decision.setPlaceholderText("Numéro de décision (si disponible)")
+        self.num_decision.setStyleSheet(self.styles['INPUT'])
+        layout.addRow(create_row("Numéro de décision", self.num_decision))
+
+        # Arrêté de radiation
+        self.num_arrete = QLineEdit()
+        self.num_arrete.setEnabled(False)
+        self.num_arrete.setPlaceholderText("Numéro d'arrêté (si disponible)")
+        self.num_arrete.setStyleSheet(self.styles['INPUT'])
+        layout.addRow(create_row("Numéro d'arrêté", self.num_arrete))
+
         # Référence du statut
         self.ref_statut = QLineEdit()
         self.ref_statut.setStyleSheet(self.styles['INPUT'])
@@ -790,6 +830,17 @@ class NewCaseForm(QMainWindow):
             else:
                 if isinstance(field, QLineEdit):
                     field.clear()  # Efface le contenu si le statut n'est pas RADIE
+
+
+    def on_type_sanction_change(self, type_sanction: str):
+        """Gère le changement de type de sanction"""
+        is_radiation = type_sanction == "RADIATION"
+        self.num_decision.setEnabled(is_radiation)
+        self.num_arrete.setEnabled(is_radiation)
+
+        if not is_radiation:
+            self.num_decision.clear()
+            self.num_arrete.clear()
 
     # TROISIEME SECTION
     def on_matricule_change(self, matricule: str):
@@ -1241,12 +1292,13 @@ class NewCaseForm(QMainWindow):
 
             # Informations de sanction
             sanction_data = {
-                'type_sanction_id': self.combo_handler.get_selected_id(self.statut),
+                'type_sanction_id': self.combo_handler.get_selected_id(self.type_sanction),
                 'num_inc': int(self.num_enr.text()) if self.num_enr.text().isdigit() else None,
                 'taux': str(self.taux_jar.value()),
-                'numero_decision': self.num_decision.text() if self.statut.currentText() == "RADIE" else "NEANT",
-                'numero_arrete': self.num_arrete.text() if self.statut.currentText() == "RADIE" else "NEANT",
-                'annee_radiation': int(self.annee_punition.text()) if self.statut.currentText() == "RADIE" else None,
+                'numero_decision': self.num_decision.text() or None,
+                'numero_arrete': self.num_arrete.text() or None,
+                'annee_radiation': int(
+                    self.annee_punition.text()) if self.type_sanction.currentText() == "RADIATION" else None,
                 'ref_statut': self.ref_statut.text(),
                 'comite': self.comite.text()
             }
@@ -1485,12 +1537,19 @@ class NewCaseForm(QMainWindow):
                 self.num_dossier.setFocus()
                 return False
 
-        # 2. Validation de la longueur du libellé
+        # 7. Validation de la longueur du libellé
         libelle_text = self.libelle.toPlainText().strip()
         if len(libelle_text) < 10:  # Par exemple, minimum 10 caractères
             QMessageBox.warning(self, "Libellé trop court",
                                 "Le libellé doit contenir une description détaillée de la faute (minimum 10 caractères).")
             self.libelle.setFocus()
+            return False
+
+        # 8. Validation du type de sanction si le statut est 'SANCTIONNE'
+        if self.statut.currentText() == "SANCTIONNE" and not self.type_sanction.currentText():
+            QMessageBox.warning(self, "Champs manquants",
+                                "Veuillez sélectionner un type de sanction.")
+            self.type_sanction.setFocus()
             return False
 
         return True
