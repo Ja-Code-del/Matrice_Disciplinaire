@@ -800,39 +800,50 @@ class NewCaseForm(QMainWindow):
         """
         if len(matricule) >= 4:
             try:
-                # Utilisation de la méthode du repository
+                print(f"Recherche du matricule : {matricule}")  # Debug
                 result = self.gendarmes_repo.search_by_matricule(matricule)
 
                 if result:
+                    print(f"Résultat trouvé : {result}")  # Debug
                     # Mise à jour des champs avec les données trouvées
-                    self.nom.setText(result.nom)
-                    self.prenoms.setText(result.prenoms)
+                    self.nom.setText(result.nom if result.nom else "")
+                    self.prenoms.setText(result.prenoms if result.prenoms else "")
 
-                    # Gestion des dates
-                    if result.date_naissance:
-                        self.date_naissance.setText(result.date_naissance.strftime('%d/%m/%Y'))
+                    # Gestion de la date de naissance
+                    if hasattr(result, 'date_naissance') and result.date_naissance:
+                        date_str = result.date_naissance.strftime('%d/%m/%Y')
+                        print(f"Date de naissance : {date_str}")  # Debug
+                        self.date_naissance.setText(date_str)
                         self.update_age(result.date_naissance)
 
-                    if result.date_entree_service:
-                        self.date_entree_gie.setText(result.date_entree_service.strftime('%d/%m/%Y'))
+                    # Gestion de la date d'entrée en service
+                    if hasattr(result, 'date_entree_service') and result.date_entree_service:
+                        date_str = result.date_entree_service.strftime('%d/%m/%Y')
+                        print(f"Date d'entrée : {date_str}")  # Debug
+                        self.date_entree_gie.setText(date_str)
                         self.update_years_of_service(result.date_entree_service)
 
                     # Autres champs
-                    self.sexe.setCurrentText(result.sexe)
-                    self.lieu_naissance.setText(result.lieu_naissance)
+                    if hasattr(result, 'sexe'):
+                        self.sexe.setCurrentText(result.sexe if result.sexe else "")
+                    if hasattr(result, 'lieu_naissance'):
+                        self.lieu_naissance.setText(result.lieu_naissance if result.lieu_naissance else "")
 
                     # Informations optionnelles
-                    if result.nb_enfants is not None:
+                    if hasattr(result, 'nb_enfants') and result.nb_enfants is not None:
                         self.nb_enfants.setValue(result.nb_enfants)
-                    if result.annee_service is not None:
+                    if hasattr(result, 'annee_service') and result.annee_service is not None:
                         self.annee_service.setValue(result.annee_service)
                 else:
-                    self.clear_form_fields()
+                    print("Aucun résultat trouvé")  # Debug
+                    # Ne pas effacer les champs si aucun résultat n'est trouvé
+                    # self.clear_form_fields()  # Commenté pour éviter l'effacement
 
             except Exception as e:
-                print(f"Erreur lors de la recherche du gendarme : {str(e)}")
+                print(f"Erreur détaillée lors de la recherche du gendarme : {str(e)}")  # Debug détaillé
+                logger.error(f"Erreur lors de la recherche du gendarme : {str(e)}")
                 QMessageBox.warning(self, "Erreur",
-                                    "Une erreur est survenue lors de la recherche du gendarme.")
+                                    f"Une erreur est survenue lors de la recherche du gendarme : {str(e)}")
 
     def update_age(self, birth_date: date):
         """Met à jour l'âge en fonction de la date des faits"""
@@ -1085,7 +1096,19 @@ class NewCaseForm(QMainWindow):
         return container
 
     def on_unit_selected(self, unit_name):
-        unit = get_unit_by_name(STRUCTURE_UNITE, unit_name)
+        """
+        Gère la sélection d'une unité
+        Args:
+            unit_name: Nom de l'unité sélectionnée
+        """
+        if not unit_name or unit_name.strip() == "":
+            # Réinitialiser les combobox dépendantes
+            self.region.clear()
+            self.subdivision.clear()
+            self.legion.clear()
+            return
+
+        unit = get_unit_by_name(STRUCTURE_UNITE, unit_name.strip())
         if unit:
             self.update_unite(unit_name)
             self.update_region(unit.region)
@@ -1095,6 +1118,10 @@ class NewCaseForm(QMainWindow):
             # Gestion du cas où l'unité n'est pas trouvée dans la structure
             QMessageBox.warning(self, "Unité non trouvée",
                                 f"L'unité '{unit_name}' n'a pas été trouvée dans la structure.")
+            # Réinitialiser les combobox dépendantes
+            self.region.clear()
+            self.subdivision.clear()
+            self.legion.clear()
 
     def update_region(self, region):
         self.region.clear()
@@ -1370,8 +1397,8 @@ class NewCaseForm(QMainWindow):
             'Matricule': (self.matricule, QLineEdit),
             'Nom': (self.nom, QLineEdit),
             'Prénoms': (self.prenoms, QLineEdit),
-            'Date de naissance': (self.date_naissance, QLineEdit),
-            'Lieu de naissance': (self.lieu_naissance, QLineEdit),  # Ajout du lieu de naissance
+            #'Date de naissance': (self.date_naissance, QLineEdit),
+            #'Lieu de naissance': (self.lieu_naissance, QLineEdit),  # Ajout du lieu de naissance
             'Date des faits': (self.date_faits, QDateEdit),
             'Grade': (self.grade, QComboBox),
             'Unité': (self.unite, QComboBox),
@@ -1379,7 +1406,7 @@ class NewCaseForm(QMainWindow):
             'Subdivision': (self.subdivision, QComboBox),
             'Région': (self.region, QComboBox),
             'Faute commise': (self.faute_commise, QComboBox),
-            'Libellé': (self.libelle, QTextEdit),  # Ajout du libellé
+            #'Libellé': (self.libelle, QTextEdit),  # Ajout du libellé
             'Statut': (self.statut, QComboBox)
         }
 
