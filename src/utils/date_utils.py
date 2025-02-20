@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime, date
 
 from PyQt6.QtCore import QDate
+from PyQt6.QtWidgets import QLineEdit, QDateEdit
 from dateutil.relativedelta import relativedelta
 
 
@@ -225,22 +226,30 @@ def is_valid_age_range(birth_date, reference_date, min_age: int = 18, max_age: i
         return False, f"Erreur de validation de l'âge : {str(e)}"
 
 
-def convert_for_db(date_value) -> Optional[str]:
+def convert_for_db(date_val):
     """
-    Convertit une date dans le format attendu par la base de données
+    Convertit une date en format SQLite (YYYY-MM-DD)
     Args:
-        date_value: Date à convertir (peut être str, datetime, Timestamp, QDate)
+        date_val: Date à convertir (peut être datetime.date, str, ou None)
     Returns:
-        str: Date au format 'YYYY-MM-DD' ou None si invalide
+        str: Date au format YYYY-MM-DD ou None
     """
-    try:
-        if isinstance(date_value, QDate):
-            date_value = qdate_to_date(date_value)
-
-        return adapt_date(date_value)
-    except Exception as e:
-        print(f"Erreur de conversion pour la BD : {str(e)}")
+    if not date_val:
         return None
+
+    try:
+        if isinstance(date_val, datetime.date):
+            return date_val.strftime('%Y-%m-%d')
+        elif isinstance(date_val, str):
+            # Essaie de parser la date si c'est une chaîne
+            parsed_date = datetime.strptime(date_val, '%d/%m/%Y')
+            return parsed_date.strftime('%Y-%m-%d')
+        else:
+            return None
+    except Exception as e:
+        print(f"Erreur de conversion de date: {str(e)} pour la valeur {date_val}")
+        return None
+
 
 def calculate_service_years(entry_date: date, reference_date: date = None) -> int:
     """
@@ -291,3 +300,43 @@ def str_to_date(date_str: str, my_format: str = None) -> Optional[date]:
         except ValueError:
             continue
     return None
+
+
+@staticmethod
+def get_date_value(field) -> Optional[str]:
+    """
+    Récupère la valeur d'un champ date dans le format approprié pour la BD
+    Args:
+        field: Le champ de date (QLineEdit, QDateEdit ou str)
+    Returns:
+        Optional[str]: Date au format YYYY-MM-DD ou None
+    """
+    try:
+        if not field:
+            return None
+
+        # Si c'est déjà une chaîne
+        if isinstance(field, str):
+            # Si c'est déjà au format YYYY-MM-DD
+            if len(field) == 10 and field[4] == '-' and field[7] == '-':
+                return field
+            # Sinon, on utilise adapt_date
+            return adapt_date(field)
+
+        # Pour QLineEdit
+        if isinstance(field, QLineEdit):
+            date_str = field.text().strip()
+            if not date_str:
+                return None
+            return adapt_date(date_str)
+
+        # Pour QDateEdit
+        if isinstance(field, QDateEdit):
+            return field.date().toString('yyyy-MM-dd')
+
+        print(f"Type de champ non géré: {type(field)}")
+        return None
+
+    except Exception as e:
+        print(f"Erreur dans get_date_value: {str(e)}")
+        return None

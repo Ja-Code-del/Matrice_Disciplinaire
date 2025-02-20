@@ -92,26 +92,35 @@ class ImportEtatCompletWindow(QMainWindow):
 
                 for index, row in df.iterrows():
                     try:
+                        # Conversion des dates au format YYYY-MM-DD pour SQLite
+                        date_naissance = pd.to_datetime(row['DATE DE NAISSANCE']).strftime('%Y-%m-%d') if pd.notna(
+                            row['DATE DE NAISSANCE']) else None
+                        date_entree = pd.to_datetime(row['DATE ENTREE GIE']).strftime('%Y-%m-%d') if pd.notna(
+                            row['DATE ENTREE GIE']) else None
+
+                        # Debug pour vérifier les dates
+                        print(f"Date naissance: {date_naissance}, Date entrée: {date_entree}")
+
                         cursor.execute("""
                             INSERT OR REPLACE INTO gendarmes_etat (
                                 nom, prenoms, matricule, date_naissance,
                                 lieu_naissance, date_entree_service, sexe
                             ) VALUES (?, ?, ?, ?, ?, ?, ?)
                         """, (
-                            str(row['NOM']),
-                            str(row['PRENOMS']),
-                            str(row['MATRICULE']),
-                            pd.to_datetime(row['DATE DE NAISSANCE']).strftime('%d/%m/%Y') if pd.notna(row['DATE DE NAISSANCE']) else None,
-                            str(row['LIEU DE NAISSANCE']),
-                            pd.to_datetime(row['DATE ENTREE GIE']).strftime('%d/%m/%Y') if pd.notna(row['DATE ENTREE GIE']) else None,
-                            str(row['SEXE'])
+                            str(row['NOM']).strip(),
+                            str(row['PRENOMS']).strip(),
+                            str(row['MATRICULE']).strip(),
+                            date_naissance,
+                            str(row['LIEU DE NAISSANCE']).strip(),
+                            date_entree,
+                            str(row['SEXE']).strip()
                         ))
                         success_count += 1
 
                     except Exception as e:
                         error_count += 1
-                        print(
-                            f"Erreur sur la ligne {index + 2}: {str(e)}")  # +2 car Excel commence à 1 et il y a l'entête
+                        print(f"Erreur sur la ligne {index + 2}: {str(e)}")
+                        print(f"Données de la ligne: {row.to_dict()}")  # Debug des données
 
                     self.progress_bar.setValue(index + 1)
                     self.update_stats(total_rows, success_count, error_count)

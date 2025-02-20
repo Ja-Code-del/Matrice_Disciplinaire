@@ -102,16 +102,6 @@ class ComboBoxHandler:
             logger.error(f"Erreur lors du chargement des données hiérarchiques : {str(e)}")
             return False
 
-    def get_selected_id(self, combobox: QComboBox) -> Optional[int]:
-        """
-        Récupère l'ID de l'élément sélectionné
-        Args:
-            combobox: La combobox
-        Returns:
-            int: L'ID sélectionné ou None
-        """
-        return combobox.currentData()
-
     def set_value_by_id(self, combobox: QComboBox, id_value: int) -> bool:
         """
         Sélectionne un élément par son ID
@@ -141,3 +131,85 @@ class ComboBoxHandler:
             combobox.setCurrentIndex(index)
             return True
         return False
+
+    def get_selected_id(self, combobox: QComboBox) -> Optional[int]:
+        """
+        Récupère l'ID de l'élément sélectionné
+        Args:
+            combobox: La combobox
+        Returns:
+            int: L'ID sélectionné ou None
+        """
+        try:
+            # Debug de la combobox
+            print(f"ComboBox {combobox.objectName()}:")
+            print(f"- Texte actuel: {combobox.currentText()}")
+            print(f"- Index actuel: {combobox.currentIndex()}")
+            print(f"- Data actuelle: {combobox.currentData()}")
+
+            # Si aucun élément n'est sélectionné ou si la combobox est vide
+            if combobox.currentIndex() == -1 or not combobox.currentText().strip():
+                return None
+
+            current_id = combobox.currentData()
+            if current_id is not None:
+                return int(current_id)
+
+            # Si pas d'ID stocké, essayer de le récupérer depuis la base
+            return self.get_foreign_key_id_by_value(
+                combobox.property("table_name"),
+                combobox.property("value_column"),
+                combobox.currentText().strip()
+            )
+        except Exception as e:
+            print(f"Erreur dans get_selected_id: {str(e)}")
+            return None
+
+    def get_foreign_key_id_by_value(self, table: str, value_column: str, value: str) -> Optional[int]:
+        """
+        Récupère l'ID d'une valeur dans une table
+        Args:
+            table: Nom de la table
+            value_column: Nom de la colonne contenant la valeur
+            value: Valeur à rechercher
+        Returns:
+            int: ID trouvé ou None
+        """
+        try:
+            # Nettoyage de la valeur (suppression des espaces après les degrés)
+            value = value.replace('° ', '°') if value else value
+            # Mapping des tables vers leurs colonnes ID
+            id_columns = {
+                'Grade': 'id_grade',
+                'Sit_mat': 'id_sit_mat',
+                'Unite': 'id_unite',
+                'Legion': 'id_legion',
+                'Subdiv': 'id_subdiv',
+                'Region': 'id_rg',
+                'Fautes': 'id_faute',
+                'Statut': 'id_statut',
+                'Type_sanctions': 'id_type_sanction'
+            }
+
+            if table not in id_columns:
+                print(f"Table {table} non trouvée dans le mapping")
+                return None
+
+            id_column = id_columns[table]
+
+            with self.db_manager.get_connection() as conn:
+                cursor = conn.cursor()
+                query = f"SELECT {id_column} FROM {table} WHERE {value_column} = ?"
+                print(f"Exécution de la requête: {query} avec la valeur: {value}")  # Debug
+
+                cursor.execute(query, (value,))
+                result = cursor.fetchone()
+
+                if result:
+                    return result[0]
+                print(f"Aucun résultat trouvé pour {value} dans {table}")  # Debug
+                return None
+
+        except Exception as e:
+            print(f"Erreur dans get_foreign_key_id_by_value pour {table}.{value_column}={value}: {str(e)}")
+            return None

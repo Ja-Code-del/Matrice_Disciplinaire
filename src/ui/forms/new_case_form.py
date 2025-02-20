@@ -20,7 +20,7 @@ from src.ui.forms.unit_search_dialog import UnitSearchDialog
 from src.ui.windows.statistics import StatistiquesWindow
 from src.utils.combobox_handler import ComboBoxHandler, logger
 from src.utils.date_utils import qdate_to_date, calculate_age, calculate_service_years, validate_date_order, \
-    is_valid_age_range, str_to_date, to_db_format
+    is_valid_age_range, str_to_date, to_db_format, get_date_value, adapt_date
 
 
 class NewCaseForm(QMainWindow):
@@ -48,14 +48,66 @@ class NewCaseForm(QMainWindow):
         self.dossiers_repo = DossiersRepository(self.db_manager)
         self.sanctions_repo = SanctionsRepository(self.db_manager)
 
-
     def setup_comboboxes(self):
         """Configure toutes les combobox du formulaire"""
-        # Données statiques
-        self.combo_handler.setup_static_combobox(self.sexe, GENDER_ITEMS)
-        self.combo_handler.setup_static_combobox(self.situation_matrimoniale, MATRIMONIAL_ITEMS)
+        # Situation matrimoniale
+        self.situation_matrimoniale.setProperty("table_name", "Sit_mat")
+        self.situation_matrimoniale.setProperty("value_column", "lib_sit_mat")
+        self.combo_handler.setup_db_combobox(
+            self.situation_matrimoniale,
+            "Sit_mat",
+            "lib_sit_mat",
+            "id_sit_mat",
+            order_by="lib_sit_mat"
+        )
 
-        # Données de la base
+        # Unité
+        self.unite.setProperty("table_name", "Unite")
+        self.unite.setProperty("value_column", "lib_unite")
+        self.combo_handler.setup_db_combobox(
+            self.unite,
+            "Unite",
+            "lib_unite",
+            "id_unite",
+            order_by="lib_unite"
+        )
+
+        # Légion
+        self.legion.setProperty("table_name", "Legion")
+        self.legion.setProperty("value_column", "lib_legion")
+        self.combo_handler.setup_db_combobox(
+            self.legion,
+            "Legion",
+            "lib_legion",
+            "id_legion",
+            order_by="lib_legion"
+        )
+
+        # Subdivision
+        self.subdivision.setProperty("table_name", "Subdiv")
+        self.subdivision.setProperty("value_column", "lib_subdiv")
+        self.combo_handler.setup_db_combobox(
+            self.subdivision,
+            "Subdiv",
+            "lib_subdiv",
+            "id_subdiv",
+            order_by="lib_subdiv"
+        )
+
+        # Région
+        self.region.setProperty("table_name", "Region")
+        self.region.setProperty("value_column", "lib_rg")
+        self.combo_handler.setup_db_combobox(
+            self.region,
+            "Region",
+            "lib_rg",
+            "id_rg",
+            order_by="lib_rg"
+        )
+
+        # Grade
+        self.grade.setProperty("table_name", "Grade")
+        self.grade.setProperty("value_column", "lib_grade")
         self.combo_handler.setup_db_combobox(
             self.grade,
             "Grade",
@@ -64,6 +116,20 @@ class NewCaseForm(QMainWindow):
             order_by="lib_grade"
         )
 
+        # Type de sanction
+        self.type_sanction.setProperty("table_name", "Type_sanctions")
+        self.type_sanction.setProperty("value_column", "lib_type_sanction")
+        self.combo_handler.setup_db_combobox(
+            self.type_sanction,
+            "Type_sanctions",
+            "lib_type_sanction",
+            "id_type_sanction",
+            order_by="lib_type_sanction"
+        )
+
+        # Faute
+        self.faute_commise.setProperty("table_name", "Fautes")
+        self.faute_commise.setProperty("value_column", "lib_faute")
         self.combo_handler.setup_db_combobox(
             self.faute_commise,
             "Fautes",
@@ -72,6 +138,9 @@ class NewCaseForm(QMainWindow):
             order_by="lib_faute"
         )
 
+        # Statut
+        self.statut.setProperty("table_name", "Statut")
+        self.statut.setProperty("value_column", "lib_statut")
         self.combo_handler.setup_db_combobox(
             self.statut,
             "Statut",
@@ -79,9 +148,6 @@ class NewCaseForm(QMainWindow):
             "id_statut",
             order_by="lib_statut"
         )
-
-        # Configuration des combobox hiérarchiques
-        self.setup_unite_hierarchy()
 
     # Ajout des méthodes de gestion
     def setup_sanction_fields(self):
@@ -558,16 +624,6 @@ class NewCaseForm(QMainWindow):
         self.num_dossier.setPlaceholderText("Entrez le N° de dossier")
         layout.addRow(create_row("N° Dossier", self.num_dossier))
 
-        # N° Décision de radiation
-        self.num_decision = QLineEdit()
-        self.num_decision.setPlaceholderText("À remplir si radié")
-        layout.addRow(create_row("Numero de Décision de radiation", self.num_decision, True))
-
-        # Arrêté de radiation
-        self.num_arrete = QLineEdit()
-        self.num_arrete.setPlaceholderText("À remplir si radié")
-        layout.addRow(create_row("Numero d'Arrêté de radiation", self.num_arrete, True))
-
         # Année
         self.annee_punition = QLineEdit()
         self.annee_punition.setText(str(datetime.now().year))
@@ -575,10 +631,6 @@ class NewCaseForm(QMainWindow):
         layout.addRow(create_row("Année en cours", self.annee_punition))
 
         # Date d'enregistrement
-        # self.date_enr = QLineEdit()
-        # self.date_enr.setText(datetime.now().strftime("%d/%m/%Y"))
-        # self.date_enr.setReadOnly(True)
-        # layout.addRow(create_row("Date d'enregistrement", self.date_enr))
         self.date_enr = QDateEdit()
         self.date_enr.setCalendarPopup(True)
         self.date_enr.setDate(QDate.currentDate())
@@ -807,29 +859,44 @@ class NewCaseForm(QMainWindow):
 
     def on_statut_change(self, statut: str):
         """
-        Gère l'affichage des champs selon le statut sélectionné
+        Gère le changement de statut et ses effets sur les autres champs
         Args:
             statut: Le statut sélectionné
         """
-        is_radie = statut == "RADIE"
+        # Activation/désactivation du type de sanction selon le statut
+        self.type_sanction.setEnabled(True)  # On active toujours la combobox
 
-        # Champs à gérer
-        radiation_fields = {
-            self.ref_statut: "Référence du statut",
-            self.num_decision: "Numéro de décision",
-            self.num_arrete: "Numéro d'arrêté"
-        }
+        if statut == "EN COURS":
+            # Sélectionner "EN INSTANCE" et désactiver les champs liés
+            index = self.type_sanction.findText("EN INSTANCE")
+            if index >= 0:
+                self.type_sanction.setCurrentIndex(index)
+            self.type_sanction.setEnabled(False)  # Verrouiller sur "EN INSTANCE"
 
-        # Affiche ou cache les champs
-        for field, placeholder in radiation_fields.items():
-            field.setVisible(is_radie)
-            if is_radie:
-                if isinstance(field, QLineEdit):
-                    field.setPlaceholderText(f"Entrez le {placeholder}")
-                field.setFocus()  # Met le focus sur le premier champ visible
-            else:
-                if isinstance(field, QLineEdit):
-                    field.clear()  # Efface le contenu si le statut n'est pas RADIE
+            # Réinitialiser et désactiver les champs liés
+            self.num_decision.clear()
+            self.num_arrete.clear()
+            self.num_decision.setEnabled(False)
+            self.num_arrete.setEnabled(False)
+            self.taux_jar.setValue(0)
+            self.taux_jar.setEnabled(False)
+
+        elif statut == "SANCTIONNE":
+            # Activer tous les champs nécessaires
+            self.type_sanction.setEnabled(True)
+            self.taux_jar.setEnabled(True)
+            # La gestion des champs de radiation se fait dans on_type_sanction_change
+
+        else:
+            # Pour tout autre statut, réinitialiser
+            self.type_sanction.setCurrentIndex(0)
+            self.type_sanction.setEnabled(False)
+            self.num_decision.clear()
+            self.num_arrete.clear()
+            self.num_decision.setEnabled(False)
+            self.num_arrete.setEnabled(False)
+            self.taux_jar.setValue(0)
+            self.taux_jar.setEnabled(False)
 
 
     def on_type_sanction_change(self, type_sanction: str):
@@ -837,10 +904,12 @@ class NewCaseForm(QMainWindow):
         is_radiation = type_sanction == "RADIATION"
         self.num_decision.setEnabled(is_radiation)
         self.num_arrete.setEnabled(is_radiation)
+        self.ref_statut.setEnabled(is_radiation)
 
         if not is_radiation:
             self.num_decision.clear()
             self.num_arrete.clear()
+            self.ref_statut.clear()
 
     # TROISIEME SECTION
     def on_matricule_change(self, matricule: str):
@@ -940,8 +1009,6 @@ class NewCaseForm(QMainWindow):
         """Réinitialise tous les champs du formulaire"""
         # Informations du dossier
         self.num_dossier.clear()
-        self.num_decision.clear()
-        self.num_arrete.clear()
         self.annee_punition.setText(str(datetime.now().year))
         self.date_enr.setDate(QDate.currentDate())
         self.num_enr.clear()
@@ -970,10 +1037,18 @@ class NewCaseForm(QMainWindow):
         self.categorie.clear()
         self.statut.setCurrentIndex(0)
         self.ref_statut.clear()
-        self.taux_jar.setValue(0)
-        self.comite.clear()
         self.annee_faits.setText(str(datetime.now().year))
         self.libelle.clear()
+
+        # Réinitialisation des champs de sanction
+        self.type_sanction.setCurrentIndex(0)
+        self.type_sanction.setEnabled(False)
+        self.num_decision.clear()
+        self.num_decision.setEnabled(False)
+        self.num_arrete.clear()
+        self.num_arrete.setEnabled(False)
+        self.taux_jar.setValue(0)
+        self.comite.clear()
 
     def create_suspect_info_section(self):
         """
@@ -1254,29 +1329,76 @@ class NewCaseForm(QMainWindow):
         from src.utils.date_utils import convert_for_db  # Pour la conversion des dates
 
         try:
+            ##### POUR LES DEBUGS #################################################
+            # Debug de la date d'entrée
+            print("\nDEBUG date_entree_gie:")
+            print(f"Type du widget date_entree_gie: {type(self.date_entree_gie)}")
+            print(f"Valeur brute date_entree_gie: {self.date_entree_gie.text()}")
+
+            # Pour QLineEdit
+            if isinstance(self.date_entree_gie, QLineEdit):
+                date_str = self.date_entree_gie.text().strip()
+                print(f"Contenu du QLineEdit: {date_str}")
+                print(f"Type du contenu: {type(date_str)}")
+                # Utilisation directe de adapt_date
+                #from src.utils.date_utils import adapt_date
+                date_converted = adapt_date(date_str)
+                print(f"Date après adapt_date: {date_converted}")
+                print(f"Type après adapt_date: {type(date_converted)}")
+
+            # Si c'est un autre type de widget
+            else:
+                print(
+                    f"Contenu du widget: {self.date_entree_gie.text() if hasattr(self.date_entree_gie, 'text') else 'Méthode text() non disponible'}")
+
+            # Récupération de la date après conversion
+            date_entree = get_date_value(self.date_entree_gie)
+            print(f"Date après get_date_value: {date_entree}")
+            print(f"Type après get_date_value: {type(date_entree)}")
+
+            #############################################################
+
             # Information du dossier
             dossier_data = {
                 'id_dossier': f"{self.num_enr.text()}/{self.annee_punition.text()}",
+                'matricule_dossier': self.matricule.text(),
                 'reference': self.num_dossier.text(),
-                'date_enr': convert_for_db(self.date_enr.date().toPyDate()),
-                'date_faits': convert_for_db(self.date_faits.date().toPyDate()),
+                'date_enr': get_date_value(self.date_enr),
+                'date_faits': get_date_value(self.date_faits),
                 'numero_inc': int(self.num_enr.text()) if self.num_enr.text().isdigit() else None,
                 'numero_annee': int(self.num_enr.text()) if self.num_enr.text().isdigit() else None,
                 'annee_enr': int(self.annee_punition.text()) if self.annee_punition.text().isdigit() else None,
                 'libelle': self.libelle.toPlainText().strip()
             }
 
+            # Pour le debug
+            print("Date d'enregistrement avant insertion:", dossier_data['date_enr'])
+
             # Informations du gendarme
             gendarme_data = {
-                'matricule': self.matricule.text(),
-                'nom_prenoms': f"{self.nom.text()} {self.prenoms.text()}",
+                'matricule': self.matricule.text().strip(),
+                'nom_prenoms': f"{self.nom.text().strip()} {self.prenoms.text().strip()}",
                 'sexe': self.sexe.currentText(),
                 'age': self.age.value(),
-                'date_entree_gie': convert_for_db(self.date_entree_gie.text()),
+                'date_entree_gie': adapt_date(self.date_entree_gie.text().strip()),
                 'annee_service': self.annee_service.value(),
                 'nb_enfants': self.nb_enfants.value(),
                 'lieu_naissance': self.lieu_naissance.text().strip()
             }
+
+            ###########################################DEBUG############
+            print(f"Date finale dans gendarme_data: {gendarme_data['date_entree_gie']}")
+            print(f"Type final dans gendarme_data: {type(gendarme_data['date_entree_gie'])}\n")
+            ##########################################################
+
+            # Debug des valeurs avant la récupération des IDs
+            print("Valeurs sélectionnées dans les combobox:")
+            print(f"Situation matrimoniale: {self.situation_matrimoniale.currentText()}")
+            print(f"Unité: {self.unite.currentText()}")
+            print(f"Légion: {self.legion.currentText()}")
+            print(f"Subdivision: {self.subdivision.currentText()}")
+            print(f"Région: {self.region.currentText()}")
+            print(f"Type sanction: {self.type_sanction.currentText()}")
 
             # IDs des références (clés étrangères)
             foreign_keys = {
@@ -1290,13 +1412,19 @@ class NewCaseForm(QMainWindow):
                 'statut_id': self.combo_handler.get_selected_id(self.statut)
             }
 
+            # Debug des IDs récupérés
+            print("IDs récupérés:")
+            for key, value in foreign_keys.items():
+                print(f"{key}: {value}")
+
             # Informations de sanction
             sanction_data = {
-                'type_sanction_id': self.combo_handler.get_selected_id(self.type_sanction),
+                'type_sanction_id': self.combo_handler.get_selected_id(
+                    self.type_sanction) if self.statut.currentText() == "SANCTIONNE" else None,
                 'num_inc': int(self.num_enr.text()) if self.num_enr.text().isdigit() else None,
-                'taux': str(self.taux_jar.value()),
-                'numero_decision': self.num_decision.text() or None,
-                'numero_arrete': self.num_arrete.text() or None,
+                'taux': str(self.taux_jar.value()) if self.statut.currentText() == "SANCTIONNE" else "0",
+                'numero_decision': self.num_decision.text() if self.type_sanction.currentText() == "RADIATION" else None,
+                'numero_arrete': self.num_arrete.text() if self.type_sanction.currentText() == "RADIATION" else None,
                 'annee_radiation': int(
                     self.annee_punition.text()) if self.type_sanction.currentText() == "RADIATION" else None,
                 'ref_statut': self.ref_statut.text(),
@@ -1320,38 +1448,30 @@ class NewCaseForm(QMainWindow):
     def submit_form(self):
         """Enregistre les données du formulaire dans la base de données"""
         try:
-            # 1. Validation du formulaire
             if not self.validate_form():
                 return
 
-            # 2. Récupération des données
+            # Récupération des données
             try:
                 form_data = self.get_form_data()
+                print("Données du formulaire:", form_data)  # Debug
+
             except Exception as e:
                 logger.error(f"Erreur lors de la récupération des données : {str(e)}")
                 QMessageBox.critical(self, "Erreur",
                                      "Erreur lors de la récupération des données du formulaire.")
                 return
 
-            # 3. Début de la transaction
+            # Début de la transaction
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
                 try:
-                    # 3.1 Vérification de l'unicité de la référence
+                    # 1. Insertion/Mise à jour du gendarme
                     cursor.execute("""
-                        SELECT COUNT(*) FROM Dossiers WHERE reference = ?
-                    """, (form_data['dossier']['reference'],))
-
-                    if cursor.fetchone()[0] > 0:
-                        QMessageBox.warning(self, "Erreur",
-                                            f"La référence {form_data['dossier']['reference']} existe déjà.")
-                        return
-
-                    # 3.2 Insertion/Mise à jour du gendarme
-                    cursor.execute("""
-                        INSERT OR REPLACE INTO Gendarmes 
-                        (matricule, nom_prenoms, age, sexe, date_entree_gie, annee_service, nb_enfants)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        INSERT OR REPLACE INTO Gendarmes (
+                            matricule, nom_prenoms, age, sexe,
+                            date_entree_gie, annee_service, nb_enfants
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
                     """, (
                         form_data['gendarme']['matricule'],
                         form_data['gendarme']['nom_prenoms'],
@@ -1362,16 +1482,58 @@ class NewCaseForm(QMainWindow):
                         form_data['gendarme']['nb_enfants']
                     ))
 
-                    # 3.3 Insertion du dossier
+                    # 2. Insérer la sanction
+                    # Debug :
+                    print("Données sanction à insérer:", {
+                        'type_sanction_id': form_data['sanction']['type_sanction_id'],
+                        'taux': form_data['sanction']['taux'],
+                        'comite': form_data['sanction']['comite']
+                    })
+                    if form_data['sanction']['type_sanction_id']:
+                        cursor.execute("""
+                            INSERT INTO Sanctions (
+                                type_sanction_id, taux, numero_decision, numero_arrete,
+                                annee_radiation, ref_statut, comite
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            form_data['sanction']['type_sanction_id'],
+                            form_data['sanction']['taux'],
+                            form_data['sanction']['numero_decision'],
+                            form_data['sanction']['numero_arrete'],
+                            form_data['sanction']['annee_radiation'],
+                            form_data['sanction']['ref_statut'],
+                            form_data['sanction']['comite']
+                        ))
+                        sanction_id = cursor.lastrowid
+                    else:
+                        # Si pas de sanction, on crée une entrée par défaut
+                        cursor.execute("""
+                            INSERT INTO Sanctions (type_sanction_id, taux) 
+                            VALUES (?, ?)
+                        """, (1, "0"))  # Utiliser un ID de type_sanction par défaut
+                        sanction_id = cursor.lastrowid
+
+                    # 3. Insertion du dossier avec toutes les références
+                    print("Clés étrangères à insérer:", {
+                        'grade_id': form_data['foreign_keys']['grade_id'],
+                        'situation_mat_id': form_data['foreign_keys']['situation_mat_id'],
+                        'unite_id': form_data['foreign_keys']['unite_id'],
+                        'legion_id': form_data['foreign_keys']['legion_id'],
+                        'subdiv_id': form_data['foreign_keys']['subdiv_id'],
+                        'rg_id': form_data['foreign_keys']['rg_id'],
+                        'faute_id': form_data['foreign_keys']['faute_id'],
+                        'statut_id': form_data['foreign_keys']['statut_id']
+                    })
                     cursor.execute("""
-                        INSERT INTO Dossiers 
-                        (id_dossier, matricule_dossier, reference, date_enr, date_faits,
-                         numero_inc, numero_annee, annee_enr, grade_id, situation_mat_id,
-                         unite_id, legion_id, subdiv_id, rg_id, faute_id, libelle, statut_id)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO Dossiers (
+                            matricule_dossier, id_dossier, reference, date_enr, date_faits,
+                            numero_inc, numero_annee, annee_enr, grade_id, situation_mat_id,
+                            unite_id, legion_id, subdiv_id, rg_id, faute_id, libelle, 
+                            statut_id, sanction_id
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
+                        form_data['dossier']['matricule_dossier'],
                         form_data['dossier']['id_dossier'],
-                        form_data['gendarme']['matricule'],
                         form_data['dossier']['reference'],
                         form_data['dossier']['date_enr'],
                         form_data['dossier']['date_faits'],
@@ -1386,44 +1548,26 @@ class NewCaseForm(QMainWindow):
                         form_data['foreign_keys']['rg_id'],
                         form_data['foreign_keys']['faute_id'],
                         form_data['dossier']['libelle'],
-                        form_data['foreign_keys']['statut_id']
+                        form_data['foreign_keys']['statut_id'],
+                        sanction_id
                     ))
 
-                    # 3.4 Insertion de la sanction
-                    cursor.execute("""
-                        INSERT INTO Sanctions 
-                        (type_sanction_id, num_inc, taux, numero_decision, numero_arrete,
-                         annee_radiation, ref_statut, comite)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        form_data['sanction']['type_sanction_id'],
-                        form_data['sanction']['num_inc'],
-                        form_data['sanction']['taux'],
-                        form_data['sanction']['numero_decision'],
-                        form_data['sanction']['numero_arrete'],
-                        form_data['sanction']['annee_radiation'],
-                        form_data['sanction']['ref_statut'],
-                        form_data['sanction']['comite']
-                    ))
-
-                    # 4. Validation de la transaction
                     conn.commit()
 
-                    # 5. Notification de succès
                     QMessageBox.information(self, "Succès", "Dossier enregistré avec succès!")
-
-                    # 6. Émission du signal et fermeture
                     self.case_added.emit()
                     self.close()
 
                 except sqlite3.IntegrityError as e:
                     conn.rollback()
+                    print(f"Erreur détaillée : {str(e)}")  # Debug
                     QMessageBox.critical(self, "Erreur",
-                                         f"Erreur d'intégrité de la base de données : {str(e)}")
+                                         f"Erreur d'intégrité de la base de données: {str(e)}")
                     logger.error(f"Erreur d'intégrité : {str(e)}")
 
                 except Exception as e:
                     conn.rollback()
+                    print(f"Erreur détaillée : {str(e)}")  # Debug
                     QMessageBox.critical(self, "Erreur",
                                          f"Erreur lors de l'enregistrement : {str(e)}")
                     logger.error(f"Erreur lors de l'enregistrement : {str(e)}")
@@ -1551,6 +1695,20 @@ class NewCaseForm(QMainWindow):
                                 "Veuillez sélectionner un type de sanction.")
             self.type_sanction.setFocus()
             return False
+
+        # 9. Validation spécifique pour les sanctions
+        if self.statut.currentText() == "SANCTIONNE":
+            if not self.type_sanction.currentText():
+                QMessageBox.warning(self, "Champs manquants",
+                                    "Le type de sanction est obligatoire pour un dossier sanctionné.")
+                self.type_sanction.setFocus()
+                return False
+
+            if not self.taux_jar.value():
+                QMessageBox.warning(self, "Champs manquants",
+                                    "Le taux (JAR) est obligatoire pour un dossier sanctionné.")
+                self.taux_jar.setFocus()
+                return False
 
         return True
 
