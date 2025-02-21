@@ -446,7 +446,8 @@ STRUCTURE_UNITE = {
                     "BDE ARRAH",
                     "BDE M'BAHIAKRO",
                     "BDE PRIKRO",
-                    "BDE OUELLE"
+                    "BDE OUELLE",
+                    "BDE KOKUMBO"
                 ],
                 "11° LGT": [
                     "EM-CIE BONDOUKOU",
