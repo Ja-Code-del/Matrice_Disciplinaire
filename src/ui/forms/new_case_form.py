@@ -820,10 +820,8 @@ class NewCaseForm(QMainWindow):
 
 
         # TAUX (JAR)
-        self.taux_jar = QSpinBox()
-        self.taux_jar.setMinimum(0)
-        self.taux_jar.setMaximum(365)
-        self.taux_jar.setStyleSheet(self.styles['SPIN_BOX'])
+        self.taux_jar = QLineEdit
+        self.taux_jar.setStyleSheet(self.styles['INPUT'])
         layout.addRow(create_row("TAUX (JAR)", self.taux_jar))
 
         # COMITE
@@ -878,7 +876,7 @@ class NewCaseForm(QMainWindow):
             self.num_arrete.clear()
             self.num_decision.setEnabled(False)
             self.num_arrete.setEnabled(False)
-            self.taux_jar.setValue(0)
+            self.taux_jar.clear()
             self.taux_jar.setEnabled(False)
 
         elif statut == "SANCTIONNE":
@@ -895,7 +893,7 @@ class NewCaseForm(QMainWindow):
             self.num_arrete.clear()
             self.num_decision.setEnabled(False)
             self.num_arrete.setEnabled(False)
-            self.taux_jar.setValue(0)
+            self.taux_jar.clear()
             self.taux_jar.setEnabled(False)
 
 
@@ -939,7 +937,6 @@ class NewCaseForm(QMainWindow):
                     # Gestion de la date d'entrée en service
                     if hasattr(result, 'date_entree_service') and result.date_entree_service:
                         date_str = result.date_entree_service.strftime('%d/%m/%Y')
-                        print(f"Date d'entrée : {date_str}")  # Debug
                         self.date_entree_gie.setText(date_str)
                         self.update_years_of_service(result.date_entree_service)
 
@@ -1047,7 +1044,7 @@ class NewCaseForm(QMainWindow):
         self.num_decision.setEnabled(False)
         self.num_arrete.clear()
         self.num_arrete.setEnabled(False)
-        self.taux_jar.setValue(0)
+        self.taux_jar.clear()
         self.comite.clear()
 
     def create_suspect_info_section(self):
@@ -1210,7 +1207,6 @@ class NewCaseForm(QMainWindow):
         self.sexe = QComboBox()
         self.sexe.addItems(GENDER_ITEMS)
         self.sexe.setStyleSheet(self.styles['COMBO_BOX'])
-        #self.sexe.setCurrentText(self.get_gendarme_sexe(m))
         layout.addRow(create_row("Sexe", self.sexe))
 
         self.situation_matrimoniale = QComboBox()
@@ -1329,22 +1325,13 @@ class NewCaseForm(QMainWindow):
         from src.utils.date_utils import convert_for_db  # Pour la conversion des dates
 
         try:
-            ##### POUR LES DEBUGS #################################################
-            # Debug de la date d'entrée
-            print("\nDEBUG date_entree_gie:")
-            print(f"Type du widget date_entree_gie: {type(self.date_entree_gie)}")
-            print(f"Valeur brute date_entree_gie: {self.date_entree_gie.text()}")
 
             # Pour QLineEdit
             if isinstance(self.date_entree_gie, QLineEdit):
                 date_str = self.date_entree_gie.text().strip()
-                print(f"Contenu du QLineEdit: {date_str}")
-                print(f"Type du contenu: {type(date_str)}")
                 # Utilisation directe de adapt_date
                 #from src.utils.date_utils import adapt_date
                 date_converted = adapt_date(date_str)
-                print(f"Date après adapt_date: {date_converted}")
-                print(f"Type après adapt_date: {type(date_converted)}")
 
             # Si c'est un autre type de widget
             else:
@@ -1353,10 +1340,6 @@ class NewCaseForm(QMainWindow):
 
             # Récupération de la date après conversion
             date_entree = get_date_value(self.date_entree_gie)
-            print(f"Date après get_date_value: {date_entree}")
-            print(f"Type après get_date_value: {type(date_entree)}")
-
-            #############################################################
 
             # Information du dossier
             dossier_data = {
@@ -1386,20 +1369,6 @@ class NewCaseForm(QMainWindow):
                 'lieu_naissance': self.lieu_naissance.text().strip()
             }
 
-            ###########################################DEBUG############
-            print(f"Date finale dans gendarme_data: {gendarme_data['date_entree_gie']}")
-            print(f"Type final dans gendarme_data: {type(gendarme_data['date_entree_gie'])}\n")
-            ##########################################################
-
-            # Debug des valeurs avant la récupération des IDs
-            print("Valeurs sélectionnées dans les combobox:")
-            print(f"Situation matrimoniale: {self.situation_matrimoniale.currentText()}")
-            print(f"Unité: {self.unite.currentText()}")
-            print(f"Légion: {self.legion.currentText()}")
-            print(f"Subdivision: {self.subdivision.currentText()}")
-            print(f"Région: {self.region.currentText()}")
-            print(f"Type sanction: {self.type_sanction.currentText()}")
-
             # IDs des références (clés étrangères)
             foreign_keys = {
                 'grade_id': self.combo_handler.get_selected_id(self.grade),
@@ -1422,7 +1391,7 @@ class NewCaseForm(QMainWindow):
                 'type_sanction_id': self.combo_handler.get_selected_id(
                     self.type_sanction) if self.statut.currentText() == "SANCTIONNE" else None,
                 'num_inc': int(self.num_enr.text()) if self.num_enr.text().isdigit() else None,
-                'taux': str(self.taux_jar.value()) if self.statut.currentText() == "SANCTIONNE" else "0",
+                'taux': self.taux_jar.text() if self.statut.currentText() == "SANCTIONNE" else "0",
                 'numero_decision': self.num_decision.text() if self.type_sanction.currentText() == "RADIATION" else None,
                 'numero_arrete': self.num_arrete.text() if self.type_sanction.currentText() == "RADIATION" else None,
                 'annee_radiation': int(
@@ -1509,8 +1478,8 @@ class NewCaseForm(QMainWindow):
                         # Si pas de sanction, on crée une entrée par défaut
                         cursor.execute("""
                             INSERT INTO Sanctions (type_sanction_id, taux) 
-                            VALUES (?, ?)
-                        """, (1, "0"))  # Utiliser un ID de type_sanction par défaut
+                            VALUES (?, ?, ?)
+                        """, (1, "0", form_data['sanction']['comite']))  # Utiliser un ID de type_sanction par défaut
                         sanction_id = cursor.lastrowid
 
                     # 3. Insertion du dossier avec toutes les références
@@ -1660,7 +1629,6 @@ class NewCaseForm(QMainWindow):
             'Âge': (self.age, 18, 65),
             'Années de service': (self.annee_service, 0, 40),
             'Nombre d\'enfants': (self.nb_enfants, 0, 99),
-            'Taux (JAR)': (self.taux_jar, 0, 365)
         }
 
         for field_name, (field, min_val, max_val) in numeric_fields.items():
@@ -1704,7 +1672,7 @@ class NewCaseForm(QMainWindow):
                 self.type_sanction.setFocus()
                 return False
 
-            if not self.taux_jar.value():
+            if not self.taux_jar.text():
                 QMessageBox.warning(self, "Champs manquants",
                                     "Le taux (JAR) est obligatoire pour un dossier sanctionné.")
                 self.taux_jar.setFocus()

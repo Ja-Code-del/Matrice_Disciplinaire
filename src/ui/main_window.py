@@ -303,7 +303,7 @@ class MainGendarmeApp(QMainWindow):
             return
 
         try:
-            # Récupération des dossiers selon le critère de recherche
+            # Récupération des dossiers selon le matricule
             if self.search_type.currentText() == "Matricule (MLE)":
                 dossiers = self.dossiers_repo.get_dossiers_by_matricule(search_text)
             else:
@@ -435,10 +435,9 @@ class MainGendarmeApp(QMainWindow):
         dialog = SearchDossierDialog(self.db_manager, self)
         if dialog.exec():
             matricule_str = dialog.get_matricule()
+            ref_dossier = dialog.get_ref_dossier()
             try:
-                # Conversion du matricule en entier avant de créer EditCaseForm
-                matricule_int = int(matricule_str)
-                self.edit_form = EditCaseForm(matricule_int, self.db_manager)
+                self.edit_form = EditCaseForm(matricule_str, ref_dossier, self.db_manager)
                 self.edit_form.show()
             except ValueError:
                 QMessageBox.warning(self, "Erreur",

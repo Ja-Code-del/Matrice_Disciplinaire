@@ -158,7 +158,19 @@ class Styles:
                     border: 1px solid #a4b3c9;
                 }}
             """,
-
+            'TEXT_EDIT': f"""
+                QTextEdit {{
+                    background-color: {colors['surface']};
+                    color: {colors['text']};
+                    border: 1px solid {colors['border']};
+                    border-radius: 4px;
+                    padding: 8px;
+                    font-size: 14px;
+                }}
+                QTextEdit:focus {{
+                    border-color: {colors['primary']};
+                }}        
+            """,
             'TABLE': f"""
                 QTableWidget {{
                     background-color: {colors['surface']};
