@@ -187,7 +187,8 @@ class ComboBoxHandler:
                 'Subdiv': 'id_subdiv',
                 'Region': 'id_rg',
                 'Fautes': 'id_faute',
-                'Statut': 'id_statut',
+                'Statut': 'id_statut',  # Ajout de la table Statut
+                'Categories': 'id_categorie',
                 'Type_sanctions': 'id_type_sanction'
             }
 
