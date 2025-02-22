@@ -818,9 +818,11 @@ class EditCaseForm(QMainWindow):
 
             # Calcul de l'âge
             if hasattr(self, 'date_naissance') and self.date_naissance.text():
-                birth_date = datetime.strptime(self.date_naissance.text(), '%d/%m/%Y').date()
-                age = relativedelta(date_faits, birth_date).years
-                self.age.setValue(age)
+                birth_date_str = adapt_date(self.date_naissance.text())
+                if birth_date_str:
+                    birth_date = datetime.strptime(birth_date_str, '%Y-%m-%d').date()
+                    age = relativedelta(date_faits, birth_date).years
+                    self.age.setValue(age)
 
             # Calcul des années de service
             if hasattr(self, 'date_entree_gie') and self.date_entree_gie.text():
