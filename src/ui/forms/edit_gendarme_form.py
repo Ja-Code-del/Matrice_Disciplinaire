@@ -3,7 +3,7 @@ from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
 
-from src.utils.date_utils import get_date_value
+from src.utils.date_utils import get_date_value, adapt_date
 from src.utils.combobox_handler import ComboBoxHandler
 import logging
 
@@ -826,9 +826,11 @@ class EditCaseForm(QMainWindow):
 
             # Calcul des années de service
             if hasattr(self, 'date_entree_gie') and self.date_entree_gie.text():
-                entry_date = datetime.strptime(self.date_entree_gie.text(), '%d/%m/%Y').date()
-                years = relativedelta(date_faits, entry_date).years
-                self.annee_service.setValue(years)
+                entry_date_str = adapt_date(self.date_entree_gie.text())
+                if entry_date_str:
+                    entry_date = datetime.strptime(entry_date_str, '%Y-%m-%d').date()
+                    years = relativedelta(date_faits, entry_date).years
+                    self.annee_service.setValue(years)
 
         except Exception as e:
             logger.error(f"Erreur lors de la mise à jour de l'âge et des années de service : {str(e)}")
@@ -853,6 +855,7 @@ class EditCaseForm(QMainWindow):
 
             # Configuration des combobox avec données de la BD
             static_combos = [
+                (self.statut, "Statut", "lib_statut", "id_statut"),
                 (self.type_sanction, "Type_sanctions", "lib_type_sanction", "id_type_sanction"),
                 (self.grade, "Grade", "lib_grade", "id_grade"),
                 (self.unite, "Unite", "lib_unite", "id_unite"),
@@ -996,11 +999,6 @@ class EditCaseForm(QMainWindow):
             if index >= 0:
                 self.unite.setCurrentIndex(index)
 
-    def on_statut_change(self, statut):
-        """Gère l'affichage du champ référence selon le statut"""
-        self.ref_statut.setVisible(statut == "RADIE")
-
-
     # METHODES DE VALIDATION
     def validate_form(self):
         """Valide les champs obligatoires du formulaire"""
@@ -1019,7 +1017,12 @@ class EditCaseForm(QMainWindow):
             }
 
             for field_name, (field, field_type) in required_fields.items():
-                if field_type in [QLineEdit, QComboBox] and not field.text().strip():
+                if field_type == QLineEdit and not field.text().strip():
+                    QMessageBox.warning(self, "Champs manquants",
+                                        f"Le champ '{field_name}' est obligatoire.")
+                    field.setFocus()
+                    return False
+                elif field_type == QComboBox and not field.currentText().strip():
                     QMessageBox.warning(self, "Champs manquants",
                                         f"Le champ '{field_name}' est obligatoire.")
                     field.setFocus()
@@ -1048,13 +1051,13 @@ class EditCaseForm(QMainWindow):
 
             # 4. Validation spécifique pour le statut "SANCTIONNE"
             if self.statut.currentText() == "SANCTIONNE":
-                if not self.type_sanction.currentText():
+                if not self.type_sanction.currentText().strip():
                     QMessageBox.warning(self, "Champs manquants",
                                         "Le type de sanction est obligatoire pour un dossier sanctionné.")
                     self.type_sanction.setFocus()
                     return False
 
-                if not self.taux_jar.text():
+                if not self.taux_jar.text().strip():
                     QMessageBox.warning(self, "Champs manquants",
                                         "Le taux (JAR) est obligatoire pour un dossier sanctionné.")
                     self.taux_jar.setFocus()
@@ -1337,10 +1340,11 @@ class EditCaseForm(QMainWindow):
                         f"{self.nom.text().strip()} {self.prenoms.text().strip()}",
                         self.age.value(),
                         self.sexe.currentText(),
-                        get_date_value(self.date_entree_gie),
+                        adapt_date(self.date_entree_gie.text().strip()),
+                        #get_date_value(self.date_entree_gie),
                         self.annee_service.value(),
                         self.nb_enfants.value(),
-                        self.matricule.text().strip()
+                        self.matricule_field.text().strip()
                     ))
 
                     # 2. Mise à jour de la sanction existante ou création d'une nouvelle
