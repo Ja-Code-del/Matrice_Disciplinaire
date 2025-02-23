@@ -176,8 +176,6 @@ class ComboBoxHandler:
             int: ID trouvé ou None
         """
         try:
-            # Nettoyage de la valeur (suppression des espaces après les degrés)
-            value = value.replace('° ', '°') if value else value
             # Mapping des tables vers leurs colonnes ID
             id_columns = {
                 'Grade': 'id_grade',

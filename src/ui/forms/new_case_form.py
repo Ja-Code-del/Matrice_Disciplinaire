@@ -820,7 +820,7 @@ class NewCaseForm(QMainWindow):
 
 
         # TAUX (JAR)
-        self.taux_jar = QLineEdit
+        self.taux_jar = QLineEdit()
         self.taux_jar.setStyleSheet(self.styles['INPUT'])
         layout.addRow(create_row("TAUX (JAR)", self.taux_jar))
 
