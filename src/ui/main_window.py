@@ -85,6 +85,7 @@ class MainGendarmeApp(QMainWindow):
         self.search_type.addItems(["Matricule (MLE)"])
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Entrez votre recherche...")
+        self.search_input.returnPressed.connect(self.search_gendarme)  # Ajout de la recherche par Enter
         search_button = QPushButton("Rechercher")
         search_button.clicked.connect(self.search_gendarme)
         layout.addWidget(search_group, alignment=Qt.AlignmentFlag.AlignTop)
