@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHeaderView, QDialog, QToolBar, QFileDialog, QDockWidget, QSizePolicy, QFrame)
 
 from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QFont, QIcon, QPixmap, QAction
+from PyQt6.QtGui import QFont, QIcon
 from src.database.db_manager import DatabaseManager
 from src.ui.styles.styles import Styles
 from src.database.models import  GendarmesRepository, DossiersRepository, SanctionsRepository
@@ -27,9 +27,10 @@ class MainGendarmeApp(QMainWindow):
         # Initialisation des attributs
         self.username = username
         self.search_type = None
-        self.logo_label = QLabel()
+        self.logo_label = QLabel('Bienvenue sur Gend-Track')
         self.sanctions_table = None
-        self.search_input = None
+        self.search_input = QLineEdit()
+        self.search_input.setMinimumHeight(40)
         self.toolbar = None
         self.theme_button = None
         self.info_labels = None
@@ -79,58 +80,37 @@ class MainGendarmeApp(QMainWindow):
             header_layout.addWidget(user_info)
             layout.addLayout(header_layout)
 
-        # Configuration de la barre de recherche avec logo
-        search_group = QGroupBox("Rechercher")
-
-        search_group.setStyleSheet("""
-            QGroupBox {
-                border: none;
-                font-weight: bold;
-                padding: 10px;
-            }
-        """)
-
-        search_group.setFont(QFont('Helvetica', 24, QFont.Weight.Bold))
-        search_layout = QHBoxLayout()
-        self.search_type = QComboBox()
-        self.search_type.addItems(["Matricule (MLE)"])
-        self.search_type.hide()
-        self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Rechercher par matricule...")
-
-        self.search_input.setStyleSheet("""
-            QLineEdit {
-                font-size: 16px;
-                padding: 10px;
-                border-radius: px;
-                border: 1px solid #ccc;
-                background-color: #f8f9fa;
-            }
-            QLineEdit:focus {
-                border: 1px solid #0078D7;
-                background-color: white;
-            }
-        """)
+        self.search_input.setFixedHeight(40)
+        self.search_input.setStyleSheet(
+            "border : 5px solid #007aff"
+        )
 
         self.search_input.returnPressed.connect(self.search_gendarme)  # Ajout de la recherche par Enter
         search_button = QPushButton("Rechercher")
+        search_button.setFixedSize(300, 41)
         search_button.clicked.connect(self.search_gendarme)
-        layout.addWidget(search_group, alignment=Qt.AlignmentFlag.AlignTop)
+
+        layout.addWidget(self.search_input)
+        #layout.addWidget(search_button)
+
+        #Layout pour centrer le bouton sous la barre
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()  # Ajoute un espace à gauche
+        button_layout.addWidget(search_button)  # Ajoute le bouton au centre
+        button_layout.addStretch()  # Ajoute un espace à droite
+
+        layout.addLayout(button_layout)
 
         # Ajouter le logo et cacher lors d'une recherche
-        logo_pixmap = QPixmap("../resources/icons/logo.png")  # Chemin de l'image du logo
-        self.logo_label.setPixmap(logo_pixmap)
+        #logo_pixmap = QPixmap("../resources/icons/logo.png")  # Chemin de l'image du logo
+        self.logo_label.setStyleSheet("font-size: 48px; color: #1c1c1e;")
         self.logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Centrer le logo
         self.logo_label.setFixedSize(1000, 600)
         self.logo_label.setScaledContents(True)
         layout.addWidget(self.logo_label)
 
-        search_layout.addWidget(self.search_type)
-        search_layout.addWidget(self.search_input)
-        search_layout.addWidget(search_button)
-        search_layout.addStretch()
-        search_group.setLayout(search_layout)
-        layout.addWidget(search_group)
+
         layout.addWidget(self.logo_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # barre d'outils à gauche
@@ -150,7 +130,7 @@ class MainGendarmeApp(QMainWindow):
         QTooBar{
             spacing: 15px;
             padding: 5px;
-            background: #efede7;
+            background-color: #007aff;
             border: none;
         }
         QPushButton {
@@ -325,6 +305,7 @@ class MainGendarmeApp(QMainWindow):
 
     def search_gendarme(self):
         """Recherche un gendarme et affiche ses dossiers disciplinaires"""
+
         search_text = self.search_input.text().strip()
         if not search_text:
             QMessageBox.warning(self, "Erreur", "Veuillez entrer un critère de recherche")
@@ -332,10 +313,11 @@ class MainGendarmeApp(QMainWindow):
 
         try:
             # Récupération des dossiers selon le matricule
-            if self.search_type.currentText() == "Matricule (MLE)":
+            if search_text:
                 dossiers = self.dossiers_repo.get_dossiers_by_matricule(search_text)
             else:
                 dossiers = self.dossiers_repo.get_dossiers_by_name(search_text)
+                QMessageBox.information(self, "Oups!", "Veuillez entrer un matricule dans la barre de recherche")
 
             if not dossiers:
                 QMessageBox.information(self, "Résultat", "Aucun dossier trouvé.")
@@ -422,7 +404,7 @@ class MainGendarmeApp(QMainWindow):
         # Application des styles
         self.setStyleSheet(styles['MAIN_WINDOW'])
         self.search_input.setStyleSheet(styles['INPUT'])
-        self.search_type.setStyleSheet(styles['COMBO_BOX'])
+
         self.sanctions_table.setStyleSheet(styles['TABLE'])
 
         #pour les boutons

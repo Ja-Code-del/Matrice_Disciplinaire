@@ -62,8 +62,8 @@ class Styles:
                     padding: 8px;
                     background-color: {colors['surface']};
                     color: {colors['text']};
-                    border: 1px solid {colors['border']};
-                    border-radius: 4px;
+                    border: 3px solid {colors['border']};
+                    border-radius: 20px;
                     min-width: 300px;
                 }}
                 QLineEdit:focus {{

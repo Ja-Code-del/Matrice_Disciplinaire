@@ -348,10 +348,6 @@ class DatabaseManager:
             print(f"Erreur lors du comptage des enregistrements de {table_name}: {str(e)}")
             return 0
 
-    def close(self):
-        """Ferme la connexion"""
-        self.conn.close()
-
     def add_case_and_sanction(self, dossier_data, sanction_data=None):
         """
         Ajoute un dossier et sa sanction associée dans une transaction unique
@@ -534,3 +530,65 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Erreur lors de la mise à jour du dossier et de la sanction : {str(e)}")
             return False
+
+    def delete_case(self, matricule, reference):
+        """
+        Supprime un dossier et sa sanction associée
+
+        Args:
+            matricule (str): Matricule du gendarme
+            reference (str): Référence du dossier
+
+        Returns:
+            bool: True si la suppression a réussi, False sinon
+        """
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+
+                # 1. Récupérer l'ID de la sanction associée
+                cursor.execute("""
+                    SELECT sanction_id 
+                    FROM Dossiers 
+                    WHERE matricule_dossier = ? AND reference = ?
+                """, (matricule, reference))
+
+                result = cursor.fetchone()
+                if not result:
+                    logger.warning(f"Dossier {reference} non trouvé pour le matricule {matricule}")
+                    return False
+
+                sanction_id = result[0]
+
+                # 2. Début de la transaction
+                cursor.execute("BEGIN TRANSACTION")
+
+                try:
+                    # 3. Supprimer le dossier
+                    cursor.execute("""
+                        DELETE FROM Dossiers 
+                        WHERE matricule_dossier = ? AND reference = ?
+                    """, (matricule, reference))
+
+                    # 4. Supprimer la sanction associée
+                    if sanction_id:
+                        cursor.execute("DELETE FROM Sanctions WHERE id_sanction = ?", (sanction_id,))
+
+                    # 5. Valider la transaction
+                    cursor.execute("COMMIT")
+                    logger.info(f"Dossier {reference} supprimé avec succès")
+                    return True
+
+                except Exception as e:
+                    # Annuler la transaction en cas d'erreur
+                    cursor.execute("ROLLBACK")
+                    logger.error(f"Erreur lors de la suppression: {str(e)}")
+                    raise
+
+        except Exception as e:
+            logger.error(f"Erreur lors de la suppression du dossier: {str(e)}")
+            return False
+
+    def close(self):
+        """Ferme la connexion"""
+        self.conn.close()
