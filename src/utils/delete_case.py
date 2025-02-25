@@ -54,14 +54,7 @@ class DeleteCase:
                     if sanction_id:
                         cursor.execute("DELETE FROM Sanctions WHERE id_sanction = ?", (sanction_id,))
 
-                    # 5. Supprimer de la table main_tab si elle existe
-                    try:
-                        cursor.execute("DELETE FROM main_tab WHERE numero_dossier = ?", (reference,))
-                    except sqlite3.OperationalError:
-                        # La table main_tab n'existe peut-être pas
-                        pass
-
-                    # 6. Valider la transaction
+                    # 5. Valider la transaction
                     cursor.execute("COMMIT")
                     logger.info(f"Dossier {reference} supprimé avec succès")
                     return True
@@ -139,13 +132,6 @@ class DeleteCase:
                     # 3. Supprimer la sanction associée
                     if sanction_id:
                         cursor.execute("DELETE FROM Sanctions WHERE id_sanction = ?", (sanction_id,))
-
-                    # 4. Supprimer de la table main_tab si elle existe
-                    try:
-                        cursor.execute("DELETE FROM main_tab WHERE numero_dossier = ?", (reference,))
-                    except sqlite3.OperationalError:
-                        # La table main_tab n'existe peut-être pas
-                        pass
 
                     success_count += 1
 

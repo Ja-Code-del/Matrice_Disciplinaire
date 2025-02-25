@@ -1,6 +1,9 @@
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTableWidget, QTableWidgetItem, \
     QPushButton, QMessageBox
 from PyQt6.QtCore import Qt, pyqtSignal
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class DeleteCaseDialog(QDialog):
@@ -19,7 +22,8 @@ class DeleteCaseDialog(QDialog):
         # Champ de recherche
         search_layout = QHBoxLayout()
         self.search_field = QLineEdit()
-        self.search_field.setPlaceholderText("Entrez le numéro de dossier ou le matricule")
+        self.search_field.setPlaceholderText("Entrez le numéro de dossier ou le matricule à supprimer")
+        self.search_field.returnPressed.connect(self.search_cases)
         search_button = QPushButton("Rechercher")
         search_button.clicked.connect(self.search_cases)
         search_layout.addWidget(self.search_field)
@@ -28,16 +32,18 @@ class DeleteCaseDialog(QDialog):
 
         # Tableau des résultats
         self.cases_table = QTableWidget()
-        self.cases_table.setColumnCount(5)
+        self.cases_table.setColumnCount(6)
         self.cases_table.setHorizontalHeaderLabels(
-            ["Numéro Dossier", "Matricule", "Faute Commise", "Statut", "Sélectionner"])
+            ["Référence", "Matricule", "Faute Commise", "Statut", "Numéro Inc", "Sélectionner"])
         self.cases_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.cases_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.cases_table.hideColumn(4)  # Cacher la colonne Numéro Inc
         layout.addWidget(self.cases_table)
 
         # Boutons
         button_layout = QHBoxLayout()
         self.delete_button = QPushButton("Supprimer")
+        self.delete_button.setStyleSheet("background-color: #f44336; color: white;")
         self.delete_button.clicked.connect(self.delete_selected_cases)
         self.cancel_button = QPushButton("Annuler")
         self.cancel_button.clicked.connect(self.reject)
@@ -56,14 +62,24 @@ class DeleteCaseDialog(QDialog):
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
 
-                # Recherche par numéro de dossier ou matricule
+                # Recherche dans les tables Dossiers, Gendarmes, Fautes et Statut
                 query = """
-                    SELECT m.numero_dossier, s.matricule, s.faute_commise, s.statut
-                    FROM main_tab m
-                    WHERE m.numero_dossier LIKE ? OR s.matricule LIKE ?
-                    ORDER BY m.date_enr DESC
+                    SELECT 
+                        d.reference, 
+                        d.matricule_dossier, 
+                        f.lib_faute, 
+                        s.lib_statut,
+                        d.numero_inc
+                    FROM Dossiers d
+                    JOIN Gendarmes g ON d.matricule_dossier = g.matricule
+                    JOIN Fautes f ON d.faute_id = f.id_faute
+                    JOIN Statut s ON d.statut_id = s.id_statut
+                    WHERE d.reference LIKE ? 
+                       OR d.matricule_dossier LIKE ?
+                       OR g.nom_prenoms LIKE ?
+                    ORDER BY d.date_enr DESC
                 """
-                cursor.execute(query, (f"%{search_text}%", f"%{search_text}%"))
+                cursor.execute(query, (f"%{search_text}%", f"%{search_text}%", f"%{search_text}%"))
                 results = cursor.fetchall()
 
                 # Remplir le tableau avec les résultats
@@ -77,22 +93,25 @@ class DeleteCaseDialog(QDialog):
                     checkbox = QTableWidgetItem()
                     checkbox.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
                     checkbox.setCheckState(Qt.CheckState.Unchecked)
-                    self.cases_table.setItem(row, 4, checkbox)
+                    self.cases_table.setItem(row, 5, checkbox)
 
                 if not results:
                     QMessageBox.information(self, "Information", "Aucun dossier trouvé")
 
         except Exception as e:
+            logger.error(f"Erreur lors de la recherche : {str(e)}")
             QMessageBox.critical(self, "Erreur", f"Erreur lors de la recherche : {str(e)}")
 
     def delete_selected_cases(self):
-        """Supprime les dossiers sélectionnés"""
+        """Supprime les dossiers sélectionnés avec gestion des relations"""
         selected_rows = []
         for row in range(self.cases_table.rowCount()):
-            checkbox_item = self.cases_table.item(row, 4)
+            checkbox_item = self.cases_table.item(row, 5)
             if checkbox_item and checkbox_item.checkState() == Qt.CheckState.Checked:
-                numero_dossier = self.cases_table.item(row, 0).text()
-                selected_rows.append((row, numero_dossier))
+                reference = self.cases_table.item(row, 0).text()
+                matricule = self.cases_table.item(row, 1).text()
+                numero_inc = self.cases_table.item(row, 4).text()
+                selected_rows.append((row, reference, matricule, numero_inc))
 
         if not selected_rows:
             QMessageBox.warning(self, "Attention", "Veuillez sélectionner au moins un dossier à supprimer")
@@ -111,27 +130,52 @@ class DeleteCaseDialog(QDialog):
             try:
                 with self.db_manager.get_connection() as conn:
                     cursor = conn.cursor()
+                    cursor.execute("BEGIN TRANSACTION")
 
-                    for _, numero_dossier in selected_rows:
-                        # Supprimer les enregistrements liés au dossier
-                        cursor.execute(
-                            "DELETE FROM main_tab WHERE numero_dossier = ?",
-                            (numero_dossier,)
+                    try:
+                        for _, reference, matricule, numero_inc in selected_rows:
+                            # 1. Récupérer l'ID de la sanction associée au dossier
+                            cursor.execute(
+                                "SELECT sanction_id FROM Dossiers WHERE matricule_dossier = ? AND reference = ?",
+                                (matricule, reference)
+                            )
+                            result = cursor.fetchone()
+                            if result:
+                                sanction_id = result[0]
+
+                                # 2. Supprimer le dossier
+                                cursor.execute(
+                                    "DELETE FROM Dossiers WHERE matricule_dossier = ? AND reference = ?",
+                                    (matricule, reference)
+                                )
+
+                                # 3. Supprimer la sanction si elle existe
+                                if sanction_id:
+                                    cursor.execute(
+                                        "DELETE FROM Sanctions WHERE id_sanction = ?",
+                                        (sanction_id,)
+                                    )
+
+                        # Commit uniquement si tout s'est bien passé
+                        cursor.execute("COMMIT")
+
+                        QMessageBox.information(
+                            self,
+                            "Succès",
+                            f"{len(selected_rows)} dossier(s) supprimé(s) avec succès"
                         )
 
-                    conn.commit()
+                        # Émettre le signal et rafraîchir la recherche
+                        self.case_deleted.emit()
+                        self.search_cases()
 
-                    QMessageBox.information(
-                        self,
-                        "Succès",
-                        f"{len(selected_rows)} dossier(s) supprimé(s) avec succès"
-                    )
-
-                    # Rafraîchir la recherche
-                    self.case_deleted.emit()  # Émettre le signal après une suppression réussie
-                    self.search_cases()
+                    except Exception as e:
+                        # Annuler la transaction en cas d'erreur
+                        cursor.execute("ROLLBACK")
+                        raise e
 
             except Exception as e:
+                logger.error(f"Erreur lors de la suppression : {str(e)}")
                 QMessageBox.critical(
                     self,
                     "Erreur",
