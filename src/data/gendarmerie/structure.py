@@ -258,6 +258,7 @@ STRUCTURE_UNITE = {
                     "URGN",
                     "GCS",
                     "GSR",
+                    "GSPR",
                     "GS-LOI",
                     "GS-LEIPA",
                     "BIRGN",

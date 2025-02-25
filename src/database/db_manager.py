@@ -351,3 +351,186 @@ class DatabaseManager:
     def close(self):
         """Ferme la connexion"""
         self.conn.close()
+
+    def add_case_and_sanction(self, dossier_data, sanction_data=None):
+        """
+        Ajoute un dossier et sa sanction associée dans une transaction unique
+
+        Args:
+            dossier_data (dict): Données du dossier
+            sanction_data (dict, optional): Données de la sanction. Si None, une sanction par défaut est créée.
+
+        Returns:
+            tuple: (dossier_id, sanction_id) ou (None, None) en cas d'erreur
+        """
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("BEGIN TRANSACTION")
+
+                try:
+                    # Préparer les données de sanction par défaut si non fournies
+                    if sanction_data is None:
+                        sanction_data = {}
+
+                    # Gérer le type de sanction en fonction du statut
+                    if "statut_id" in dossier_data:
+                        # Récupérer le libellé du statut
+                        cursor.execute("SELECT lib_statut FROM Statut WHERE id_statut = ?",
+                                       (dossier_data["statut_id"],))
+                        statut_result = cursor.fetchone()
+
+                        if statut_result:
+                            statut_lib = statut_result[0]
+
+                            # Définir le type de sanction selon le statut
+                            if statut_lib == "EN COURS" and "type_sanction_id" not in sanction_data:
+                                # Pour les dossiers "EN COURS", utiliser le type "EN INSTANCE" (ID: 6)
+                                sanction_data["type_sanction_id"] = 6
+
+                    # Assurer que le comité a une valeur par défaut
+                    if "comite" not in sanction_data or not sanction_data["comite"]:
+                        sanction_data["comite"] = "0"
+
+                    # Assurer que le taux a une valeur par défaut
+                    if "taux" not in sanction_data or not sanction_data["taux"]:
+                        sanction_data["taux"] = "0"
+
+                    # 1. Insérer la sanction
+                    sanction_columns = ', '.join(f'"{col}"' for col in sanction_data.keys())
+                    sanction_placeholders = ', '.join(['?' for _ in sanction_data])
+                    sanction_query = f"INSERT INTO Sanctions ({sanction_columns}) VALUES ({sanction_placeholders})"
+
+                    cursor.execute(sanction_query, tuple(sanction_data.values()))
+                    sanction_id = cursor.lastrowid
+
+                    # 2. Ajouter l'ID de sanction au dossier
+                    dossier_data["sanction_id"] = sanction_id
+
+                    # 3. Insérer le dossier
+                    dossier_columns = ', '.join(f'"{col}"' for col in dossier_data.keys())
+                    dossier_placeholders = ', '.join(['?' for _ in dossier_data])
+                    dossier_query = f"INSERT INTO Dossiers ({dossier_columns}) VALUES ({dossier_placeholders})"
+
+                    cursor.execute(dossier_query, tuple(dossier_data.values()))
+                    dossier_id = cursor.lastrowid
+
+                    # 4. Mettre à jour le num_inc dans la sanction
+                    cursor.execute("UPDATE Sanctions SET num_inc = ? WHERE id_sanction = ?",
+                                   (dossier_id, sanction_id))
+
+                    # 5. Valider la transaction
+                    cursor.execute("COMMIT")
+                    return dossier_id, sanction_id
+
+                except Exception as e:
+                    cursor.execute("ROLLBACK")
+                    logger.error(f"Erreur lors de l'ajout du dossier et de la sanction : {str(e)}")
+                    raise
+
+        except Exception as e:
+            logger.error(f"Erreur lors de l'ajout du dossier et de la sanction : {str(e)}")
+            return None, None
+
+    def update_case_and_sanction(self, matricule, reference, dossier_data, sanction_data=None):
+        """
+        Met à jour un dossier et sa sanction associée dans une transaction unique
+
+        Args:
+            matricule (str): Matricule du gendarme
+            reference (str): Référence du dossier
+            dossier_data (dict): Données du dossier à mettre à jour
+            sanction_data (dict, optional): Données de la sanction à mettre à jour
+
+        Returns:
+            bool: True si la mise à jour a réussi, False sinon
+        """
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+
+                # 1. Vérifier si le dossier existe et récupérer l'ID de sa sanction
+                cursor.execute("""
+                    SELECT numero_inc, sanction_id 
+                    FROM Dossiers 
+                    WHERE matricule_dossier = ? AND reference = ?
+                """, (matricule, reference))
+
+                result = cursor.fetchone()
+                if not result:
+                    logger.error(f"Dossier {reference} non trouvé pour le matricule {matricule}")
+                    return False
+
+                numero_inc, sanction_id = result
+
+                # 2. Démarrer la transaction
+                cursor.execute("BEGIN TRANSACTION")
+
+                try:
+                    # 3. Gérer le type de sanction en fonction du statut
+                    if sanction_data is None:
+                        sanction_data = {}
+
+                    if "statut_id" in dossier_data:
+                        # Récupérer le libellé du statut
+                        cursor.execute("SELECT lib_statut FROM Statut WHERE id_statut = ?",
+                                       (dossier_data["statut_id"],))
+                        statut_result = cursor.fetchone()
+
+                        if statut_result:
+                            statut_lib = statut_result[0]
+
+                            # Définir le type de sanction selon le statut
+                            if statut_lib == "EN COURS" and "type_sanction_id" not in sanction_data:
+                                # Pour les dossiers "EN COURS", utiliser le type "EN INSTANCE" (ID: 6)
+                                sanction_data["type_sanction_id"] = 6
+
+                    # Assurer que le comité a une valeur
+                    if "comite" not in sanction_data or not sanction_data["comite"]:
+                        sanction_data["comite"] = "0"
+
+                    # Assurer que le taux a une valeur
+                    if "taux" not in sanction_data or not sanction_data["taux"]:
+                        sanction_data["taux"] = "0"
+
+                    # 4. Mettre à jour la sanction si des données sont fournies
+                    if sanction_data and sanction_id:
+                        update_parts = []
+                        update_values = []
+
+                        for col, val in sanction_data.items():
+                            update_parts.append(f"{col} = ?")
+                            update_values.append(val)
+
+                        if update_parts:
+                            update_query = f"UPDATE Sanctions SET {', '.join(update_parts)} WHERE id_sanction = ?"
+                            update_values.append(sanction_id)
+                            cursor.execute(update_query, tuple(update_values))
+
+                    # 5. Mettre à jour le dossier si des données sont fournies
+                    if dossier_data:
+                        update_parts = []
+                        update_values = []
+
+                        for col, val in dossier_data.items():
+                            update_parts.append(f"{col} = ?")
+                            update_values.append(val)
+
+                        if update_parts:
+                            update_query = f"UPDATE Dossiers SET {', '.join(update_parts)} WHERE matricule_dossier = ? AND reference = ?"
+                            update_values.extend([matricule, reference])
+                            cursor.execute(update_query, tuple(update_values))
+
+                    # 6. Valider la transaction
+                    cursor.execute("COMMIT")
+                    logger.info(f"Dossier {reference} et sa sanction mis à jour avec succès")
+                    return True
+
+                except Exception as e:
+                    cursor.execute("ROLLBACK")
+                    logger.error(f"Erreur lors de la mise à jour du dossier et de la sanction : {str(e)}")
+                    raise
+
+        except Exception as e:
+            logger.error(f"Erreur lors de la mise à jour du dossier et de la sanction : {str(e)}")
+            return False

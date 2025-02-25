@@ -5,12 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="560f7444-6d70-4e83-81da-17b43ad28578" name="Changes" comment="added SQLALCHEMY">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/utils/delete_case.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/edit_gendarme_form.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/gendarmerie/structure.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/forms/delete_case_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/delete_case_dialog.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/forms/new_case_form.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/main_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/styles/styles.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/styles/styles.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -59,31 +59,31 @@
     <option name="showLibraryContents" value="true" />
     <option name="sortKey" value="BY_TIME_DESCENDING" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.gendarme-app-import-2.executor&quot;: &quot;Run&quot;,
-    &quot;Python.gendarme-app-import-5.executor&quot;: &quot;Run&quot;,
-    &quot;Python.gendarme-app-import.executor&quot;: &quot;Run&quot;,
-    &quot;Python.import_window.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main_window.executor&quot;: &quot;Run&quot;,
-    &quot;Python.new_case_form.executor&quot;: &quot;Run&quot;,
-    &quot;Python.scratch.executor&quot;: &quot;Run&quot;,
-    &quot;Python.styles.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;new__version&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/bretwalda/PycharmProjects/Matrice_Disciplinaire/src/data/gendarmerie&quot;,
-    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;editing.templates&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.gendarme-app-import-2.executor": "Run",
+    "Python.gendarme-app-import-5.executor": "Run",
+    "Python.gendarme-app-import.executor": "Run",
+    "Python.import_window.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.main_window.executor": "Run",
+    "Python.new_case_form.executor": "Run",
+    "Python.scratch.executor": "Run",
+    "Python.styles.executor": "Run",
+    "Python.test.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "new__version",
+    "last_opened_file_path": "/Users/bretwalda/PycharmProjects/Matrice_Disciplinaire/src/data/gendarmerie",
+    "run.code.analysis.last.selected.profile": "pProject Default",
+    "settings.editor.selected.configurable": "preferences.lookFeel"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
-      &quot;PLAIN_TEXT&quot;
+  "keyToStringList": {
+    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
+      "PLAIN_TEXT"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/data/gendarmerie" />
@@ -104,30 +104,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1727455479936</updated>
-    </task>
-    <task id="LOCAL-00020" summary="ERROR / name 'info_group' is not define">
-      <option name="closed" value="true" />
-      <created>1730478906078</created>
-      <option name="number" value="00020" />
-      <option name="presentableId" value="LOCAL-00020" />
-      <option name="project" value="LOCAL" />
-      <updated>1730478906078</updated>
-    </task>
-    <task id="LOCAL-00021" summary="ALL SEEMS PERFECT">
-      <option name="closed" value="true" />
-      <created>1730480942165</created>
-      <option name="number" value="00021" />
-      <option name="presentableId" value="LOCAL-00021" />
-      <option name="project" value="LOCAL" />
-      <updated>1730480942165</updated>
-    </task>
-    <task id="LOCAL-00022" summary="sanctions import correct but need to import the gendarme info">
-      <option name="closed" value="true" />
-      <created>1730666204110</created>
-      <option name="number" value="00022" />
-      <option name="presentableId" value="LOCAL-00022" />
-      <option name="project" value="LOCAL" />
-      <updated>1730666204110</updated>
     </task>
     <task id="LOCAL-00023" summary="The informations of gendarmes are dislayed but it misses the age and n° dossier and all sanctions informations">
       <option name="closed" value="true" />
@@ -497,13 +473,34 @@
       <option name="project" value="LOCAL" />
       <updated>1738280172741</updated>
     </task>
-    <option name="localTasksCounter" value="69" />
+    <task id="LOCAL-00069" summary="added Categories table">
+      <option name="closed" value="true" />
+      <created>1740258709997</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1740258709997</updated>
+    </task>
+    <task id="LOCAL-00070" summary="used adapt_date into the method for conversion and parsing">
+      <option name="closed" value="true" />
+      <created>1740259060585</created>
+      <option name="number" value="00070" />
+      <option name="presentableId" value="LOCAL-00070" />
+      <option name="project" value="LOCAL" />
+      <updated>1740259060585</updated>
+    </task>
+    <task id="LOCAL-00071" summary="Added searching by Enter key">
+      <option name="closed" value="true" />
+      <created>1740427730598</created>
+      <option name="number" value="00071" />
+      <option name="presentableId" value="LOCAL-00071" />
+      <option name="project" value="LOCAL" />
+      <updated>1740427730598</updated>
+    </task>
+    <option name="localTasksCounter" value="72" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Worked on grouped bar graphic. not achieved" />
-    <MESSAGE value="work on bar grouped with 'tranche annee_service/subdivisions' sujet: Non-respect des consignes" />
-    <MESSAGE value="Good SQL for Load_data" />
     <MESSAGE value="bug of 'non spéficié' column resolved" />
     <MESSAGE value="for the trends container" />
     <MESSAGE value="TRENDS ARE THERE !!!!!!" />
@@ -526,7 +523,10 @@
     <MESSAGE value="Works on deletion. Next I aim to add refreshing parameter for stats after deletion" />
     <MESSAGE value="Working into db_manager.py &#10;Changes : got new one table for all datas called main_tab&lt;&#10;Not achieved... just need to sleep :)" />
     <MESSAGE value="added SQLALCHEMY" />
-    <option name="LAST_COMMIT_MESSAGE" value="" />
+    <MESSAGE value="added Categories table" />
+    <MESSAGE value="used adapt_date into the method for conversion and parsing" />
+    <MESSAGE value="Added searching by Enter key" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added searching by Enter key" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

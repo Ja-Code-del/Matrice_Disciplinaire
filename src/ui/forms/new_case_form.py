@@ -794,7 +794,7 @@ class NewCaseForm(QMainWindow):
 
         # Type de sanction (initialement désactivé)
         self.type_sanction = QComboBox()
-        self.type_sanction.setEnabled(False)  # Désactivé par défaut
+        #self.type_sanction.setEnabled(False)  # Désactivé par défaut
         self.type_sanction.setStyleSheet(self.styles['COMBO_BOX'])
         layout.addRow(create_row("Type de sanction", self.type_sanction))
 
@@ -814,6 +814,7 @@ class NewCaseForm(QMainWindow):
 
         # Référence du statut
         self.ref_statut = QLineEdit()
+        self.ref_statut.setEnabled(False)
         self.ref_statut.setStyleSheet(self.styles['INPUT'])
         self.ref_statut.setPlaceholderText("Référence de radiation")
         layout.addRow(create_row("Référence du statut", self.ref_statut))
@@ -871,18 +872,22 @@ class NewCaseForm(QMainWindow):
                 self.type_sanction.setCurrentIndex(index)
             self.type_sanction.setEnabled(False)  # Verrouiller sur "EN INSTANCE"
 
-            # Réinitialiser et désactiver les champs liés
+            # Réinitialiser et désactiver les champs liés à la radiation
             self.num_decision.clear()
             self.num_arrete.clear()
             self.num_decision.setEnabled(False)
             self.num_arrete.setEnabled(False)
+
+            # Pour "EN COURS", on garde le comité actif mais on réinitialise le taux
             self.taux_jar.clear()
             self.taux_jar.setEnabled(False)
+            self.comite.setEnabled(True)
 
         elif statut == "SANCTIONNE":
             # Activer tous les champs nécessaires
             self.type_sanction.setEnabled(True)
             self.taux_jar.setEnabled(True)
+            self.comite.setEnabled(True)
             # La gestion des champs de radiation se fait dans on_type_sanction_change
 
         else:
@@ -895,6 +900,9 @@ class NewCaseForm(QMainWindow):
             self.num_arrete.setEnabled(False)
             self.taux_jar.clear()
             self.taux_jar.setEnabled(False)
+
+            # Garder comité actif pour tous les statuts
+            self.comite.setEnabled(True)
 
 
     def on_type_sanction_change(self, type_sanction: str):
@@ -1322,25 +1330,7 @@ class NewCaseForm(QMainWindow):
         Returns:
             dict: Dictionnaire contenant toutes les données du formulaire
         """
-        from src.utils.date_utils import convert_for_db  # Pour la conversion des dates
-
         try:
-
-            # Pour QLineEdit
-            if isinstance(self.date_entree_gie, QLineEdit):
-                date_str = self.date_entree_gie.text().strip()
-                # Utilisation directe de adapt_date
-                #from src.utils.date_utils import adapt_date
-                date_converted = adapt_date(date_str)
-
-            # Si c'est un autre type de widget
-            else:
-                print(
-                    f"Contenu du widget: {self.date_entree_gie.text() if hasattr(self.date_entree_gie, 'text') else 'Méthode text() non disponible'}")
-
-            # Récupération de la date après conversion
-            date_entree = get_date_value(self.date_entree_gie)
-
             # Information du dossier
             dossier_data = {
                 'id_dossier': f"{self.num_enr.text()}/{self.annee_punition.text()}",
@@ -1353,9 +1343,6 @@ class NewCaseForm(QMainWindow):
                 'annee_enr': int(self.annee_punition.text()) if self.annee_punition.text().isdigit() else None,
                 'libelle': self.libelle.toPlainText().strip()
             }
-
-            # Pour le debug
-            print("Date d'enregistrement avant insertion:", dossier_data['date_enr'])
 
             # Informations du gendarme
             gendarme_data = {
@@ -1391,13 +1378,14 @@ class NewCaseForm(QMainWindow):
                 'type_sanction_id': self.combo_handler.get_selected_id(
                     self.type_sanction) if self.statut.currentText() == "SANCTIONNE" else None,
                 'num_inc': int(self.num_enr.text()) if self.num_enr.text().isdigit() else None,
-                'taux': self.taux_jar.text() if self.statut.currentText() == "SANCTIONNE" else "0",
+                'taux': self.taux_jar.text() if hasattr(self, 'taux_jar') and isinstance(self.taux_jar,
+                                                                                         QLineEdit) else "0",
                 'numero_decision': self.num_decision.text() if self.type_sanction.currentText() == "RADIATION" else None,
                 'numero_arrete': self.num_arrete.text() if self.type_sanction.currentText() == "RADIATION" else None,
                 'annee_radiation': int(
                     self.annee_punition.text()) if self.type_sanction.currentText() == "RADIATION" else None,
                 'ref_statut': self.ref_statut.text(),
-                'comite': self.comite.text()
+                'comite': self.comite.text() if hasattr(self, 'comite') and self.comite.text() else "0"
             }
 
             # Combinaison de toutes les données
@@ -1413,138 +1401,6 @@ class NewCaseForm(QMainWindow):
         except Exception as e:
             logger.error(f"Erreur lors de la récupération des données du formulaire : {str(e)}")
             raise
-
-    def submit_form(self):
-        """Enregistre les données du formulaire dans la base de données"""
-        try:
-            if not self.validate_form():
-                return
-
-            # Récupération des données
-            try:
-                form_data = self.get_form_data()
-                print("Données du formulaire:", form_data)  # Debug
-
-            except Exception as e:
-                logger.error(f"Erreur lors de la récupération des données : {str(e)}")
-                QMessageBox.critical(self, "Erreur",
-                                     "Erreur lors de la récupération des données du formulaire.")
-                return
-
-            # Début de la transaction
-            with self.db_manager.get_connection() as conn:
-                cursor = conn.cursor()
-                try:
-                    # 1. Insertion/Mise à jour du gendarme
-                    cursor.execute("""
-                        INSERT OR REPLACE INTO Gendarmes (
-                            matricule, nom_prenoms, age, sexe,
-                            date_entree_gie, annee_service, nb_enfants
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        form_data['gendarme']['matricule'],
-                        form_data['gendarme']['nom_prenoms'],
-                        form_data['gendarme']['age'],
-                        form_data['gendarme']['sexe'],
-                        form_data['gendarme']['date_entree_gie'],
-                        form_data['gendarme']['annee_service'],
-                        form_data['gendarme']['nb_enfants']
-                    ))
-
-                    # 2. Insérer la sanction
-                    # Debug :
-                    print("Données sanction à insérer:", {
-                        'type_sanction_id': form_data['sanction']['type_sanction_id'],
-                        'taux': form_data['sanction']['taux'],
-                        'comite': form_data['sanction']['comite']
-                    })
-                    if form_data['sanction']['type_sanction_id']:
-                        cursor.execute("""
-                            INSERT INTO Sanctions (
-                                type_sanction_id, taux, numero_decision, numero_arrete,
-                                annee_radiation, ref_statut, comite
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                        """, (
-                            form_data['sanction']['type_sanction_id'],
-                            form_data['sanction']['taux'],
-                            form_data['sanction']['numero_decision'],
-                            form_data['sanction']['numero_arrete'],
-                            form_data['sanction']['annee_radiation'],
-                            form_data['sanction']['ref_statut'],
-                            form_data['sanction']['comite']
-                        ))
-                        sanction_id = cursor.lastrowid
-                    else:
-                        # Si pas de sanction, on crée une entrée par défaut
-                        cursor.execute("""
-                            INSERT INTO Sanctions (type_sanction_id, taux) 
-                            VALUES (?, ?, ?)
-                        """, (1, "0", form_data['sanction']['comite']))  # Utiliser un ID de type_sanction par défaut
-                        sanction_id = cursor.lastrowid
-
-                    # 3. Insertion du dossier avec toutes les références
-                    print("Clés étrangères à insérer:", {
-                        'grade_id': form_data['foreign_keys']['grade_id'],
-                        'situation_mat_id': form_data['foreign_keys']['situation_mat_id'],
-                        'unite_id': form_data['foreign_keys']['unite_id'],
-                        'legion_id': form_data['foreign_keys']['legion_id'],
-                        'subdiv_id': form_data['foreign_keys']['subdiv_id'],
-                        'rg_id': form_data['foreign_keys']['rg_id'],
-                        'faute_id': form_data['foreign_keys']['faute_id'],
-                        'statut_id': form_data['foreign_keys']['statut_id']
-                    })
-                    cursor.execute("""
-                        INSERT INTO Dossiers (
-                            matricule_dossier, id_dossier, reference, date_enr, date_faits,
-                            numero_inc, numero_annee, annee_enr, grade_id, situation_mat_id,
-                            unite_id, legion_id, subdiv_id, rg_id, faute_id, libelle, 
-                            statut_id, sanction_id
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        form_data['dossier']['matricule_dossier'],
-                        form_data['dossier']['id_dossier'],
-                        form_data['dossier']['reference'],
-                        form_data['dossier']['date_enr'],
-                        form_data['dossier']['date_faits'],
-                        form_data['dossier']['numero_inc'],
-                        form_data['dossier']['numero_annee'],
-                        form_data['dossier']['annee_enr'],
-                        form_data['foreign_keys']['grade_id'],
-                        form_data['foreign_keys']['situation_mat_id'],
-                        form_data['foreign_keys']['unite_id'],
-                        form_data['foreign_keys']['legion_id'],
-                        form_data['foreign_keys']['subdiv_id'],
-                        form_data['foreign_keys']['rg_id'],
-                        form_data['foreign_keys']['faute_id'],
-                        form_data['dossier']['libelle'],
-                        form_data['foreign_keys']['statut_id'],
-                        sanction_id
-                    ))
-
-                    conn.commit()
-
-                    QMessageBox.information(self, "Succès", "Dossier enregistré avec succès!")
-                    self.case_added.emit()
-                    self.close()
-
-                except sqlite3.IntegrityError as e:
-                    conn.rollback()
-                    print(f"Erreur détaillée : {str(e)}")  # Debug
-                    QMessageBox.critical(self, "Erreur",
-                                         f"Erreur d'intégrité de la base de données: {str(e)}")
-                    logger.error(f"Erreur d'intégrité : {str(e)}")
-
-                except Exception as e:
-                    conn.rollback()
-                    print(f"Erreur détaillée : {str(e)}")  # Debug
-                    QMessageBox.critical(self, "Erreur",
-                                         f"Erreur lors de l'enregistrement : {str(e)}")
-                    logger.error(f"Erreur lors de l'enregistrement : {str(e)}")
-
-        except Exception as e:
-            QMessageBox.critical(self, "Erreur",
-                                 f"Erreur inattendue : {str(e)}")
-            logger.error(f"Erreur inattendue : {str(e)}")
 
     def show_new_case_form(self):
         form = NewCaseForm(self.db_manager)
@@ -1695,6 +1551,82 @@ class NewCaseForm(QMainWindow):
             if result:
                 return result[0]
             raise ValueError(f"Gendarme avec matricule {matricule} non trouvé")
+
+    def submit_form(self):
+        """Enregistre les données du formulaire dans la base de données"""
+        try:
+            if not self.validate_form():
+                return
+
+            # Mise à jour du gendarme
+            gendarme_data = {
+                "matricule": self.matricule.text().strip(),
+                "nom_prenoms": f"{self.nom.text().strip()} {self.prenoms.text().strip()}",
+                "age": self.age.value(),
+                "sexe": self.sexe.currentText(),
+                "date_entree_gie": adapt_date(self.date_entree_gie.text().strip()),
+                "annee_service": self.annee_service.value(),
+                "nb_enfants": self.nb_enfants.value()
+            }
+
+            self.db_manager.add_data("Gendarmes", gendarme_data)
+
+            # Préparer les données du dossier
+            dossier_data = {
+                "matricule_dossier": self.matricule.text().strip(),
+                "reference": self.num_dossier.text().strip(),
+                "date_enr": get_date_value(self.date_enr),
+                "date_faits": get_date_value(self.date_faits),
+                "numero_inc": int(self.num_enr.text()) if self.num_enr.text().isdigit() else None,
+                "numero_annee": int(self.num_enr.text()) if self.num_enr.text().isdigit() else None,
+                "annee_enr": int(self.annee_punition.text()) if self.annee_punition.text().isdigit() else None,
+                "grade_id": self.combo_handler.get_selected_id(self.grade),
+                "situation_mat_id": self.combo_handler.get_selected_id(self.situation_matrimoniale),
+                "unite_id": self.combo_handler.get_selected_id(self.unite),
+                "legion_id": self.combo_handler.get_selected_id(self.legion),
+                "subdiv_id": self.combo_handler.get_selected_id(self.subdivision),
+                "rg_id": self.combo_handler.get_selected_id(self.region),
+                "faute_id": self.combo_handler.get_selected_id(self.faute_commise),
+                "libelle": self.libelle.toPlainText().strip(),
+                "statut_id": self.combo_handler.get_selected_id(self.statut)
+            }
+
+            # Préparer les données de la sanction
+            current_statut = self.statut.currentText()
+
+            # Déterminer le type de sanction en fonction du statut
+            type_sanction_id = None
+            if current_statut == "SANCTIONNE":
+                # Utiliser le type sélectionné
+                type_sanction_id = self.combo_handler.get_selected_id(self.type_sanction)
+            elif current_statut == "EN COURS":
+                # Utiliser l'ID 6 pour "EN INSTANCE"
+                type_sanction_id = 6
+
+            sanction_data = {
+                "type_sanction_id": type_sanction_id,
+                "taux": self.taux_jar.text() or "0",
+                "numero_decision": self.num_decision.text() if self.type_sanction.currentText() == "RADIATION" else None,
+                "numero_arrete": self.num_arrete.text() if self.type_sanction.currentText() == "RADIATION" else None,
+                "annee_radiation": int(
+                    self.annee_punition.text()) if self.type_sanction.currentText() == "RADIATION" else None,
+                "ref_statut": self.ref_statut.text(),
+                "comite": self.comite.text() or "0"
+            }
+
+            # Utiliser la nouvelle méthode du DatabaseManager pour ajouter le dossier et la sanction
+            dossier_id, sanction_id = self.db_manager.add_case_and_sanction(dossier_data, sanction_data)
+
+            if dossier_id is not None and sanction_id is not None:
+                QMessageBox.information(self, "Succès", "Dossier enregistré avec succès!")
+                self.case_added.emit()
+                self.close()
+            else:
+                QMessageBox.critical(self, "Erreur", "Erreur lors de l'enregistrement du dossier et de la sanction.")
+
+        except Exception as e:
+            logger.error(f"Erreur inattendue : {str(e)}")
+            QMessageBox.critical(self, "Erreur", f"Erreur inattendue : {str(e)}")
 
 
 

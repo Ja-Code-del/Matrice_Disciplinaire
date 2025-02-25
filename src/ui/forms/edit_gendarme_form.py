@@ -1322,104 +1322,83 @@ class EditCaseForm(QMainWindow):
             if reply == QMessageBox.StandardButton.No:
                 return
 
-            # Début de la transaction
+            # Préparer les données du dossier à mettre à jour
+            dossier_data = {
+                "reference": self.reference_dossier.text(),
+                "date_enr": get_date_value(self.date_enr),
+                "date_faits": get_date_value(self.date_faits),
+                "numero_annee": int(self.num_enr.text()),
+                "annee_enr": int(self.annee_punition.text()),
+                "grade_id": self.combo_handler.get_selected_id(self.grade),
+                "situation_mat_id": self.combo_handler.get_selected_id(self.situation_matrimoniale),
+                "unite_id": self.combo_handler.get_selected_id(self.unite),
+                "legion_id": self.combo_handler.get_selected_id(self.legion),
+                "subdiv_id": self.combo_handler.get_selected_id(self.subdivision),
+                "rg_id": self.combo_handler.get_selected_id(self.region),
+                "faute_id": self.combo_handler.get_selected_id(self.faute_commise),
+                "libelle": self.libelle.toPlainText().strip(),
+                "statut_id": self.combo_handler.get_selected_id(self.statut)
+            }
+
+            # Préparer les données de la sanction à mettre à jour
+            current_statut = self.statut.currentText()
+
+            # Déterminer le type de sanction en fonction du statut
+            type_sanction_id = None
+            if current_statut == "SANCTIONNE":
+                # Utiliser le type sélectionné
+                type_sanction_id = self.combo_handler.get_selected_id(self.type_sanction)
+            elif current_statut == "EN COURS":
+                # Utiliser l'ID 6 pour "EN INSTANCE"
+                type_sanction_id = 6
+
+            sanction_data = {
+                "type_sanction_id": type_sanction_id,
+                "taux": self.taux_jar.text() or "0",
+                "numero_decision": self.num_decision.text() if self.type_sanction.currentText() == "RADIATION" else None,
+                "numero_arrete": self.num_arrete.text() if self.type_sanction.currentText() == "RADIATION" else None,
+                "annee_radiation": int(
+                    self.annee_punition.text()) if self.type_sanction.currentText() == "RADIATION" else None,
+                "ref_statut": self.ref_statut.text(),
+                "comite": self.comite.text() or "0"
+            }
+
+            # Mettre à jour le gendarme
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
-                try:
-                    # 1. Mise à jour du gendarme
-                    cursor.execute("""
-                        UPDATE Gendarmes SET
-                            nom_prenoms = ?,
-                            age = ?,
-                            sexe = ?,
-                            date_entree_gie = ?,
-                            annee_service = ?,
-                            nb_enfants = ?
-                        WHERE matricule = ?
-                    """, (
-                        f"{self.nom.text().strip()} {self.prenoms.text().strip()}",
-                        self.age.value(),
-                        self.sexe.currentText(),
-                        adapt_date(self.date_entree_gie.text().strip()),
-                        #get_date_value(self.date_entree_gie),
-                        self.annee_service.value(),
-                        self.nb_enfants.value(),
-                        self.matricule_field.text().strip()
-                    ))
+                cursor.execute("""
+                    UPDATE Gendarmes SET
+                        nom_prenoms = ?,
+                        age = ?,
+                        sexe = ?,
+                        date_entree_gie = ?,
+                        annee_service = ?,
+                        nb_enfants = ?
+                    WHERE matricule = ?
+                """, (
+                    f"{self.nom.text().strip()} {self.prenoms.text().strip()}",
+                    self.age.value(),
+                    self.sexe.currentText(),
+                    adapt_date(self.date_entree_gie.text().strip()),
+                    self.annee_service.value(),
+                    self.nb_enfants.value(),
+                    self.matricule_field.text().strip()
+                ))
+                conn.commit()
 
-                    # 2. Mise à jour de la sanction existante ou création d'une nouvelle
-                    if self.statut.currentText() == "SANCTIONNE":
-                        cursor.execute("""
-                            UPDATE Sanctions SET
-                                type_sanction_id = ?,
-                                taux = ?,
-                                numero_decision = ?,
-                                numero_arrete = ?,
-                                annee_radiation = ?,
-                                ref_statut = ?,
-                                comite = ?
-                            WHERE num_inc = ?
-                        """, (
-                            self.combo_handler.get_selected_id(self.type_sanction),
-                            str(self.taux_jar.text()),
-                            self.num_decision.text() if self.type_sanction.currentText() == "RADIATION" else None,
-                            self.num_arrete.text() if self.type_sanction.currentText() == "RADIATION" else None,
-                            int(self.annee_punition.text()) if self.type_sanction.currentText() == "RADIATION" else None,
-                            self.ref_statut.text(),
-                            self.comite.text(),
-                            self.num_enr.text()
-                        ))
+            # Utiliser la nouvelle méthode du DatabaseManager pour mettre à jour le dossier et la sanction
+            success = self.db_manager.update_case_and_sanction(
+                self.matricule,
+                self.reference_dossier.text(),
+                dossier_data,
+                sanction_data
+            )
 
-                    # 3. Mise à jour du dossier
-                    cursor.execute("""
-                        UPDATE Dossiers SET
-                            reference = ?,
-                            date_enr = ?,
-                            date_faits = ?,
-                            numero_annee = ?,
-                            annee_enr = ?,
-                            grade_id = ?,
-                            situation_mat_id = ?,
-                            unite_id = ?,
-                            legion_id = ?,
-                            subdiv_id = ?,
-                            rg_id = ?,
-                            faute_id = ?,
-                            libelle = ?,
-                            statut_id = ?
-                        WHERE matricule_dossier = ? AND reference = ?
-                    """, (
-                        self.reference_dossier.text(),
-                        get_date_value(self.date_enr),
-                        get_date_value(self.date_faits),
-                        int(self.num_enr.text()),
-                        int(self.annee_punition.text()),
-                        self.combo_handler.get_selected_id(self.grade),
-                        self.combo_handler.get_selected_id(self.situation_matrimoniale),
-                        self.combo_handler.get_selected_id(self.unite),
-                        self.combo_handler.get_selected_id(self.legion),
-                        self.combo_handler.get_selected_id(self.subdivision),
-                        self.combo_handler.get_selected_id(self.region),
-                        self.combo_handler.get_selected_id(self.faute_commise),
-                        self.libelle.toPlainText().strip(),
-                        self.combo_handler.get_selected_id(self.statut),
-                        self.matricule,
-                        self.reference_dossier.text()
-                    ))
-
-                    conn.commit()
-                    QMessageBox.information(self, "Succès", "Les modifications ont été enregistrées avec succès!")
-                    self.close()
-
-                except sqlite3.IntegrityError as e:
-                    conn.rollback()
-                    print(f"Erreur d'intégrité : {str(e)}")
-                    QMessageBox.critical(self, "Erreur", f"Erreur d'intégrité de la base de données: {str(e)}")
-
-                except Exception as e:
-                    conn.rollback()
-                    print(f"Erreur lors de l'enregistrement : {str(e)}")
-                    QMessageBox.critical(self, "Erreur", f"Erreur lors de l'enregistrement : {str(e)}")
+            if success:
+                QMessageBox.information(self, "Succès", "Les modifications ont été enregistrées avec succès!")
+                self.close()
+            else:
+                QMessageBox.critical(self, "Erreur", "Erreur lors de la mise à jour du dossier et de la sanction.")
 
         except Exception as e:
             QMessageBox.critical(self, "Erreur", f"Erreur inattendue : {str(e)}")

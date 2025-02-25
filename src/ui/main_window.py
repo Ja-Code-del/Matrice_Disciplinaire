@@ -59,6 +59,8 @@ class MainGendarmeApp(QMainWindow):
         # Initialisation de l'interface
         self.init_ui()
 
+
+
     def init_ui(self):
         """Initialise interface utilisateur"""
         self.setWindowTitle("Matrice disciplinaire des Gendarmes")
@@ -70,21 +72,46 @@ class MainGendarmeApp(QMainWindow):
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
 
-        # if self.username:
-        #     header_layout = QHBoxLayout()
-        #     user_info = UserInfoWidget(self.username)
-        #     header_layout.addStretch()  # Pour pousser le widget vers la droite
-        #     header_layout.addWidget(user_info)
-        #     layout.addLayout(header_layout)
+        if self.username:
+            header_layout = QHBoxLayout()
+            user_info = UserInfoWidget(self.username)
+            header_layout.addStretch()  # Pour pousser le widget vers la droite
+            header_layout.addWidget(user_info)
+            layout.addLayout(header_layout)
 
         # Configuration de la barre de recherche avec logo
         search_group = QGroupBox("Rechercher")
+
+        search_group.setStyleSheet("""
+            QGroupBox {
+                border: none;
+                font-weight: bold;
+                padding: 10px;
+            }
+        """)
+
         search_group.setFont(QFont('Helvetica', 24, QFont.Weight.Bold))
         search_layout = QHBoxLayout()
         self.search_type = QComboBox()
         self.search_type.addItems(["Matricule (MLE)"])
+        self.search_type.hide()
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Entrez votre recherche...")
+        self.search_input.setPlaceholderText("Rechercher par matricule...")
+
+        self.search_input.setStyleSheet("""
+            QLineEdit {
+                font-size: 16px;
+                padding: 10px;
+                border-radius: px;
+                border: 1px solid #ccc;
+                background-color: #f8f9fa;
+            }
+            QLineEdit:focus {
+                border: 1px solid #0078D7;
+                background-color: white;
+            }
+        """)
+
         self.search_input.returnPressed.connect(self.search_gendarme)  # Ajout de la recherche par Enter
         search_button = QPushButton("Rechercher")
         search_button.clicked.connect(self.search_gendarme)
@@ -128,11 +155,11 @@ class MainGendarmeApp(QMainWindow):
         }
         QPushButton {
         text-align: left;
-        
+
         margin: 0px;
         border: none;
         width: 100%;
-    }
+        }
         """)
 
         # Buttons
@@ -168,7 +195,7 @@ class MainGendarmeApp(QMainWindow):
         common_style = """
             QPushButton {
                 text-align: left;
-                
+
                 border: none;
                 width: 210px;  /* Largeur fixe pour tous les boutons */
             }
