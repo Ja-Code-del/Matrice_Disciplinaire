@@ -123,10 +123,12 @@ class DataImporter:
         return {
             'matricule': str(row['MLE']).strip() if pd.notna(row['MLE']) else None,
             'nom_prenoms': str(row['NOM ET PRENOMS']).strip() if pd.notna(row['NOM ET PRENOMS']) else None,
-            'age': age,
+            'age': int(row['AGE']) if pd.notna(row['AGE']) and str(
+                row['AGE']).isdigit() else None,
             'sexe': str(row['SEXE']).strip() if pd.notna(row['SEXE']) else None,
             'date_entree_gie': str(row['DATE D\'ENTREE GIE']).strip() if pd.notna(row['DATE D\'ENTREE GIE']) else None,
-            'annee_service': annee_service,
+            'annee_service': int(row['ANNEE DE SERVICE']) if pd.notna(row['ANNEE DE SERVICE']) and str(
+                row['ANNEE DE SERVICE']).isdigit() else None,
             'nb_enfants': str(row['NB ENF']).strip() if pd.notna(row['NB ENF']) else None
         }
 
