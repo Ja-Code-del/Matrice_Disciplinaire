@@ -32,7 +32,8 @@ class StatistiquesWindow(QMainWindow):
         self.total_sanctions_label = None
         self.db_manager = db_manager
         self.setWindowTitle("Statistiques")
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(1000, 750)
+        self.resize(1280, 800)
 
         # Style commun pour les cartes
         self.card_style = """
@@ -50,7 +51,7 @@ class StatistiquesWindow(QMainWindow):
 
         # Création des cartes dès l'initialisation
         self.total_card = self._create_trend_card(
-            "-", "Dossiers disciplinaires à ce jour", self.card_style, large=True)
+            "-", "Dossiers disciplinaires pour cette année", self.card_style, large=True)
         self.grade_card = self._create_trend_card(
             "-", "Le grade enregistrant le plus\ngrand nombre de sanctions", self.card_style)
         self.service_card = self._create_trend_card(
@@ -84,7 +85,7 @@ class StatistiquesWindow(QMainWindow):
         value_label.setStyleSheet("""
             font-size: 40px; 
             font-weight: bold;
-            font-family: "Apple SD Gothic Neo", "Segoe UI", system-ui, -apple-system, sans-serif;
+            font-family: 'Space_Grotesk';
         """
             )
         value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -95,7 +96,7 @@ class StatistiquesWindow(QMainWindow):
         desc_label.setStyleSheet("""
             font-size: 12px; 
             color: #666666;"
-            font-family: "Apple SD Gothic Neo", "Segoe UI", system-ui, -apple-system, sans-serif;
+            font-family: 'Space_Grotesk';
         """
         )
         desc_label.setWordWrap(True)
