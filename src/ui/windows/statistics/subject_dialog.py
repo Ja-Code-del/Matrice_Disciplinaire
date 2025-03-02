@@ -28,6 +28,7 @@ class SubjectDialog(QDialog):
         self.setMinimumWidth(500)
         self.setup_ui()
         self.results_table = None
+        #self.theme_combo = QComboBox()
 
     # Dans SubjectDialog
     def analyze_subject(self):
@@ -38,7 +39,7 @@ class SubjectDialog(QDialog):
             print(f"Sélection effectuée: {selection}")  # Debug
 
             # Vérification de la sélection
-            if selection['value'].startswith('Tous'):
+            if selection['value'].startswith('Tou(tes)'):
                 QMessageBox.warning(
                     self,
                     "Attention",
@@ -203,32 +204,42 @@ class SubjectDialog(QDialog):
         self.value_combo.clear()
 
         if current_theme in ANALYSIS_THEMES:
-            field = ANALYSIS_THEMES[current_theme]["field"]
             # Ajouter l'option "Tous"
-            self.value_combo.addItem(f"Tous les {current_theme.lower()}")
+            self.value_combo.addItem(f"Tou(te)s les {current_theme.lower()}")
 
             try:
                 with self.db_manager.get_connection() as conn:
                     cursor = conn.cursor()
 
-                    if current_theme == "Subdivision":
-                        # Utiliser les subdivisions prédéfinies
-                        for subdiv in SUBDIVISIONS:
-                            self.value_combo.addItem(subdiv)
-
-                    elif current_theme == "Tranches années service":
-                        # Utiliser les tranches d'années prédéfinies
+                    # Gestion des cas particuliers (Tranches d'années de service)
+                    if current_theme == "Tranches années service":
                         for service_range in SERVICE_RANGES:
                             self.value_combo.addItem(service_range)
 
                     else:
-                        # Récupérer les valeurs de la base de données
-                        table = "gendarmes" if field in ["situation_matrimoniale", "annee_service"] else "sanctions"
-                        query = f"SELECT DISTINCT {field} FROM {table} WHERE {field} IS NOT NULL ORDER BY {field}"
-                        cursor.execute(query)
-                        values = cursor.fetchall()
-                        for value in values:
-                            if value[0]:  # Ignorer les valeurs NULL
+                        # Correspondance entre les thèmes et les tables de la base de données
+                        table_mapping = {
+                            "Année": ("Dossiers d", "d.annee_enr"),
+                            "Grades": ("Grade gr", "gr.lib_grade"),
+                            "Unite": ("Unite u", "u.lib_unite"),
+                            "Légion": ("Legion l", "l.lib_legion"),
+                            "Subdivision": ("Subdiv su", "su.lib_subdiv"),
+                            "Région": ("Region r", "r.lib_rg"),
+                            "Situation matrimoniale": ("Sit_mat st", "st.lib_sit_mat"),
+                            "Fautes commises": ("Fautes f", "f.lib_faute"),
+                            "Catégorie de Fautes": ("Categories c", "c.id_categorie"),
+                            "Type de sanction": ("Type_sanctions ts", "ts.lib_type_sanction"),
+                            "Statut": ("Statut st", "st.lib_statut")
+                        }
+
+                        if current_theme in table_mapping.keys():
+                            table, column = table_mapping[current_theme]
+                            query = f"SELECT DISTINCT {column} FROM {table} WHERE {column} IS NOT NULL ORDER BY {column}"
+                            cursor.execute(query)
+                            values = cursor.fetchall()
+                            print(values)
+
+                            for value in values:
                                 self.value_combo.addItem(str(value[0]))
 
             except Exception as e:

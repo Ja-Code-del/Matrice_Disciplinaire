@@ -28,6 +28,7 @@ class StatistiquesWindow(QMainWindow):
 
     def __init__(self, db_manager):
         super().__init__()
+        #self.current_subject = None
         self.total_gendarmes_label = None
         self.total_sanctions_label = None
         self.db_manager = db_manager
@@ -249,13 +250,13 @@ class StatistiquesWindow(QMainWindow):
 
                 # 1. Total des dossiers de l'année en cours
                 total_query = """
-                    SELECT MAX(Dossiers.numero_annee )
-                    FROM Dossiers
-                    WHERE Dossiers.annee_enr = ?
+                    SELECT d.annee_enr, COUNT(d.id_dossier ) AS total
+                    FROM Dossiers d
+                    WHERE d.annee_enr = ?
                 """
                 cursor = conn.cursor()
                 cursor.execute(total_query, (str(current_year),))
-                total = cursor.fetchone()[0]
+                total = cursor.fetchone()[1]
                 self.total_card.value_label.setText(str(total))
 
                 # 2. Grade le plus sanctionné
@@ -598,7 +599,7 @@ class StatistiquesWindow(QMainWindow):
     def get_statistics_data(self):
         """Récupère et organise les données pour les statistiques"""
         try:
-            # Requête mise à jour avec toutes les colonnes directement issues de main_tab
+            # Requête mise à jour avec toutes les colonnes directement issues des tables corresponsantes
             sanctions_query = """
                         SELECT DISTINCT
                             d.numero_inc,

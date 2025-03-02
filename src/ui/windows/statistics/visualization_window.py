@@ -52,7 +52,8 @@ class VisualizationWindow(QMainWindow):
 
         # Configuration du style Seaborn
         sns.set_style("whitegrid")
-        sns.set_palette("cubehelix", n_colors=8)
+        sns.set_palette("pastel")
+        sns.set_context("notebook", font_scale=1.2)  # Taille de police améliorée
 
         self.setup_ui()
         #self.load_data()
@@ -176,6 +177,24 @@ class VisualizationWindow(QMainWindow):
 
         main_layout.addLayout(export_layout)
 
+    def get_table_prefix_for_field(self, field):
+        """Détermine le préfixe de table pour un champ donné."""
+        mapping = {
+            'lib_faute': 'f',
+            'id_categorie': 'c',
+            'lib_statut': 's2',
+            'annee_enr': 'd',
+            'lib_type_sanction': 'ts',
+            'lib_grade': 'gr',
+            'lib_unite': 'u',
+            'lib_rg': 'r',
+            'lib_legion': 'l',
+            'lib_subdiv': 's',
+            'lib_sit_mat': 'sm',
+            'annee_service': 'd'
+        }
+        return mapping.get(field, 'd')  # Retourne 'd' par défaut si le champ n'est pas trouvé
+
     def load_data(self):
         """Charge et affiche les données selon la configuration."""
         try:
@@ -188,211 +207,128 @@ class VisualizationWindow(QMainWindow):
                 print("\nConfiguration:", self.config)  # Debug
 
                 # Définir les champs de chaque table
-                sanctions_fields = ['faute_commise', 'categorie', 'statut', 'annee_punition', 'annee_faits']
-                gendarmes_fields = ['grade', 'subdiv', 'situation_matrimoniale', 'annee_service']
+                stats_fields = ['lib_faute', 'id_categorie', 'lib_statut', 'annee_enr', 'lib_type_sanction',
+                                'lib_grade', 'lib_unite', 'lib_rg', 'lib_legion', 'lib_subdiv', 'lib_sit_mat',
+                                'annee_service']
 
-                # Initialiser les variables pour les requêtes
-                gendarmes_where = ""
-                gendarmes_params = []
-                sanctions_where = ""
-                sanctions_params = []
+                # Commencer à construire la requête
+                base_query = """
+                SELECT DISTINCT
+                    d.numero_inc,
+                    d.id_dossier,
+                    d.matricule_dossier,
+                    d.reference,
+                    d.date_faits,
+                    d.annee_enr,
+                    g.annee_service,
+                    gr.lib_grade,
+                    u.lib_unite,
+                    l.lib_legion,
+                    s.lib_subdiv,
+                    r.lib_rg,
+                    sm.lib_sit_mat,
+                    f.lib_faute,
+                    c.id_categorie,
+                    ts.lib_type_sanction,
+                    sa.taux,
+                    sa.comite,
+                    s2.lib_statut
+                FROM Dossiers d
+                LEFT JOIN Gendarmes g ON d.matricule_dossier = g.matricule
+                LEFT JOIN Grade gr ON d.grade_id = gr.id_grade
+                LEFT JOIN Unite u ON d.unite_id = u.id_unite
+                LEFT JOIN Legion l ON d.legion_id = l.id_legion
+                LEFT JOIN Subdiv s ON d.subdiv_id = s.id_subdiv
+                LEFT JOIN Region r ON d.rg_id = r.id_rg
+                LEFT JOIN Sit_mat sm ON d.situation_mat_id = sm.id_sit_mat
+                LEFT JOIN Fautes f ON d.faute_id = f.id_faute
+                LEFT JOIN Categories c ON f.cat_id = c.id_categorie
+                LEFT JOIN Sanctions sa ON d.numero_inc = sa.num_inc
+                LEFT JOIN Type_sanctions ts ON sa.type_sanction_id = ts.id_type_sanction
+                LEFT JOIN Statut s2 ON d.statut_id = s2.id_statut 
+                WHERE 1 = 1
+                """
 
-                if not subject_selection['value'].startswith('Tous'):
+                where_clause = ""
+                stats_params = []
+
+                # Ajouter des conditions de filtrage si nécessaire
+                if not subject_selection['value'].startswith('Tou(te)s'):
                     field = subject_selection['field']
                     value = subject_selection['value']
 
-                    if field in gendarmes_fields:
-                        gendarmes_where = f" WHERE g.{field} = ?"
-                        gendarmes_params = [value]
-                        # Requête pour obtenir les gendarmes (filtrée ou non)
-                    gendarmes_query = f"""
-                    SELECT 
-                        mle,
-                        grade,
-                        subdiv,
-                        annee_service,
-                        situation_matrimoniale
-                    FROM gendarmes g
-                    {gendarmes_where}
-                    """
-                    gendarmes_df = pd.read_sql_query(gendarmes_query, conn, params=gendarmes_params)
-                    print(f"Nombre de gendarmes: {len(gendarmes_df)}")
+                    if field in stats_fields:
+                        table_prefix = self.get_table_prefix_for_field(field)
+                        where_clause = f" AND {table_prefix}.{field} = ?"
+                        stats_params.append(value)
 
-                    # Construction de la requête pour les sanctions uniques
-                    sanctions_query = """
-                    WITH unique_sanctions AS (
-                        SELECT 
-                            MIN(s.id) as first_id,
-                            COALESCE(s.numero_dossier, 'SANS_NUMERO_' || MIN(s.id)) as unique_dossier,
-                            s.matricule,
-                            s.date_enr,
-                            s.date_faits,
-                            s.faute_commise,
-                            s.categorie,
-                            s.statut,
-                            s.annee_punition,
-                            s.annee_faits,
-                            COUNT(*) as sanctions_count
-                        FROM sanctions s
-                        """
+                # Compléter la requête
+                stats_query = base_query + where_clause + """
+                GROUP BY d.numero_inc 
+                ORDER BY d.numero_inc DESC
+                """
 
-                    # Si le sujet vient des sanctions, ajouter le WHERE
-                    if field in sanctions_fields:
-                        sanctions_where = f" WHERE s.{field} = ?"
-                        sanctions_params = [value]
-                        sanctions_query += sanctions_where
+                # Exécuter la requête avec ou sans paramètres
+                stats_df = pd.read_sql_query(stats_query, conn, params=stats_params)
+                print(f"Nombre de dossiers: {len(stats_df)}")
 
-                    # Continuer la requête des sanctions
-                    sanctions_query += """
-                    GROUP BY COALESCE(s.numero_dossier, 'SANS_NUMERO_' || s.id),
-                             s.matricule,
-                             s.date_enr,
-                             s.date_faits,
-                             s.faute_commise,
-                             s.categorie,
-                             s.statut,
-                             s.annee_punition,
-                             s.annee_faits
-                    )
-                    SELECT * FROM unique_sanctions
-                    """
-                    print("\nRequête sanctions:", sanctions_query)  # Debug
-                    print("Paramètres sanctions:", sanctions_params)  # Debug
-                    print("Requête gendarmes:", gendarmes_query)  # Debug
-                    print("Paramètres gendarmes:", gendarmes_params)  # Debug
+                # Modifier le traitement des années de service
+                if any(config["field"] == "annee_service" for config in
+                       [self.config["x_axis"], self.config["y_axis"]]):
+                    # Définir les catégories à l'avance avec "Non spécifié"
+                    service_categories = ['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
+                                          '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS', 'Non spécifié']
 
-                    # Exécuter la requête des sanctions
-                    sanctions_df = pd.read_sql_query(sanctions_query, conn, params=sanctions_params)
-                    print(f"\nNombre de sanctions uniques: {len(sanctions_df)}")
+                    # Conversion en catégories
+                    stats_df['annee_service'] = pd.to_numeric(stats_df['annee_service'], errors='coerce')
 
-                    # Convertir les colonnes pour la fusion
-                    sanctions_df['matricule'] = sanctions_df['matricule'].astype(str)
-                    gendarmes_df['mle'] = gendarmes_df['mle'].astype(str)
-
-                    print("\nDébug avant fusion:")
-                    print(f"Nombre de sanctions uniques: {len(sanctions_df)}")
-                    print(f"Colonnes sanctions: {sanctions_df.columns}")
-                    print(f"Colonnes gendarmes: {gendarmes_df.columns}")
-
-                    # Fusion des données
-                    if field in gendarmes_fields:
-                        # Si le sujet vient des gendarmes, on fait d'abord la fusion
-                        df = sanctions_df.merge(
-                            gendarmes_df,
-                            left_on='matricule',
-                            right_on='mle',
-                            how='inner'  # On ne garde que les sanctions des gendarmes filtrés
-                        )
-                    else:
-                        # Sinon, fusion normale
-                        df = sanctions_df.merge(
-                            gendarmes_df,
-                            left_on='matricule',
-                            right_on='mle',
-                            how='left'
-                        )
-
-                    # S'assurer de l'unicité des enregistrements après la fusion
-                    df = df.drop_duplicates(subset=['first_id', 'unique_dossier'])
-                    print("\nDébug après fusion et déduplication:")
-                    print(f"Nombre total d'enregistrements: {len(df)}")
-
-                    # Vérification des doublons éventuels
-                    doublons = df[df.duplicated(['first_id', 'unique_dossier'], keep=False)]
-                    if not doublons.empty:
-                        print("\nDoublons trouvés:")
-                        print(doublons[['first_id', 'unique_dossier', 'matricule', 'mle']])
-
-                    if df is None or df.empty:
-                        raise Exception("Aucune donnée disponible")
-
-                    # Modifier le traitement des années de service
-                    if any(config["field"] == "annee_service" for config in
-                           [self.config["x_axis"], self.config["y_axis"]]):
-                        # Définir les catégories à l'avance avec "Non spécifié"
-                        service_categories = ['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
-                                              '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS', 'Non spécifié']
-
-                        # Conversion en catégories
-                        df['annee_service'] = pd.to_numeric(df['annee_service'], errors='coerce')
-
-                        # Création des tranches avec gestion des valeurs nulles
-                        df['service_range'] = pd.cut(
-                            df['annee_service'],
-                            bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
-                            labels=service_categories[:-1],  # Exclure "Non spécifié"
-                            include_lowest=True
-                        )
-
-                        # Remplacer les NaN par "Non spécifié"
-                        df['service_range'] = df['service_range'].cat.add_categories(['Non spécifié'])
-                        df.loc[df['service_range'].isna(), 'service_range'] = 'Non spécifié'
-
-                    # Traitement spécial pour les années de service si nécessaire
-                    # if any(config["field"] == "annee_service"
-                    #        for config in [self.config["x_axis"], self.config["y_axis"]]):
-                    #     # S'assurer que annee_service est numérique
-                    #     df['annee_service'] = pd.to_numeric(df['annee_service'], errors='coerce')
-                    #
-                    #     # Créer d'abord un masque pour les valeurs nulles/invalides
-                    #     null_mask = df['annee_service'].isna()
-                    #
-                    #     # Si aucune valeur nulle, pas besoin de catégorie "Non spécifié"
-                    #     if not null_mask.any():
-                    #         df['service_range'] = pd.cut(
-                    #             df['annee_service'],
-                    #             bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
-                    #             labels=['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
-                    #                     '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS'],
-                    #             include_lowest=True
-                    #         )
-                    #     else:
-                    #         # Créer les tranches pour les valeurs valides
-                    #         df.loc[~null_mask, 'service_range'] = pd.cut(
-                    #             df.loc[~null_mask, 'annee_service'],
-                    #             bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
-                    #             labels=['0-5 ANS', '6-10 ANS', '11-15 ANS', '16-20 ANS',
-                    #                     '21-25 ANS', '26-30 ANS', '31-35 ANS', '36-40 ANS'],
-                    #             include_lowest=True
-                    #         )
-                    #         # Attribuer "Non spécifié" aux valeurs nulles/invalides
-                    #         df.loc[null_mask, 'service_range'] = 'Non spécifié'
-
-                    # Préparation des données pour les axes
-                    x_config = self.config["x_axis"]
-                    y_config = self.config["y_axis"]
-
-                    # Déterminer les valeurs des axes
-                    if x_config["field"] == "annee_service":
-                        x_values = df['service_range']
-                    else:
-                        x_values = df[x_config["field"]]
-
-                    if y_config["field"] == "annee_service":
-                        y_values = df['service_range']
-                    else:
-                        y_values = df[y_config["field"]]
-
-                    # Création du tableau croisé
-                    pivot_df = pd.crosstab(
-                        index=y_values,
-                        columns=x_values,
-                        dropna=True,
-                        margins=True,
-                        margins_name='TOTAL'
+                    # Création des tranches avec gestion des valeurs nulles
+                    stats_df['service_range'] = pd.cut(
+                        stats_df['annee_service'],
+                        bins=[0, 5, 10, 15, 20, 25, 30, 35, 40],
+                        labels=service_categories[:-1],  # Exclure "Non spécifié" des labels
+                        include_lowest=True
                     )
 
-                    # Préparation des données pour les graphiques
-                    graph_df = pd.DataFrame({
-                        'x_value': x_values,
-                        'y_value': y_values
-                    })
-                    graph_df = graph_df.groupby(['x_value', 'y_value'], observed=True).size().reset_index(
-                        name='count')
+                    # Remplacer les NaN par "Non spécifié"
+                    stats_df['service_range'] = stats_df['service_range'].cat.add_categories(['Non spécifié'])
+                    stats_df.loc[stats_df['service_range'].isna(), 'service_range'] = 'Non spécifié'
 
-                    self.df = graph_df
-                    self.pivot_df = pivot_df
-                    self.update_table(pivot_df)
+                # Préparation des données pour les axes
+                x_config = self.config["x_axis"]
+                y_config = self.config["y_axis"]
+
+                # Déterminer les valeurs des axes
+                if x_config["field"] == "annee_service":
+                    x_values = stats_df['service_range']
+                else:
+                    x_values = stats_df[x_config["field"]]
+
+                if y_config["field"] == "annee_service":
+                    y_values = stats_df['service_range']
+                else:
+                    y_values = stats_df[y_config["field"]]
+
+                # Création du tableau croisé
+                pivot_df = pd.crosstab(
+                    index=y_values,
+                    columns=x_values,
+                    dropna=True,
+                    margins=True,
+                    margins_name='TOTAL'
+                )
+
+                # Préparation des données pour les graphiques
+                graph_df = pd.DataFrame({
+                    'x_value': x_values,
+                    'y_value': y_values
+                })
+                graph_df = graph_df.groupby(['x_value', 'y_value'], observed=True).size().reset_index(
+                    name='count')
+
+                self.df = graph_df
+                self.pivot_df = pivot_df
+                self.update_table(pivot_df)
 
         except Exception as e:
             print(f"Error in load_data: {str(e)}")
@@ -409,7 +345,6 @@ class VisualizationWindow(QMainWindow):
         if hasattr(self, 'canvas'):
             self.canvas.close()
 
-
     def apply_filters(self, df):
         """Applique les filtres de configuration au DataFrame."""
         try:
@@ -418,7 +353,7 @@ class VisualizationWindow(QMainWindow):
             # Application des filtres pour chaque axe
             for config in [self.config["x_axis"], self.config["y_axis"]]:
                 value = config.get("value", "")
-                if value and not value.startswith("Tous"):
+                if value and not value.startswith("Tou(te)s"):
                     if config["field"] == "annee_service":
                         service_range = value
                         start, end = map(int, service_range.split("-")[0:2])
@@ -512,7 +447,7 @@ class VisualizationWindow(QMainWindow):
         """Met à jour le graphique selon la configuration choisie."""
         try:
             # Vérifier les données et la configuration
-            if self.df is None or self.pivot_df is None:
+            if df is None or self.pivot_df is None:
                 raise Exception("Aucune donnée disponible")
 
             if not isinstance(chart_config, dict):
@@ -572,9 +507,9 @@ class VisualizationWindow(QMainWindow):
                 return
 
             total = len(df)
-            moyenne = df['annee_punition'].mean() if 'annee_punition' in df.columns else 0
-            maximum = df['annee_punition'].max() if 'annee_punition' in df.columns else 0
-            minimum = df['annee_punition'].min() if 'annee_punition' in df.columns else 0
+            moyenne = df['annee_enr'].mean() if 'annee_enr' in df.columns else 0
+            maximum = df['annee_enr'].max() if 'annee_enr' in df.columns else 0
+            minimum = df['annee_enr'].min() if 'annee_enr' in df.columns else 0
 
             self.info_label.setText(
                 f"Total: {total} | "
@@ -611,7 +546,7 @@ class VisualizationWindow(QMainWindow):
                 x=value_col,
                 y='count',
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=len(data))
+                palette=sns.color_palette("husl", n_colors=len(data))
             )
 
             # Style et étiquettes
@@ -654,7 +589,7 @@ class VisualizationWindow(QMainWindow):
                 data,
                 labels=[f"{x}\n({v:,} - {(v / total) * 100:.1f}%)" for x, v in data.items()],
                 autopct='',
-                colors=sns.color_palette("cubehelix", n_colors=len(data))
+                colors=sns.color_palette("husl", n_colors=len(data))
             )
 
             # Titre
@@ -691,7 +626,7 @@ class VisualizationWindow(QMainWindow):
                 data,
                 labels=[f"{x}\n({v:,} - {(v / total) * 100:.1f}%)" for x, v in data.items()],
                 autopct='',
-                colors=sns.color_palette("cubehelix", n_colors=len(data)),
+                colors=sns.color_palette("husl", n_colors=len(data)),
                 wedgeprops=dict(width=0.5)  # Crée l'effet donut
             )
 
@@ -728,7 +663,7 @@ class VisualizationWindow(QMainWindow):
                 kind='bar',
                 stacked=True,
                 ax=ax,
-                colormap='cubehelix'
+                colormap='viridis'
             )
 
             # Style et étiquettes
@@ -739,7 +674,7 @@ class VisualizationWindow(QMainWindow):
             ax.set_ylabel('Nombre de sanctions')
 
             # Rotation des étiquettes
-            plt.xticks(rotation=45, ha='right')
+            plt.xticks(rotation=-45, ha='right')
 
             # Ajout des totaux au-dessus de chaque barre
             totals = plot_df.sum(axis=1)
@@ -926,7 +861,7 @@ class VisualizationWindow(QMainWindow):
                 x=group_col,
                 y='count',
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=8)
+                palette=sns.color_palette("husl", n_colors=8)
             )
 
             # Style et étiquettes
@@ -971,7 +906,7 @@ class VisualizationWindow(QMainWindow):
                 x=group_col,
                 y='count',
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=8),
+                palette=sns.color_palette("husl", n_colors=8),
                 inner='box'  # Affiche un boxplot à l'intérieur
             )
 
@@ -1011,7 +946,7 @@ class VisualizationWindow(QMainWindow):
 
             # Création du graphique pour chaque catégorie
             categories = df[group_col].unique()
-            palette = sns.color_palette("cubehelix", n_colors=len(categories))
+            palette = sns.color_palette("husl", n_colors=len(categories))
 
             for idx, category in enumerate(categories):
                 subset = df[df[group_col] == category]
@@ -1057,7 +992,7 @@ class VisualizationWindow(QMainWindow):
                 x=group_col,
                 y='count',
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=8),
+                palette=sns.color_palette("husl", n_colors=8),
                 size=8,
                 alpha=0.7
             )
@@ -1102,7 +1037,7 @@ class VisualizationWindow(QMainWindow):
                 data=df,
                 x=group_col,
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=8),
+                palette=sns.color_palette("husl", n_colors=8),
                 order=df[group_col].value_counts().index
             )
 
@@ -1145,7 +1080,7 @@ class VisualizationWindow(QMainWindow):
                 x=group_col,
                 y='count',
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=8),
+                palette=sns.color_palette("husl", n_colors=len(df)),
                 size=8,
                 alpha=0.6,
                 jitter=True  # Ajoute un peu de bruit aléatoire pour éviter la superposition
@@ -1215,7 +1150,7 @@ class VisualizationWindow(QMainWindow):
                 y=value_col,  # Inverser x et y pour l'orientation horizontale
                 x='count',
                 ax=ax,
-                palette=sns.color_palette("cubehelix", n_colors=len(data)),
+                palette=sns.color_palette("husl", n_colors=len(data)),
                 orient='h'  # Spécifier l'orientation horizontale
             )
 

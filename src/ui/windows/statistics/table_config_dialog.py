@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-from src.data.gendarmerie.structure import SUBDIVISIONS, SERVICE_RANGES, ANALYSIS_THEMES
+from src.data.gendarmerie.structure import SERVICE_RANGES, ANALYSIS_THEMES
 from src.ui.windows.statistics.chart_selection_dialog import ChartSelectionDialog
 
 
@@ -119,43 +119,50 @@ class TableConfigDialog(QDialog):
 
     def update_value_combo(self, theme_combo, value_combo):
         """Met à jour le combo des valeurs en fonction du thème sélectionné."""
-        theme = theme_combo.currentText()
+        current_theme = theme_combo.currentText()
         value_combo.clear()
 
-        if theme in self.THEMES:
-            field = self.THEMES[theme]["field"]
-            # Ajouter "Tous" comme première option
-            value_combo.addItem(f"Tous les {theme.lower()}")
+        if current_theme in ANALYSIS_THEMES:
+            # Ajouter l'option "Tous"
+            value_combo.addItem(f"Tou(te)s les {current_theme.lower()}")
 
-            if theme == "Tranches années service":
-                # Utiliser les tranches prédéfinies
-                for tranche in SERVICE_RANGES:
-                    value_combo.addItem(tranche)
-            elif field == "subdiv":
-                # Utiliser les subdivisions prédéfinies
-                for subdiv in SUBDIVISIONS:
-                    value_combo.addItem(subdiv)
-            elif field == "grade":
-                # Récupérer tous les grades disponibles
+            try:
                 with self.db_manager.get_connection() as conn:
                     cursor = conn.cursor()
-                    cursor.execute("SELECT DISTINCT grade FROM gendarmes ORDER BY grade")
-                    grades = cursor.fetchall()
-                    for grade in grades:
-                        if grade[0]:  # Ignorer les valeurs NULL
-                            value_combo.addItem(str(grade[0]))
-            else:
-                # Récupérer les valeurs de la base de données
-                with self.db_manager.get_connection() as conn:
-                    cursor = conn.cursor()
-                    table = "gendarmes" if field in ["situation_matrimoniale", "annee_service",
-                                                     "grade"] else "sanctions"
-                    query = f"SELECT DISTINCT {field} FROM {table} WHERE {field} IS NOT NULL ORDER BY {field}"
-                    cursor.execute(query)
-                    values = cursor.fetchall()
-                    for value in values:
-                        if value[0]:  # Ignorer les valeurs NULL
-                            value_combo.addItem(str(value[0]))
+
+                    # Gestion des cas particuliers (Tranches d'années de service)
+                    if current_theme == "Tranches années service":
+                        for service_range in SERVICE_RANGES:
+                            value_combo.addItem(service_range)
+
+                    else:
+                        # Correspondance entre les thèmes et les tables de la base de données
+                        table_mapping = {
+                            "Année": ("Dossiers d", "d.annee_enr"),
+                            "Grades": ("Grade gr", "gr.lib_grade"),
+                            "Unite": ("Unite u", "u.lib_unite"),
+                            "Légion": ("Legion l", "l.lib_legion"),
+                            "Subdivision": ("Subdiv su", "su.lib_subdiv"),
+                            "Région": ("Region r", "r.lib_rg"),
+                            "Situation matrimoniale": ("Sit_mat st", "st.lib_sit_mat"),
+                            "Fautes commises": ("Fautes f", "f.lib_faute"),
+                            "Catégorie de Fautes": ("Categories c", "c.id_categorie"),
+                            "Type de sanction": ("Type_sanctions ts", "ts.lib_type_sanction"),
+                            "Statut": ("Statut st", "st.lib_statut")
+                        }
+
+                        if current_theme in table_mapping.keys():
+                            table, column = table_mapping[current_theme]
+                            query = f"SELECT DISTINCT {column} FROM {table} WHERE {column} IS NOT NULL ORDER BY {column}"
+                            cursor.execute(query)
+                            values = cursor.fetchall()
+                            print(values)
+
+                            for value in values:
+                                value_combo.addItem(str(value[0]))
+
+            except Exception as e:
+                print(f"Erreur lors de la récupération des valeurs : {str(e)}")
 
     def accept(self):
         """Appelé quand l'utilisateur valide la configuration."""
