@@ -15,8 +15,8 @@ from src.ui.styles.styles import Styles
 from src.database.models import  GendarmesRepository, DossiersRepository, SanctionsRepository
 from src.ui.windows.import_etat_window import ImportEtatCompletWindow
 from src.ui.forms.edit_gendarme_form import SearchDossierDialog, EditCaseForm
-from .forms.delete_case_dialog import DeleteCaseDialog
-from .handlers.stats_handler import StatsHandler
+from src.ui.forms.delete_case_dialog import DeleteCaseDialog
+from src.ui.handlers.stats_handler import StatsHandler
 from src.ui.widgets.user_info_widget import UserInfoWidget
 
 
@@ -25,9 +25,10 @@ class MainGendarmeApp(QMainWindow):
         super().__init__()
 
         # Initialisation des attributs
+        self.header = QFrame()
         self.username = username
         self.search_type = None
-        self.logo_label = QLabel('Bienvenue sur Gend-Track')
+        self.welcome_label = QLabel('Bienvenue sur Gend-Track')
         self.sanctions_table = None
         self.search_input = QLineEdit()
         self.search_input.setMinimumHeight(40)
@@ -73,6 +74,8 @@ class MainGendarmeApp(QMainWindow):
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
 
+        #Style du header
+        
         if self.username:
             header_layout = QHBoxLayout()
             user_info = UserInfoWidget(self.username)
@@ -102,16 +105,16 @@ class MainGendarmeApp(QMainWindow):
 
         layout.addLayout(button_layout)
 
-        # Ajouter le logo et cacher lors d'une recherche
+        # Ajouter le mot d'accueil et le cacher lors d'une recherche
         #logo_pixmap = QPixmap("../resources/icons/logo.png")  # Chemin de l'image du logo
-        self.logo_label.setStyleSheet("font-size: 48px; color: #1c1c1e;")
-        self.logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Centrer le logo
-        self.logo_label.setFixedSize(1000, 600)
-        self.logo_label.setScaledContents(True)
-        layout.addWidget(self.logo_label)
+        self.welcome_label.setStyleSheet("font-size: 48px; color: #1c1c1e;")
+        self.welcome_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Centrer le mot d'accueil
+        self.welcome_label.setFixedSize(1000, 600)
+        self.welcome_label.setScaledContents(True)
+        layout.addWidget(self.welcome_label)
 
 
-        layout.addWidget(self.logo_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.welcome_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # barre d'outils à gauche
         dock_widget = QDockWidget("MENU", self)
@@ -127,7 +130,7 @@ class MainGendarmeApp(QMainWindow):
 
         #CSS style for the toolbar
         toolbar.setStyleSheet("""
-        QTooBar{
+        QToolBar{
             spacing: 15px;
             padding: 5px;
             background-color: #007aff;
@@ -180,8 +183,6 @@ class MainGendarmeApp(QMainWindow):
                 width: 210px;  /* Largeur fixe pour tous les boutons */
             }
         """
-
-        #common_style = "text-align: left; padding-left: 35px;"
 
         # Creation and config of button
         for button_config in buttons_config:
@@ -324,7 +325,7 @@ class MainGendarmeApp(QMainWindow):
                 return
 
             # Masquer le logo et afficher les tableaux
-            self.logo_label.setVisible(False)
+            self.welcome_label.setVisible(False)
             self.info_group.setVisible(True)
             self.sanctions_group.setVisible(True)
 
@@ -383,7 +384,7 @@ class MainGendarmeApp(QMainWindow):
                 dossier['lib_sit_mat'] or "",
                 dossier['lib_faute'] or "",
                 date_formatted,
-                dossier['id_categorie'] or "",
+                str(dossier['id_categorie']) or "",
                 dossier['lib_type_sanction'] or "",
                 dossier['taux'] or "",
                 dossier['comite'] or ""

@@ -1,3 +1,17 @@
+# from PyQt6.QtGui import QFontDatabase, QFont
+# from pathlib import Path
+#
+# FONT_DIR = Path(__file__).parent /"Space_Grotesk"
+#
+# fonts = {}
+#
+# for font_file in FONT_DIR.glob("*.ttf"):
+#     font_id = QFontDatabase.addApplicationFont(str(font_file))
+#     if font_id != -1:
+#         family = QFontDatabase.applicationFontFamilies(font_id)[0]
+#         fonts[family] = QFont(family, 12)
+#
+# SPACE_GROTESK_LIGHT = fonts.get("Space Grotesk Light", QFont("Arial", 12))
 class ThemeColors:
     """Couleurs pour les thèmes clair et sombre"""
 
