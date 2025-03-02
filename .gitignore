@@ -52,3 +52,6 @@ matrix.xlsx
 .idea/workspace.xml
 .idea/workspace.xml
 /.idea
+*.xlsx
+*.ttf
+*.ttf
