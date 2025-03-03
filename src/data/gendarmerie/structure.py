@@ -48,58 +48,71 @@ FAUTES_COMMISES = [
 ]
 
 # Thèmes d'analyse statistique
+#TODO- ADD LEGION, REGION AND TYPE OF SANCTION
 ANALYSIS_THEMES = {
     "Année": {
-        "field": "annee_punition",
-        "subfields": ["Fautes commises", "Statut", "Subdivision",
+        "field": "annee_enr",
+        "subfields": ["Fautes commises", "Statut","Région","Légion", "Subdivision",
                       "Catégorie de Fautes", "Dossiers disciplinaires complet",
-                      "Situation matrimoniale", "Tranches années service", "Grades"]
+                      "Situation matrimoniale", "Tranches années service", "Grades", "Types de sanction"]
     },
     "Fautes commises": {
-        "field": "faute_commise",
-        "subfields": ["Statut", "Subdivision", "Catégorie de Fautes",
+        "field": "lib_faute",
+        "subfields": ["Statut","Région","Légion", "Subdivision", "Catégorie de Fautes",
                       "Dossiers disciplinaires complet", "Situation matrimoniale",
-                      "Tranches années service", "Grades", "Année"]
+                      "Tranches années service", "Grades","Types de sanction", "Année"]
     },
     "Statut": {
-        "field": "statut",
-        "subfields": ["Subdivision", "Catégorie de Fautes",
+        "field": "lib_statut",
+        "subfields": ["Région","Légion","Subdivision", "Catégorie de Fautes",
+                      "Dossiers disciplinaires complet", "Situation matrimoniale",
+                      "Tranches années service", "Grades","Types de sanction", "Année", "Fautes commises"]
+    },
+    "Région": {
+        "field": "lib_rg",
+        "subfields": ["Légion", "Subdivision", "Catégorie de Fautes",
+                      "Dossiers disciplinaires complet", "Situation matrimoniale",
+                      "Tranches années service", "Grades","Types de sanction", "Année", "Fautes commises", "Type de sanction"]
+    },
+    "Légion": {
+        "field": "lib_legion",
+        "subfields": ["Région", "Subdivision", "Catégorie de Fautes",
+                      "Dossiers disciplinaires complet", "Situation matrimoniale",
+                      "Tranches années service", "Grades","Types de sanction", "Année", "Fautes commises", "Type de sanction"]
+    },
+    "Type de sanction": {
+        "field": "lib_type_sanction",
+        "subfields": ["Région","Légion", "Subdivision", "Catégorie de Fautes",
                       "Dossiers disciplinaires complet", "Situation matrimoniale",
                       "Tranches années service", "Grades", "Année", "Fautes commises"]
     },
     "Subdivision": {
-        "field": "subdiv",
-        "subfields": ["Catégorie de Fautes", "Dossiers disciplinaires complet",
-                      "Situation matrimoniale", "Tranches années service", "Grades",
+        "field": "lib_subdiv",
+        "subfields": ["Région","Légion","Catégorie de Fautes", "Dossiers disciplinaires complet",
+                      "Situation matrimoniale", "Tranches années service", "Grades","Types de sanction",
                       "Année", "Fautes commises", "Statut"]
     },
     "Catégorie de Fautes": {
-        "field": "categorie",
+        "field": "id_categorie",
         "subfields": ["Dossiers disciplinaires complet", "Situation matrimoniale",
-                      "Tranches années service", "Grades", "Année", "Fautes commises",
-                      "Statut", "Subdivision"]
-    },
-    "Dossiers disciplinaires complet": {
-        "field": "nom_prenoms",
-        "subfields": ["Situation matrimoniale", "Tranches années service", "Grades",
-                      "Année", "Fautes commises", "Statut", "Subdivision",
-                      "Catégorie de Fautes"]
+                      "Tranches années service", "Grades","Types de sanction", "Année", "Fautes commises",
+                      "Statut", "Région","Légion", "Subdivision"]
     },
     "Situation matrimoniale": {
-        "field": "situation_matrimoniale",
-        "subfields": ["Tranches années service", "Grades", "Année", "Fautes commises",
-                      "Statut", "Subdivision", "Catégorie de Fautes",
+        "field": "lib_sit_mat",
+        "subfields": ["Tranches années service", "Grades","Types de sanction", "Année", "Fautes commises",
+                      "Statut","Région","Légion", "Subdivision", "Catégorie de Fautes",
                       "Dossiers disciplinaires complet"]
     },
     "Tranches années service": {
         "field": "annee_service",
-        "subfields": ["Grades", "Année", "Fautes commises", "Statut", "Subdivision",
+        "subfields": ["Grades","Types de sanction", "Année", "Fautes commises", "Statut","Région","Légion", "Subdivision",
                       "Catégorie de Fautes", "Dossiers disciplinaires complet",
                       "Situation matrimoniale"]
     },
     "Grades": {
-        "field": "grade",
-        "subfields": ["Tranches années service", "Année", "Fautes commises", "Statut", "Subdivision",
+        "field": "lib_grade",
+        "subfields": ["Types de sanction","Tranches années service", "Année", "Fautes commises", "Statut","Région","Légion", "Subdivision",
                       "Catégorie de Fautes", "Dossiers disciplinaires complet",
                       "Situation matrimoniale"]
     }
