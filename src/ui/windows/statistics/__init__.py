@@ -11,17 +11,19 @@ from .subject_dialog import SubjectDialog
 from .table_config_dialog import TableConfigDialog
 from .visualization_window import VisualizationWindow
 from .full_list_window import FullListWindow
+from .yearly_trends_window import YearlyTrendsWindow
 
 __all__ = [
     'StatistiquesWindow',
     'SubjectDialog',
     'TableConfigDialog',
     'VisualizationWindow',
-    'FullListWindow'
+    'FullListWindow',
+    'YearlyTrendsWindow'
 ]
 
 # Version du module
-__version__ = '1.0.0'
+__version__ = '2.0.0'
 
 # Méta-données du package
 __author__ = 'Bret Walda'
@@ -34,5 +36,6 @@ COMPONENTS = {
     'SubjectDialog': 'Boîte de dialogue pour le choix du sujet d\'analyse',
     'TableConfigDialog': 'Configuration des tableaux de statistiques',
     'VisualizationWindow': 'Affichage des graphiques et tableaux',
-    'FullListWindow': 'Liste exhaustive des sanctionnés avec filtres'
+    'FullListWindow': 'Liste exhaustive des sanctionnés avec filtres',
+    'YearlyTrendsWindow': 'Affichage global des données par année.'
 }
