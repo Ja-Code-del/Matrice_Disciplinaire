@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QApplication
-
+# from src.ui.styles.styles import SPACE_GROTESK_LIGHT
 from src.database.init_db import initialize_reference_tables
 #from src.ui.windows.auth.login_window import LoginWindow
 from src.ui.main_window import MainGendarmeApp
